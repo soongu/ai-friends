@@ -8,12 +8,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e, HttpServletRequest request) {
@@ -24,13 +28,27 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException e, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException e,
+            HttpServletRequest request) {
         String message = e.getBindingResult().getFieldErrors().stream()
                 .findFirst()
                 .map(err -> err.getDefaultMessage() != null ? err.getDefaultMessage() : "입력값이 올바르지 않습니다.")
                 .orElse("입력값 검증에 실패했습니다.");
         ErrorResponse error = buildErrorResponse(ErrorCode.BAD_REQUEST, message, request.getRequestURI());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(error));
+    }
+    
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(NoResourceFoundException e, HttpServletRequest request) {
+        String path = request.getRequestURI();
+        log.warn("No resource found: method={}, resourcePath={}", request.getMethod(), e.getResourcePath());
+        
+        ErrorResponse error = buildErrorResponse(
+                ErrorCode.NOT_FOUND,
+                ErrorCode.NOT_FOUND.getMessage(),
+                path);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(error));
     }
 
     @ExceptionHandler(Exception.class)
