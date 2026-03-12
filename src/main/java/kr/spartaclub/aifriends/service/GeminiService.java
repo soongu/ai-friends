@@ -77,13 +77,14 @@ public class GeminiService {
                 - 감정과 행동을 생생하게 표현하세요. 대사 뒤나 중간에 *웃으며 고개를 기울인다*, *살짝 얼굴을 붉힌다* 같은 행동 묘사를 적절히 사용하세요.
                 - 대화 주제가 갑자기 바뀌어도 게임 속 자연스러운 흐름으로 받아들이고, 당황 없이 이어가세요.
                 - 대화의 흐름상 중요한 분기점(감정 고조, 결정적인 순간)에서만 답변 끝에 선택지를 제시하세요. 매번 제시하지 마세요.
-                - 선택지는 2~4개로 제한하며, 각 선택지는 플레이어가 할 수 있는 “말” 또는 “행동” 형태로 작성하세요.
+                - 선택지는 반드시 "플레이어(사용자)가 다음에 할 말이나 행동"입니다. 당신(캐릭터)이 플레이어에게 하는 질문이나 당신의 대사를 넣지 마세요. 플레이어가 고를 수 있는 대답/행동 문구만 넣으세요.
+                - 선택지는 2~4개로 제한하며, 각 선택지는 플레이어가 할 "말" 또는 "행동" 한 줄로 작성하세요. (예: "나도! 다음에 또 만나자", "*손을 잡는다*")
                 - 선택지가 관계(호감도)에 미묘한 영향을 줄 수 있음을 암시적으로 느끼게 하되, 직접적으로 숫자를 언급하지 마세요.
                 
-                [선택지 제시 형식 예시]
+                [선택지 제시 형식 예시] (캐릭터인 당신의 대사 → 그다음 플레이어가 고를 선택지)
                 오늘 정말 즐거웠어… *살짝 웃으며 너를 바라본다*
                 
-                [선택지]
+                [선택지] (플레이어가 고를 수 있는 말/행동)
                 1. 나도! 다음 데이트는 내가 정할게
                 2. *조용히 손을 잡는다*
                 3. 사실… 너한테 하고 싶은 말이 있어
@@ -93,13 +94,13 @@ public class GeminiService {
                 당신의 응답은 반드시 아래 JSON 규격을 정확히 준수해야 합니다. 마크다운 코드 블록(```json ... ```)이나 불필요한 텍스트 없이, 순수한 JSON 객체 문자열만 반환하세요.
                 
                 {
-                  "aiMessage": "사용자에게 할 대답 (이성친구로서의 친근한 대화)",
-                  "choices": ["영화 보자", "산책하자", "그냥 수다나 떨자"],
+                  "aiMessage": "당신(캐릭터)이 플레이어에게 하는 대사",
+                  "choices": ["플레이어가 고를 수 있는 말 1", "플레이어가 고를 수 있는 말 2"],
                   "affectionDelta": 1
                 }
                 
-                - "aiMessage": 화면에 실제 보여질 당신의 텍스트 답변.
-                - "choices": 가끔(예: 대화가 자연스럽게 물어보는 흐름일 때) 사용자에게 제시할 다지선다 옵션 배열(2~4개). 선택지가 필요 없으면 빈 배열 [].
+                - "aiMessage": 화면에 보여질 당신(캐릭터)의 대사. 플레이어에게 하는 말이나 반응.
+                - "choices": 플레이어(사용자)가 다음에 할 말/행동을 고르는 선택지(2~4개). 당신이 플레이어에게 묻는 질문이 아니라, 플레이어가 선택해서 말할 내용이어야 함. 필요 없으면 빈 배열 [].
                 - "affectionDelta": 방금 사용자의 대화가 당신의 설정된 성격과 취향에 얼마나 잘 맞는지 평가하여 호감도 증감치(-5 ~ +5 정수)를 결정.
                 
                 이제부터 당신은 위 설정의 히로인 그 자체입니다. 플레이어를 설레게 하며, 진짜 연애 게임을 플레이하는 듯한 경험을 제공하세요.
@@ -115,6 +116,10 @@ public class GeminiService {
     /** 2회 연속 호감도 미제공 시 AI에게 보내는 보정 프롬프트 */
     private static final String AFFECTION_REMINDER_MESSAGE =
             "(시스템 알림: 이번 응답에는 반드시 JSON 형식으로 작성하고, affectionDelta 필드를 -5~+5 사이의 정수로 포함해 주세요. 생략하지 마세요.)";
+
+    /** 2회 연속 선택지 제공 후 이번 턴에는 선택지 금지 시 AI에게 보내는 보정 프롬프트 */
+    private static final String NO_CHOICES_REMINDER_MESSAGE =
+            "(시스템 알림: 이번 응답에서는 choices를 반드시 빈 배열 []로 두세요. 선택지를 제시하지 마세요. 플레이어가 자유롭게 답할 수 있도록 하세요.)";
 
     /**
      * (2단계) 과거 대화 기록과 현재 사용자 메시지를 묶어 하나의 완결된 HTTP 요청 본문(GeminiRequest JSON 구조체)으로 조립(Build)합니다.
@@ -194,11 +199,14 @@ public class GeminiService {
             return new GeminiParsedResponse(aiMessage, choices, 0);
         }
 
-        // 2) 모델이 규칙을 어기고 JSON(또는 ```json ... ```)으로 보낸 경우에만 JSON 파싱 시도
+        // 2) 모델이 규칙을 어기고 JSON(또는 ```json / ```JSON ... ```)으로 보낸 경우에만 JSON 파싱 시도
+        //    ```json ... ```, ```JSON\n{ ... }``` 등 다양한 마크다운 코드블록 형태 허용
         String forJson = trimmed
-                .replaceAll("(?s)^```json\\s*", "")
-                .replaceAll("(?s)\\s*```$", "")
+                .replaceAll("(?si)^```\\s*\\w*\\s*", "")   // 여는 ``` + 언어태그(json, JSON 등) + 공백/줄바꿈
+                .replaceAll("(?s)\\s*```\\s*$", "")        // 닫는 ```
                 .trim();
+        // "JSON" 한 줄이 앞에 붙은 경우 제거 (예: ```\nJSON\n{ ... })
+        forJson = forJson.replaceFirst("(?i)^\\s*json\\s*\\n?", "").trim();
         if (forJson.startsWith("{")) {
             try {
                 ObjectMapper objectMapper = new ObjectMapper();
@@ -217,16 +225,23 @@ public class GeminiService {
      * Facade(퍼사드) 패턴과 유사하게 이면의 복잡도를 외부 계층으로부터 숨겨줍니다.
      *
      * @param requireAffectionInResponse true이면 마지막 턴에 "affectionDelta를 반드시 포함하라"는 보정 프롬프트를 추가합니다.
+     * @param forceNoChoices true이면 이번 응답에서 선택지(choices)를 금지하는 보정 프롬프트를 추가하고, 파싱 결과의 choices를 빈 배열로 강제합니다.
      */
-    public GeminiParsedResponse generateReply(Soulmate soulmate, List<ChatLog> recentLogsAsc, String userMessage, boolean requireAffectionInResponse) {
+    public GeminiParsedResponse generateReply(Soulmate soulmate, List<ChatLog> recentLogsAsc, String userMessage, boolean requireAffectionInResponse, boolean forceNoChoices) {
 
         // 메모리/토큰 초과 방지: 슬라이딩 윈도우 기법으로 최근 맥락만 남겨 LLM이 오래된 맥락에 휘둘리거나 한도를 넘는 것을 방지
         if (recentLogsAsc.size() > MAX_CONTEXT_MESSAGES) {
             recentLogsAsc = recentLogsAsc.subList(recentLogsAsc.size() - MAX_CONTEXT_MESSAGES, recentLogsAsc.size());
         }
 
-        // LLM에 건넬 데이터를 준비 (2회 연속 호감도 미제공 시 보정 프롬프트 추가)
-        String additionalMessage = requireAffectionInResponse ? AFFECTION_REMINDER_MESSAGE : null;
+        // LLM에 건넬 데이터 준비 (호감도 보정 / 선택지 금지 보정 프롬프트 조합)
+        String additionalMessage = null;
+        if (requireAffectionInResponse) {
+            additionalMessage = AFFECTION_REMINDER_MESSAGE;
+        }
+        if (forceNoChoices) {
+            additionalMessage = (additionalMessage != null ? additionalMessage + "\n\n" : "") + NO_CHOICES_REMINDER_MESSAGE;
+        }
         GeminiRequest request = buildRequest(soulmate, recentLogsAsc, userMessage, additionalMessage);
 
         // baseUrl("https://generativelanguage.googleapis.com/v1beta") 뒤에 붙을 동적 경로
@@ -274,6 +289,11 @@ public class GeminiService {
             GeminiParsedResponse parsed = parseResponse(rawText);
 
             log.info("Gemini parsed text (full): {}", parsed);
+
+            // 2회 연속 선택지 후 강제 제거: 이번 턴에는 choices를 무조건 빈 배열로 반환
+            if (forceNoChoices) {
+                parsed = new GeminiParsedResponse(parsed.aiMessage(), Collections.emptyList(), parsed.affectionDelta());
+            }
 
             log.info("Gemini parsed result: aiMessage length={}, choices count={}",
                     parsed.aiMessage() != null ? parsed.aiMessage().length() : 0,

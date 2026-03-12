@@ -61,7 +61,7 @@ class AiChatServiceTest {
                 .willReturn(new SliceImpl<>(Collections.emptyList()));
 
         GeminiParsedResponse geminiResponse = new GeminiParsedResponse("반가워!", List.of("응", "아니"), 5);
-        given(geminiService.generateReply(eq(soulmate), anyList(), eq("안녕"))).willReturn(geminiResponse);
+        given(geminiService.generateReply(eq(soulmate), anyList(), eq("안녕"), anyBoolean(), anyBoolean())).willReturn(geminiResponse);
 
         // when
         AiChatResponse response = aiChatService.processChat(request);
@@ -90,7 +90,7 @@ class AiChatServiceTest {
 
         // affection adds 4 -> total 12 (> 10)
         GeminiParsedResponse geminiResponse = new GeminiParsedResponse("고마워!", Collections.emptyList(), 4);
-        given(geminiService.generateReply(eq(soulmate), anyList(), eq("선물이야"))).willReturn(geminiResponse);
+        given(geminiService.generateReply(eq(soulmate), anyList(), eq("선물이야"), anyBoolean(), anyBoolean())).willReturn(geminiResponse);
 
         given(achievementRepository.existsBySoulmateIdAndBadgeCode(1L, "AFFECTION_10")).willReturn(false);
 

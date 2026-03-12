@@ -1,13 +1,17 @@
 /**
- * 채팅 화면 — 미연시 스타일, 전송/로딩/다이얼로그/호감도/선택지 모달
+ * 채팅 화면 — 미연시 스타일, 전송/로딩/다이얼로그/호감도/선택지 모달, 햄버거 메뉴, 대화 기록 모달
  */
-import { getSoulmate, postChat } from '../../api.js';
+import { getSoulmate, postChat, getChatLogs } from '../../api.js';
 
 const SELECTORS = {
   root: '[data-app-root]',
   bg: '[data-chat-bg]',
   statusAffection: '[data-chat-status-affection]',
   statusLevel: '[data-chat-status-level]',
+  hamburger: '[data-chat-hamburger]',
+  dropdown: '[data-chat-dropdown]',
+  menuHome: '[data-chat-menu-home]',
+  menuHistory: '[data-chat-menu-history]',
   messages: '[data-chat-messages]',
   affection: '[data-chat-affection]',
   affectionDelta: '[data-chat-affection-delta]',
@@ -19,6 +23,12 @@ const SELECTORS = {
   choiceModal: '[data-chat-choice-modal]',
   choiceMessage: '[data-chat-choice-message]',
   choiceButtons: '[data-chat-choice-buttons]',
+  historyModal: '[data-chat-history-modal]',
+  historyBackdrop: '[data-chat-history-backdrop]',
+  historyClose: '[data-chat-history-close]',
+  historyScroll: '[data-chat-history-scroll]',
+  historyList: '[data-chat-history-list]',
+  historyLoad: '[data-chat-history-load]',
 };
 
 let soulmateId;
@@ -147,25 +157,149 @@ async function sendMessage(text) {
   }
 }
 
+const HOME_URL = '/';
+const HISTORY_PAGE_SIZE = 30;
+
+let historyNextPage = 0;
+let historyHasMore = true;
+let historyLoading = false;
+
+function toggleMenu() {
+  const hamburger = $(SELECTORS.hamburger);
+  const dropdown = $(SELECTORS.dropdown);
+  if (!hamburger || !dropdown) return;
+  const isOpen = dropdown.getAttribute('data-open') === 'true';
+  if (isOpen) {
+    dropdown.setAttribute('data-open', 'false');
+    dropdown.hidden = true;
+    hamburger.setAttribute('aria-expanded', 'false');
+  } else {
+    dropdown.removeAttribute('hidden');
+    dropdown.setAttribute('data-open', 'true');
+    hamburger.setAttribute('aria-expanded', 'true');
+  }
+}
+
+function closeMenu() {
+  const dropdown = $(SELECTORS.dropdown);
+  const hamburger = $(SELECTORS.hamburger);
+  if (dropdown) {
+    dropdown.setAttribute('data-open', 'false');
+    dropdown.hidden = true;
+  }
+  if (hamburger) hamburger.setAttribute('aria-expanded', 'false');
+}
+
+function formatBubbleTime(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  if (isToday) {
+    return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+  return d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) + ' ' +
+    d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function renderHistoryBubble(log) {
+  const isUser = log.speaker === 'USER';
+  const time = formatBubbleTime(log.createdAt);
+  const msg = escapeHtml(log.message || '');
+  return `<div class="chat-history-bubble chat-history-bubble--${isUser ? 'user' : 'ai'}">${msg}<span class="chat-history-bubble__time">${escapeHtml(time)}</span></div>`;
+}
+
+function showHistoryLoad(show) {
+  const el = $(SELECTORS.historyLoad);
+  if (el) el.hidden = !show;
+}
+
+async function loadHistoryPage(prepend = false) {
+  if (!soulmateId || historyLoading) return;
+  historyLoading = true;
+  showHistoryLoad(true);
+  try {
+    const { content, hasNext } = await getChatLogs(soulmateId, historyNextPage, HISTORY_PAGE_SIZE);
+    historyHasMore = hasNext;
+    historyNextPage += 1;
+    const listEl = $(SELECTORS.historyList);
+    if (!listEl) return;
+    const reversed = [...content].reverse();
+    const html = reversed.map(renderHistoryBubble).join('');
+    const scrollEl = $(SELECTORS.historyScroll);
+    if (prepend) {
+      const prevScrollHeight = scrollEl ? scrollEl.scrollHeight : 0;
+      const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
+      listEl.insertAdjacentHTML('afterbegin', html);
+      requestAnimationFrame(() => {
+        if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight - prevScrollHeight + prevScrollTop;
+      });
+    } else {
+      listEl.innerHTML = html;
+      requestAnimationFrame(() => {
+        if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
+      });
+    }
+  } catch (e) {
+    if (listEl) listEl.insertAdjacentHTML('afterbegin', `<p class="chat-history-modal__load">${escapeHtml(e.message || '불러오기 실패')}</p>`);
+  } finally {
+    historyLoading = false;
+    showHistoryLoad(false);
+  }
+}
+
+function onHistoryScroll() {
+  const scrollEl = $(SELECTORS.historyScroll);
+  if (!scrollEl || !historyHasMore || historyLoading) return;
+  if (scrollEl.scrollTop < 120) loadHistoryPage(true);
+}
+
+function openHistoryModal() {
+  const modal = $(SELECTORS.historyModal);
+  if (!modal) return;
+  historyNextPage = 0;
+  historyHasMore = true;
+  modal.hidden = false;
+  loadHistoryPage(false);
+  const scrollEl = $(SELECTORS.historyScroll);
+  if (scrollEl) {
+    scrollEl.scrollTop = scrollEl.scrollHeight;
+    scrollEl.addEventListener('scroll', onHistoryScroll, { passive: true });
+  }
+}
+
+function closeHistoryModal() {
+  const modal = $(SELECTORS.historyModal);
+  const scrollEl = $(SELECTORS.historyScroll);
+  if (scrollEl) scrollEl.removeEventListener('scroll', onHistoryScroll);
+  if (modal) modal.hidden = true;
+}
+
 function init() {
   rootEl = document.querySelector(SELECTORS.root);
   if (!rootEl) return;
   const id = rootEl.getAttribute('data-soulmate-id');
   soulmateId = id ? parseInt(id, 10) : null;
   if (!soulmateId) {
-    alert('채팅 상대를 찾을 수 없어요.');
+    window.location.replace(HOME_URL);
     return;
   }
 
-  getSoulmate(soulmateId).then((profile) => {
-    previousAffectionScore = profile.affectionScore ?? 0;
-    previousLevel = profile.level ?? 1;
-    updateStatusBar(previousAffectionScore, previousLevel);
-    const bg = $(SELECTORS.bg);
-    if (bg && profile.characterImageUrl) {
-      bg.style.backgroundImage = `url(${profile.characterImageUrl})`;
-    }
-  }).catch(() => {});
+  getSoulmate(soulmateId)
+    .then((profile) => {
+      previousAffectionScore = profile.affectionScore ?? 0;
+      previousLevel = profile.level ?? 1;
+      updateStatusBar(previousAffectionScore, previousLevel);
+      const bg = $(SELECTORS.bg);
+      if (bg && profile.characterImageUrl) {
+        bg.style.backgroundImage = `url(${profile.characterImageUrl})`;
+      }
+    })
+    .catch(() => {
+      // 404 등: 캐릭터가 없으면 홈으로 보내서 캐릭터 생성 유도
+      window.location.replace(HOME_URL);
+      return;
+    });
 
   const input = $(SELECTORS.input);
   const sendBtn = $(SELECTORS.sendBtn);
@@ -190,6 +324,23 @@ function init() {
       }
     });
   }
+
+  const hamburger = $(SELECTORS.hamburger);
+  const menuHome = $(SELECTORS.menuHome);
+  const menuHistory = $(SELECTORS.menuHistory);
+  if (hamburger) hamburger.addEventListener('click', () => toggleMenu());
+  if (menuHome) menuHome.addEventListener('click', () => closeMenu());
+  if (menuHistory) {
+    menuHistory.addEventListener('click', () => {
+      closeMenu();
+      openHistoryModal();
+    });
+  }
+
+  const historyBackdrop = $(SELECTORS.historyBackdrop);
+  const historyClose = $(SELECTORS.historyClose);
+  if (historyBackdrop) historyBackdrop.addEventListener('click', closeHistoryModal);
+  if (historyClose) historyClose.addEventListener('click', closeHistoryModal);
 }
 
 if (document.readyState === 'loading') {

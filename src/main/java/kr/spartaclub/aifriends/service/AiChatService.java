@@ -45,6 +45,9 @@ public class AiChatService {
     /** soulmateId별로 호감도(affectionDelta)가 연속으로 미제공된 횟수. 2회 이상이면 보정 프롬프트 전송 */
     private final Map<Long, Integer> consecutiveAffectionMissingBySoulmate = new ConcurrentHashMap<>();
 
+    /** soulmateId별로 연속으로 선택지(choices)가 제공된 횟수. 2회 이상이면 다음 턴에는 선택지 금지 */
+    private final Map<Long, Integer> consecutiveChoicesShownBySoulmate = new ConcurrentHashMap<>();
+
     /**
      * 사용자의 입력 메시지를 받아 AI의 응답을 생성하고 결과를 반환합니다.
      */
@@ -65,14 +68,20 @@ public class AiChatService {
         List<ChatLog> recentLogsAsc = new ArrayList<>(recentLogsDesc);
         Collections.reverse(recentLogsAsc); // 시간 오름차순(과거 -> 최신) 정렬
 
-        // 3. 2회 연속 호감도 미제공 시 보정 프롬프트와 함께 Gemini 호출
+        // 3. 2회 연속 호감도 미제공 시 / 2회 연속 선택지 제공 시 보정 프롬프트와 함께 Gemini 호출
         int missingCount = consecutiveAffectionMissingBySoulmate.getOrDefault(soulmateId, 0);
         boolean requireAffectionInResponse = missingCount >= 2;
         if (requireAffectionInResponse) {
             log.info("soulmateId={} 호감도 {}회 연속 미제공 → 보정 프롬프트 추가", soulmateId, missingCount);
         }
 
-        GeminiParsedResponse parsedResponse = geminiService.generateReply(soulmate, recentLogsAsc, userMessage, requireAffectionInResponse);
+        int consecutiveChoices = consecutiveChoicesShownBySoulmate.getOrDefault(soulmateId, 0);
+        boolean forceNoChoices = consecutiveChoices >= 2;
+        if (forceNoChoices) {
+            log.info("soulmateId={} 선택지 {}회 연속 제공 → 이번 턴 선택지 금지", soulmateId, consecutiveChoices);
+        }
+
+        GeminiParsedResponse parsedResponse = geminiService.generateReply(soulmate, recentLogsAsc, userMessage, requireAffectionInResponse, forceNoChoices);
         String aiMessage = parsedResponse.aiMessage();
         List<String> choices = parsedResponse.choices();
 
@@ -81,6 +90,13 @@ public class AiChatService {
             consecutiveAffectionMissingBySoulmate.put(soulmateId, 0);
         } else {
             consecutiveAffectionMissingBySoulmate.merge(soulmateId, 1, Integer::sum);
+        }
+
+        // 선택지 연속 제공 횟수 갱신: 이번에 선택지 금지였거나 비어 있으면 0, 비어 있지 않으면 +1
+        if (forceNoChoices || choices == null || choices.isEmpty()) {
+            consecutiveChoicesShownBySoulmate.put(soulmateId, 0);
+        } else {
+            consecutiveChoicesShownBySoulmate.merge(soulmateId, 1, Integer::sum);
         }
 
         // 4. 대화 내용 DB 저장 (사용자 발화, AI 발화 둘 다)

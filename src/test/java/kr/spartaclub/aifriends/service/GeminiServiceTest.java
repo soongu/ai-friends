@@ -71,7 +71,7 @@ class GeminiServiceTest {
                 .addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE));
 
         // when
-        GeminiParsedResponse response = geminiService.generateReply(soulmate, Collections.emptyList(), "hello");
+        GeminiParsedResponse response = geminiService.generateReply(soulmate, Collections.emptyList(), "hello", false, false);
 
         // then
         assertThat(response.aiMessage()).isEqualTo("안녕!");
@@ -87,7 +87,7 @@ class GeminiServiceTest {
         mockWebServer.enqueue(new MockResponse().setResponseCode(429));
 
         // when & then
-        assertThatThrownBy(() -> geminiService.generateReply(soulmate, Collections.emptyList(), "hi"))
+        assertThatThrownBy(() -> geminiService.generateReply(soulmate, Collections.emptyList(), "hi", false, false))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(ErrorCode.RATE_LIMIT.getMessage());
     }
@@ -116,8 +116,8 @@ class GeminiServiceTest {
                 .setBody(mockResponseBody)
                 .addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE));
 
-        GeminiParsedResponse response = geminiService.generateReply(soulmate, Collections.emptyList(), "hi");
-        
+        GeminiParsedResponse response = geminiService.generateReply(soulmate, Collections.emptyList(), "hi", false, false);
+
         assertThat(response.aiMessage()).isEqualTo("그냥 평범한 텍스트로 응답함");
         assertThat(response.affectionDelta()).isEqualTo(0);
     }

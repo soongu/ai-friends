@@ -124,3 +124,19 @@ export async function postChat(soulmateId, userMessage) {
   if (!res.success || res.data == null) throw new Error(res?.error?.message || '전송에 실패했어요');
   return res.data;
 }
+
+/**
+ * 대화 히스토리 페이징 조회 (최신순 DESC, page 0이 가장 최신)
+ * @param {number} soulmateId
+ * @param {number} [page=0]
+ * @param {number} [size=30]
+ * @returns {Promise<{ content: Array<{ id: number, soulmateId: number, speaker: string, message: string, createdAt: string }>, hasNext: boolean }>}
+ */
+export async function getChatLogs(soulmateId, page = 0, size = 30) {
+  const res = await request(`/api/soulmates/${soulmateId}/chat/logs?page=${page}&size=${size}`);
+  if (!res.success || res.data == null) throw new Error(res?.error?.message || '대화 기록을 불러올 수 없어요');
+  const slice = res.data;
+  const content = Array.isArray(slice.content) ? slice.content : [];
+  const hasNext = slice.last === false;
+  return { content, hasNext };
+}

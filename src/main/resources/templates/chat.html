@@ -18,10 +18,27 @@
         <div class="chat-bg__overlay"></div>
       </div>
 
-      <!-- 호감도·레벨 상단 표시 -->
+      <!-- 호감도·레벨 상단 표시 + 햄버거 메뉴 -->
       <header class="chat-status" data-chat-status aria-label="호감도와 레벨">
         <span class="chat-status__affection" data-chat-status-affection>❤ 0</span>
         <span class="chat-status__level" data-chat-status-level>Lv.1</span>
+        <div class="chat-status__menu-wrap">
+          <button type="button" class="chat-status__hamburger" data-chat-hamburger aria-label="메뉴 열기" aria-expanded="false">
+            <span class="chat-status__hamburger-bar"></span>
+            <span class="chat-status__hamburger-bar"></span>
+            <span class="chat-status__hamburger-bar"></span>
+          </button>
+          <div class="chat-status__dropdown" data-chat-dropdown hidden>
+            <a href="/" class="chat-status__dropdown-item" data-chat-menu-home aria-label="홈으로">
+              <span class="chat-status__dropdown-icon" aria-hidden="true">⌂</span>
+              <span>홈</span>
+            </a>
+            <button type="button" class="chat-status__dropdown-item" data-chat-menu-history aria-label="대화 기록">
+              <span class="chat-status__dropdown-icon" aria-hidden="true">💬</span>
+              <span>대화 기록</span>
+            </button>
+          </div>
+        </div>
       </header>
 
       <!-- 대화/다이얼로그 영역 (일반 모드) -->
@@ -63,6 +80,21 @@
         <div class="chat-choice-modal__content">
           <p class="chat-choice-modal__message" data-chat-choice-message></p>
           <div class="chat-choice-modal__buttons" data-chat-choice-buttons></div>
+        </div>
+      </div>
+
+      <!-- 대화 기록 모달 (카카오톡 스타일, 위로 스크롤 시 이전 페이지 로드) -->
+      <div class="chat-history-modal" data-chat-history-modal hidden aria-modal="true" role="dialog" aria-label="대화 기록">
+        <div class="chat-history-modal__backdrop" data-chat-history-backdrop></div>
+        <div class="chat-history-modal__panel">
+          <header class="chat-history-modal__header">
+            <h2 class="chat-history-modal__title">대화 기록</h2>
+            <button type="button" class="chat-history-modal__close" data-chat-history-close aria-label="닫기">×</button>
+          </header>
+          <div class="chat-history-modal__scroll" data-chat-history-scroll>
+            <div class="chat-history-modal__list" data-chat-history-list></div>
+            <div class="chat-history-modal__load" data-chat-history-load hidden>이전 대화 불러오는 중…</div>
+          </div>
         </div>
       </div>
     </main>
