@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1f2937" />
+  <title>대화 | AI 이성친구</title>
+  <link rel="stylesheet" th:href="@{/css/variables.css}" />
+  <link rel="stylesheet" th:href="@{/css/base.css}" />
+  <link rel="stylesheet" th:href="@{/css/layout.css}" />
+  <link rel="stylesheet" th:href="@{/css/chat.css}" />
+</head>
+<body>
+  <div class="app-root" data-app-root data-soulmate-id th:attr="data-soulmate-id=${soulmateId}">
+    <main class="main-container main-container--chat">
+      <!-- 풀스크린 캐릭터 배경 -->
+      <div class="chat-bg" data-chat-bg aria-hidden="true">
+        <div class="chat-bg__overlay"></div>
+      </div>
+
+      <!-- 호감도·레벨 상단 표시 -->
+      <header class="chat-status" data-chat-status aria-label="호감도와 레벨">
+        <span class="chat-status__affection" data-chat-status-affection>❤ 0</span>
+        <span class="chat-status__level" data-chat-status-level>Lv.1</span>
+      </header>
+
+      <!-- 대화/다이얼로그 영역 (일반 모드) -->
+      <section class="chat-dialog" data-chat-dialog>
+        <div class="chat-dialog__messages" data-chat-messages>
+          <!-- JS에서 AI 메시지 + 호감도 추가 -->
+        </div>
+        <div class="chat-dialog__affection" data-chat-affection hidden aria-live="polite">
+          <span data-chat-affection-delta></span>
+          <span class="chat-dialog__level-up" data-chat-level-up hidden></span>
+        </div>
+      </section>
+
+      <!-- 하단 입력 영역 (카카오톡 스타일) -->
+      <footer class="chat-footer">
+        <div class="chat-input-wrap">
+          <input
+            type="text"
+            class="chat-input"
+            data-chat-input
+            placeholder="메시지를 입력하세요"
+            maxlength="500"
+            autocomplete="off"
+          />
+          <button type="button" class="chat-send" data-chat-send aria-label="전송">
+            <span class="chat-send__icon" data-chat-send-icon aria-hidden="true">➤</span>
+            <span class="chat-send__loading" data-chat-send-loading hidden aria-hidden="true">
+              <span class="chat-loading-dot"></span>
+              <span class="chat-loading-dot"></span>
+              <span class="chat-loading-dot"></span>
+            </span>
+          </button>
+        </div>
+      </footer>
+
+      <!-- 선택지 모달 (choices 있을 때만 표시) -->
+      <div class="chat-choice-modal" data-chat-choice-modal hidden aria-modal="true" role="dialog" aria-label="선택지">
+        <div class="chat-choice-modal__backdrop" data-chat-choice-backdrop></div>
+        <div class="chat-choice-modal__content">
+          <p class="chat-choice-modal__message" data-chat-choice-message></p>
+          <div class="chat-choice-modal__buttons" data-chat-choice-buttons></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" th:src="@{/js/pages/chat/index.js}"></script>
+</body>
+</html>

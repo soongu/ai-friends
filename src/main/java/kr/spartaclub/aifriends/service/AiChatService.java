@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 실시간 AI 채팅 비즈니스 흐름을 관장하는 퍼사드(Facade) 역할의 서비스입니다.
@@ -39,6 +41,9 @@ public class AiChatService {
 
     // AI에게 한 번에 전달할 과거 대화 개수 상한 (예: 20건 = 최근 10턴)
     private static final int RECENT_LOGS_LIMIT = 20;
+
+    /** soulmateId별로 호감도(affectionDelta)가 연속으로 미제공된 횟수. 2회 이상이면 보정 프롬프트 전송 */
+    private final Map<Long, Integer> consecutiveAffectionMissingBySoulmate = new ConcurrentHashMap<>();
 
     /**
      * 사용자의 입력 메시지를 받아 AI의 응답을 생성하고 결과를 반환합니다.
@@ -60,10 +65,23 @@ public class AiChatService {
         List<ChatLog> recentLogsAsc = new ArrayList<>(recentLogsDesc);
         Collections.reverse(recentLogsAsc); // 시간 오름차순(과거 -> 최신) 정렬
 
-        // 3. Gemini API를 통해 AI 답변 생성 (로직의 가장 긴 시간 소요 지점)
-        GeminiParsedResponse parsedResponse = geminiService.generateReply(soulmate, recentLogsAsc, userMessage);
+        // 3. 2회 연속 호감도 미제공 시 보정 프롬프트와 함께 Gemini 호출
+        int missingCount = consecutiveAffectionMissingBySoulmate.getOrDefault(soulmateId, 0);
+        boolean requireAffectionInResponse = missingCount >= 2;
+        if (requireAffectionInResponse) {
+            log.info("soulmateId={} 호감도 {}회 연속 미제공 → 보정 프롬프트 추가", soulmateId, missingCount);
+        }
+
+        GeminiParsedResponse parsedResponse = geminiService.generateReply(soulmate, recentLogsAsc, userMessage, requireAffectionInResponse);
         String aiMessage = parsedResponse.aiMessage();
         List<String> choices = parsedResponse.choices();
+
+        // 호감도 미제공 연속 횟수 갱신 (다음 턴에서 보정 여부 판단용)
+        if (parsedResponse.affectionDelta() != 0) {
+            consecutiveAffectionMissingBySoulmate.put(soulmateId, 0);
+        } else {
+            consecutiveAffectionMissingBySoulmate.merge(soulmateId, 1, Integer::sum);
+        }
 
         // 4. 대화 내용 DB 저장 (사용자 발화, AI 발화 둘 다)
         ChatLog userLog = new ChatLog(null, soulmateId, "USER", userMessage, null);

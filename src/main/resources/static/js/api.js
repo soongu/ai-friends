@@ -97,3 +97,30 @@ export async function getSoulmate(id) {
   if (!res.success || res.data == null) throw new Error(res?.error?.message || '조회에 실패했어요');
   return res.data;
 }
+
+/** 채팅 API 응답 (AiChatResponse) */
+/**
+ * @typedef {Object} AiChatResponse
+ * @property {string} userMessage
+ * @property {string} aiMessage
+ * @property {string[]} choices
+ * @property {number} soulmateId
+ * @property {number} affectionScore
+ * @property {number} level
+ * @property {string[]} [newBadges]
+ */
+
+/**
+ * AI 채팅 전송
+ * @param {number} soulmateId
+ * @param {string} userMessage
+ * @returns {Promise<AiChatResponse>}
+ */
+export async function postChat(soulmateId, userMessage) {
+  const res = await request('/api/chat', {
+    method: 'POST',
+    body: JSON.stringify({ soulmateId, userMessage }),
+  });
+  if (!res.success || res.data == null) throw new Error(res?.error?.message || '전송에 실패했어요');
+  return res.data;
+}

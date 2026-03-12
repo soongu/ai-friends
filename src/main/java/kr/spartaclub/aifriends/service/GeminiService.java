@@ -112,15 +112,20 @@ public class GeminiService {
         );
     }
 
+    /** 2회 연속 호감도 미제공 시 AI에게 보내는 보정 프롬프트 */
+    private static final String AFFECTION_REMINDER_MESSAGE =
+            "(시스템 알림: 이번 응답에는 반드시 JSON 형식으로 작성하고, affectionDelta 필드를 -5~+5 사이의 정수로 포함해 주세요. 생략하지 마세요.)";
+
     /**
      * (2단계) 과거 대화 기록과 현재 사용자 메시지를 묶어 하나의 완결된 HTTP 요청 본문(GeminiRequest JSON 구조체)으로 조립(Build)합니다.
+     * @param additionalUserMessage 호감도 보정 요청 등 추가로 붙일 사용자 메시지. null이면 생략.
      */
-    private GeminiRequest buildRequest(Soulmate soulmate, List<ChatLog> recentLogs, String userMessage) {
+    private GeminiRequest buildRequest(Soulmate soulmate, List<ChatLog> recentLogs, String userMessage, String additionalUserMessage) {
         // 1. System Instruction 조립
         String sysText = buildSystemInstructionText(soulmate);
         SystemInstruction sysInst = new SystemInstruction(List.of(new Part(sysText)));
 
-        // 2. Contents 조립 (대화 맥락 + 이번 사용자의 발화)
+        // 2. Contents 조립 (대화 맥락 + 이번 사용자의 발화 + 선택적 보정 메시지)
         // -------------------------------------------------------------------------
         // [학습용 설명] 아래는 "스트림(Stream)"을 사용해 두 목록을 하나로 합치는 코드입니다.
         //
@@ -142,14 +147,17 @@ public class GeminiService {
         // ④ .toList()
         //    - 스트림에서 나온 결과(Content들)를 최종적으로 "List<Content>"로 모아서 반환합니다.
         // -------------------------------------------------------------------------
-        List<Content> contents = Stream.concat(
-                        recentLogs.stream()
-                                .map(log -> {
-                                    String role = "USER".equals(log.getSpeaker()) ? "user" : "model";
-                                    return new Content(role, List.of(new Part(log.getMessage())));
-                                }),
-                        Stream.of(new Content("user", List.of(new Part(userMessage)))))
-                .toList();
+        Stream<Content> baseContents = Stream.concat(
+                recentLogs.stream()
+                        .map(log -> {
+                            String role = "USER".equals(log.getSpeaker()) ? "user" : "model";
+                            return new Content(role, List.of(new Part(log.getMessage())));
+                        }),
+                Stream.of(new Content("user", List.of(new Part(userMessage)))));
+        if (StringUtils.hasText(additionalUserMessage)) {
+            baseContents = Stream.concat(baseContents, Stream.of(new Content("user", List.of(new Part(additionalUserMessage)))));
+        }
+        List<Content> contents = baseContents.toList();
 
         // 3. 모델 설정값 조작 (GenerationConfig)
         // 체감상 가장 자연스러운 대화가 나오는 값들로 초기 셋업 (temperature=0.8 등)
@@ -207,16 +215,19 @@ public class GeminiService {
     /**
      * (핵심 진입점) 이 메서드 하나가 1~3단계를 지휘하며 전체 LLM 호출 흐름을 제어하고, 에러 상황까지 컨트롤합니다.
      * Facade(퍼사드) 패턴과 유사하게 이면의 복잡도를 외부 계층으로부터 숨겨줍니다.
+     *
+     * @param requireAffectionInResponse true이면 마지막 턴에 "affectionDelta를 반드시 포함하라"는 보정 프롬프트를 추가합니다.
      */
-    public GeminiParsedResponse generateReply(Soulmate soulmate, List<ChatLog> recentLogsAsc, String userMessage) {
+    public GeminiParsedResponse generateReply(Soulmate soulmate, List<ChatLog> recentLogsAsc, String userMessage, boolean requireAffectionInResponse) {
 
         // 메모리/토큰 초과 방지: 슬라이딩 윈도우 기법으로 최근 맥락만 남겨 LLM이 오래된 맥락에 휘둘리거나 한도를 넘는 것을 방지
         if (recentLogsAsc.size() > MAX_CONTEXT_MESSAGES) {
             recentLogsAsc = recentLogsAsc.subList(recentLogsAsc.size() - MAX_CONTEXT_MESSAGES, recentLogsAsc.size());
         }
 
-        // LLM에 건넬 데이터를 준비
-        GeminiRequest request = buildRequest(soulmate, recentLogsAsc, userMessage);
+        // LLM에 건넬 데이터를 준비 (2회 연속 호감도 미제공 시 보정 프롬프트 추가)
+        String additionalMessage = requireAffectionInResponse ? AFFECTION_REMINDER_MESSAGE : null;
+        GeminiRequest request = buildRequest(soulmate, recentLogsAsc, userMessage, additionalMessage);
 
         // baseUrl("https://generativelanguage.googleapis.com/v1beta") 뒤에 붙을 동적 경로
         String urlPath = "/models/" + geminiModel + ":generateContent";
