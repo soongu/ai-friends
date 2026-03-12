@@ -62,11 +62,11 @@ public class SoulmateService {
                 .toList();
 
         // 3. 엔티티와 뱃지 목록을 합쳐서 상세 응답 DTO 생성
-        return SoulmateProfileResponse.from(soulmate, badges);
+        return SoulmateProfileResponse.of(soulmate, badges);
     }
 
     /**
-     * 전체 이성친구 목록을 조회합니다. (원할 경우 SPA 메인화면 등에 사용)
+     * 전체 이성친구 목록을 조회합니다. 
      */
     public List<SoulmateResponse> getSoulmates() {
         return soulmateRepository.findAll().stream()

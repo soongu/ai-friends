@@ -23,7 +23,7 @@ public record SoulmateProfileResponse(
         List<String> badges,
         LocalDateTime createdAt
 ) {
-    public static SoulmateProfileResponse from(Soulmate entity, List<String> badges) {
+    public static SoulmateProfileResponse of(Soulmate entity, List<String> badges) {
         return new SoulmateProfileResponse(
                 entity.getId(),
                 entity.getGender(),
