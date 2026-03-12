@@ -37,7 +37,12 @@ public class RestClientConfig {
 
     @Bean("geminiRestClient")
     public RestClient geminiRestClient() {
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000); // 5초 커넥션 타임아웃
+        factory.setReadTimeout(30000);   // 30초 (AI 응답 생성이 길어질 수 있으므로 여유롭게)
+
         return RestClient.builder()
+                .requestFactory(factory)
                 .baseUrl(geminiBaseUrl)
                 .defaultHeader("x-goog-api-key", geminiApiKey)
                 .defaultHeader("Content-Type", "application/json")
