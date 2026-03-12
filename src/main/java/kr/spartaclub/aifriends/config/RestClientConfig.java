@@ -1,18 +1,25 @@
-package kr.spartaclub.aifriends.practice;
+package kr.spartaclub.aifriends.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
 
 /**
- * Practice API(JSONPlaceholder, Bored) 호출용 RestClient 빈 정의.
- * 테스트에서는 MockWebServer URL로 대체 가능.
+ * 외부 API 연동을 위한 RestClient 빈 정의.
+ * Gemini API 및 Practice API(JSONPlaceholder, Bored API) 호출용 클라이언트를 제공합니다.
  */
 @Configuration
-public class PracticeRestClientConfig {
+public class RestClientConfig {
 
     private static final String JSON_PLACEHOLDER_BASE = "https://jsonplaceholder.typicode.com";
     private static final String BORED_API_BASE = "https://bored-api.appbrewery.com";
+
+    @Value("${gemini.base-url}")
+    private String geminiBaseUrl;
+
+    @Value("${gemini.api-key}")
+    private String geminiApiKey;
 
     @Bean("jsonPlaceholderRestClient")
     public RestClient jsonPlaceholderRestClient() {
@@ -25,6 +32,15 @@ public class PracticeRestClientConfig {
     public RestClient boredRestClient() {
         return RestClient.builder()
                 .baseUrl(BORED_API_BASE)
+                .build();
+    }
+
+    @Bean("geminiRestClient")
+    public RestClient geminiRestClient() {
+        return RestClient.builder()
+                .baseUrl(geminiBaseUrl)
+                .defaultHeader("x-goog-api-key", geminiApiKey)
+                .defaultHeader("Content-Type", "application/json")
                 .build();
     }
 }

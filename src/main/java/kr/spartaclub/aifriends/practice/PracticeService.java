@@ -9,7 +9,7 @@ import org.springframework.web.client.RestClient;
 
 /**
  * S2S 연습용 서비스 — JSONPlaceholder, Bored API 호출.
- * RestClient는 PracticeRestClientConfig에서 빈으로 주입 (테스트 시 MockWebServer URL로 대체 가능).
+ * RestClient는 config/RestClientConfig에서 빈으로 주입 (테스트 시 MockWebServer URL로 대체 가능).
  */
 @Service
 public class PracticeService {
