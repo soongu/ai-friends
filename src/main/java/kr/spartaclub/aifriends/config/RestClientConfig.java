@@ -3,6 +3,7 @@ package kr.spartaclub.aifriends.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -37,7 +38,7 @@ public class RestClientConfig {
 
     @Bean("geminiRestClient")
     public RestClient geminiRestClient() {
-        org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(5000); // 5초 커넥션 타임아웃
         factory.setReadTimeout(30000);   // 30초 (AI 응답 생성이 길어질 수 있으므로 여유롭게)
 

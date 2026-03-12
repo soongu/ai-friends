@@ -1,5 +1,7 @@
 package kr.spartaclub.aifriends.controller;
 
+import kr.spartaclub.aifriends.common.exception.GlobalExceptionHandler;
+import org.springframework.context.annotation.Import;
 import tools.jackson.databind.ObjectMapper;
 import kr.spartaclub.aifriends.dto.AiChatRequest;
 import kr.spartaclub.aifriends.dto.AiChatResponse;
@@ -15,13 +17,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AiChatController.class)
-@org.springframework.context.annotation.Import(kr.spartaclub.aifriends.common.exception.GlobalExceptionHandler.class)
+@Import(GlobalExceptionHandler.class)
 class AiChatControllerTest {
 
     @Autowired
@@ -41,8 +44,8 @@ class AiChatControllerTest {
         AiChatResponse response = new AiChatResponse(
                 "안녕", "반가워!", Collections.emptyList(), 1L, 5, 1, Collections.emptyList()
         );
-        
-        when(aiChatService.processChat(any())).thenReturn(response);
+
+        given(aiChatService.processChat(any())).willReturn(response);
 
         // when & then
         mockMvc.perform(post("/api/chat")

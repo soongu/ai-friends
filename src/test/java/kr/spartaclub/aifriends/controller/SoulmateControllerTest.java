@@ -1,6 +1,6 @@
 package kr.spartaclub.aifriends.controller;
 
-import tools.jackson.databind.ObjectMapper;
+import kr.spartaclub.aifriends.common.exception.GlobalExceptionHandler;
 import kr.spartaclub.aifriends.domain.ChatLog;
 import kr.spartaclub.aifriends.domain.Soulmate;
 import kr.spartaclub.aifriends.dto.ChatLogResponse;
@@ -13,18 +13,20 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.ObjectMapper;
 
-import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -32,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SoulmateController.class)
-@org.springframework.context.annotation.Import(kr.spartaclub.aifriends.common.exception.GlobalExceptionHandler.class)
+@Import(GlobalExceptionHandler.class)
 class SoulmateControllerTest {
 
     @Autowired
@@ -57,7 +59,7 @@ class SoulmateControllerTest {
         );
         Soulmate entity = new Soulmate(1L, "FEMALE", "img1", "url", "Alice", "kind", "reading", "gentle", 0, 1, java.time.LocalDateTime.now());
         SoulmateResponse mockResponse = SoulmateResponse.from(entity);
-        when(soulmateService.createSoulmate(any())).thenReturn(mockResponse);
+        given(soulmateService.createSoulmate(any())).willReturn(mockResponse);
 
         // when & then
         mockMvc.perform(post("/api/soulmates")
@@ -93,7 +95,7 @@ class SoulmateControllerTest {
         // given
         Soulmate entity = new Soulmate(1L, "MALE", "img1", null, "Bob", "kind", "none", "none", 0, 1, java.time.LocalDateTime.now());
         SoulmateProfileResponse mockResponse = SoulmateProfileResponse.of(entity, List.of("BADGE_1"));
-        when(soulmateService.getSoulmate(1L)).thenReturn(mockResponse);
+        given(soulmateService.getSoulmate(1L)).willReturn(mockResponse);
 
         // when & then
         mockMvc.perform(get("/api/soulmates/1"))
@@ -109,7 +111,7 @@ class SoulmateControllerTest {
         // given
         ChatLog log = new ChatLog(1L, 1L, "USER", "안녕", java.time.LocalDateTime.now());
         Slice<ChatLogResponse> slice = new SliceImpl<>(List.of(ChatLogResponse.from(log)));
-        when(chatLogService.getChatLogs(eq(1L), any(Pageable.class))).thenReturn(slice);
+        given(chatLogService.getChatLogs(eq(1L), any(Pageable.class))).willReturn(slice);
 
         // when & then
         mockMvc.perform(get("/api/soulmates/1/chat/logs?page=0&size=5"))

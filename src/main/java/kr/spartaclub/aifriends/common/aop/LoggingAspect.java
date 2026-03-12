@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
 public class LoggingAspect {
 
     /** 로그에 남길 문자열 최대 길이. */
-    private static final int MAX_STRING_LENGTH = 200;
+    private static final int MAX_STRING_LENGTH = 500;
     private static final int MAX_SINGLE_VALUE_LENGTH = 100;
 
     /** 요청 바디 문자열 안에서 민감 필드 값 마스킹용 (password=xxx → password=***) */

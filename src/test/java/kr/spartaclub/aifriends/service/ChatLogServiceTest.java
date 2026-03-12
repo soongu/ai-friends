@@ -18,6 +18,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,7 +35,7 @@ class ChatLogServiceTest {
     void saveLog_success() {
         // given
         ChatLog savedMock = new ChatLog(1L, 100L, "USER", "안녕하세요", null);
-        when(chatLogRepository.save(any(ChatLog.class))).thenReturn(savedMock);
+        given(chatLogRepository.save(any(ChatLog.class))).willReturn(savedMock);
 
         // when
         ChatLogResponse response = chatLogService.saveLog(100L, "USER", "안녕하세요");
@@ -53,8 +54,8 @@ class ChatLogServiceTest {
         PageRequest pageRequest = PageRequest.of(0, 10);
         Slice<ChatLog> sliceMock = new SliceImpl<>(List.of(log1, log2), pageRequest, false);
 
-        when(chatLogRepository.findBySoulmateIdOrderByCreatedAtDesc(eq(100L), eq(pageRequest)))
-                .thenReturn(sliceMock);
+        given(chatLogRepository.findBySoulmateIdOrderByCreatedAtDesc(eq(100L), eq(pageRequest)))
+                .willReturn(sliceMock);
 
         // when
         Slice<ChatLogResponse> responses = chatLogService.getChatLogs(100L, pageRequest);

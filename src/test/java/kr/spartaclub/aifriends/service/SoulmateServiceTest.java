@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,7 +49,7 @@ class SoulmateServiceTest {
 
         Soulmate savedMock = new Soulmate(1L, "FEMALE", "img1", "url", "Alice", "kind", "reading", "gentle", 0, 1, null);
 
-        when(soulmateRepository.save(any(Soulmate.class))).thenReturn(savedMock);
+        given(soulmateRepository.save(any(Soulmate.class))).willReturn(savedMock);
 
         // when
         SoulmateResponse response = soulmateService.createSoulmate(request);
@@ -63,12 +64,12 @@ class SoulmateServiceTest {
     void getSoulmate_success() {
         // given
         Soulmate soulmate = new Soulmate(1L, "FEMALE", "img1", "url", "Alice", "kind", "reading", "gentle", 0, 1, null);
-        when(soulmateRepository.findById(1L)).thenReturn(Optional.of(soulmate));
+        given(soulmateRepository.findById(1L)).willReturn(Optional.of(soulmate));
 
         SoulmateAchievement badge1 = new SoulmateAchievement(10L, 1L, "FIRST_MEET", null);
         SoulmateAchievement badge2 = new SoulmateAchievement(11L, 1L, "LEVEL_UP", null);
-        when(achievementRepository.findBySoulmateIdOrderByEarnedAtDesc(1L))
-                .thenReturn(List.of(badge2, badge1));
+        given(achievementRepository.findBySoulmateIdOrderByEarnedAtDesc(1L))
+                .willReturn(List.of(badge2, badge1));
 
         // when
         SoulmateProfileResponse response = soulmateService.getSoulmate(1L);
@@ -82,7 +83,7 @@ class SoulmateServiceTest {
     @DisplayName("이성친구 단건 조회 실패 - 존재하지 않음")
     void getSoulmate_notFound_throwsException() {
         // given
-        when(soulmateRepository.findById(999L)).thenReturn(Optional.empty());
+        given(soulmateRepository.findById(999L)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> soulmateService.getSoulmate(999L))
@@ -97,7 +98,7 @@ class SoulmateServiceTest {
         Soulmate soulmate1 = new Soulmate(1L, "FEMALE", "img", null, "A", "k", "h", "s", 0, 1, null);
         Soulmate soulmate2 = new Soulmate(2L, "MALE", "img", null, "B", "k", "h", "s", 0, 1, null);
 
-        when(soulmateRepository.findAll()).thenReturn(List.of(soulmate1, soulmate2));
+        given(soulmateRepository.findAll()).willReturn(List.of(soulmate1, soulmate2));
 
         // when
         List<SoulmateResponse> responses = soulmateService.getSoulmates();

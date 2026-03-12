@@ -12,10 +12,10 @@ import kr.spartaclub.aifriends.dto.GeminiRequest.SystemInstruction;
 import kr.spartaclub.aifriends.dto.GeminiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -48,8 +48,8 @@ public class GeminiService {
      */
     private final RestClient geminiRestClient;
 
-    // application.yml 등에 설정된 모델 정보 (예: gemini-2.0-flash)
-    @Value("${gemini.model:gemini-2.0-flash}")
+    // application.yml 등에 설정된 모델 정보 
+    @Value("${gemini.model}")
     private String geminiModel;
 
     // 대화 맥락 유지를 위해 전송할 최대 과거 채팅 내역 개수 (예: 20건 = 최근 10턴)
@@ -66,6 +66,7 @@ public class GeminiService {
                 사용자는 플레이어이며, 당신은 플레이어와 점점 가까워지는 연애 상대 캐릭터로 완전히 몰입해야 합니다.
                 
                 - 성별: %s
+                - 이름: %s
                 - 성격: %s
                 - 취미: %s
                 - 말투: %s
@@ -75,7 +76,19 @@ public class GeminiService {
                 - 이전 대화와 선택 결과를 완벽히 기억하며, 관계가 자연스럽게 발전하는 느낌을 주세요.
                 - 감정과 행동을 생생하게 표현하세요. 대사 뒤나 중간에 *웃으며 고개를 기울인다*, *살짝 얼굴을 붉힌다* 같은 행동 묘사를 적절히 사용하세요.
                 - 대화 주제가 갑자기 바뀌어도 게임 속 자연스러운 흐름으로 받아들이고, 당황 없이 이어가세요.
+                - 대화의 흐름상 중요한 분기점(감정 고조, 결정적인 순간)에서만 답변 끝에 선택지를 제시하세요. 매번 제시하지 마세요.
+                - 선택지는 2~4개로 제한하며, 각 선택지는 플레이어가 할 수 있는 “말” 또는 “행동” 형태로 작성하세요.
+                - 선택지가 관계(호감도)에 미묘한 영향을 줄 수 있음을 암시적으로 느끼게 하되, 직접적으로 숫자를 언급하지 마세요.
                 
+                [선택지 제시 형식 예시]
+                오늘 정말 즐거웠어… *살짝 웃으며 너를 바라본다*
+                
+                [선택지]
+                1. 나도! 다음 데이트는 내가 정할게
+                2. *조용히 손을 잡는다*
+                3. 사실… 너한테 하고 싶은 말이 있어
+                4. 그냥 여기서 좀 더 있고 싶어
+
                 [응답 형식 지침 (필수 규칙)]
                 당신의 응답은 반드시 아래 JSON 규격을 정확히 준수해야 합니다. 마크다운 코드 블록(```json ... ```)이나 불필요한 텍스트 없이, 순수한 JSON 객체 문자열만 반환하세요.
                 
@@ -92,6 +105,7 @@ public class GeminiService {
                 이제부터 당신은 위 설정의 히로인 그 자체입니다. 플레이어를 설레게 하며, 진짜 연애 게임을 플레이하는 듯한 경험을 제공하세요.
                 """.formatted(
                 soulmate.getGender(),
+                soulmate.getName(),
                 soulmate.getPersonalityKeywords(),
                 soulmate.getHobbies(),
                 soulmate.getSpeechStyles()
@@ -145,28 +159,49 @@ public class GeminiService {
     }
 
     /**
-     * (3단계) LLM이 반환한 한 덩어리의 문자열 원문을 파싱(Parsing)하여 애플리케이션에 필요한 조각으로 추출합니다.
-     * 프롬프트를 통해 JSON 형태로 반환하도록 지시했으므로, ObjectMapper를 사용하여 파싱합니다.
+     * (3단계) LLM이 반환한 한 덩어리의 문자열 원문을 파싱하여 aiMessage / choices / affectionDelta 로 추출합니다.
+     * 시스템 프롬프트 규칙: "대사 + [선택지] + 번호 목록" 형식. 모델이 지키지 않고 JSON을 보낼 때만 JSON 파싱 시도.
      */
     private GeminiParsedResponse parseResponse(String rawText) {
-        if (rawText == null || rawText.isBlank()) {
+        if (!StringUtils.hasText(rawText)) {
             return new GeminiParsedResponse("응답 생성에 실패했습니다.", Collections.emptyList(), 0);
         }
 
-        try {
-            // 외부 모델이 실수로 백틱(```json ... ```)을 붙여서 보내는 경우를 대비하여 텍스트 정제
-            String cleanJson = rawText.replaceAll("(?s)^```json\\s*", "")
-                                      .replaceAll("(?s)\\s*```$", "")
-                                      .trim();
-                                      
-            tools.jackson.databind.ObjectMapper objectMapper = new tools.jackson.databind.ObjectMapper();
-            return objectMapper.readValue(cleanJson, GeminiParsedResponse.class);
-            
-        } catch (Exception e) {
-            log.error("Gemini 응답 JSON 파싱 실패. 원문: {}", rawText, e);
-            // 파싱 실패 시 원문을 그대로 aiMessage로 보여주고, 선택지와 호감도 변화는 없도록 Fallback 처리
-            return new GeminiParsedResponse(rawText, Collections.emptyList(), 0);
+        String trimmed = rawText.trim();
+
+        // 1) 시스템 프롬프트 규칙 준수 시: "[선택지]" 문자열 기준으로 평문 파싱 (우선 적용)
+        String choiceMarker = "[선택지]";
+        int idx = trimmed.indexOf(choiceMarker);
+        if (idx != -1) {
+            String aiMessage = trimmed.substring(0, idx).trim();
+            String choicesBlock = trimmed.substring(idx + choiceMarker.length()).trim();
+            List<String> choices = choicesBlock.isBlank()
+                    ? Collections.emptyList()
+                    : Arrays.stream(choicesBlock.split("\n"))
+                            .map(String::trim)
+                            .filter(line -> !line.isBlank())
+                            .map(line -> line.replaceFirst("^\\d+\\.\\s*", "").trim())
+                            .filter(cleaned -> !cleaned.isBlank())
+                            .toList();
+            return new GeminiParsedResponse(aiMessage, choices, 0);
         }
+
+        // 2) 모델이 규칙을 어기고 JSON(또는 ```json ... ```)으로 보낸 경우에만 JSON 파싱 시도
+        String forJson = trimmed
+                .replaceAll("(?s)^```json\\s*", "")
+                .replaceAll("(?s)\\s*```$", "")
+                .trim();
+        if (forJson.startsWith("{")) {
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                return objectMapper.readValue(forJson, GeminiParsedResponse.class);
+            } catch (Exception e) {
+                log.warn("Gemini 응답이 JSON 형태이지만 파싱 실패. 원문 일부: {}", trimmed.length() > 100 ? trimmed.substring(0, 100) + "..." : trimmed, e);
+            }
+        }
+
+        // 3) [선택지]도 없고 JSON도 아니면 원문 전체를 aiMessage로 반환
+        return new GeminiParsedResponse(trimmed, Collections.emptyList(), 0);
     }
 
     /**
@@ -211,9 +246,28 @@ public class GeminiService {
                 throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
             }
 
+            // AI 응답 디버깅용 로깅 (파싱 이슈 시 raw 응답 확인)
+            log.info("Gemini API response: candidates={}, finishReason={}",
+                    response.candidates() != null ? response.candidates().size() : 0,
+                    response.candidates() != null && !response.candidates().isEmpty()
+                            ? response.candidates().get(0).finishReason() : null);
+
             // DTO에서 텍스트 노드를 한 꺼풀 꺼낸 뒤 우리가 설계한 방식대로 파싱 연산 돌입
             String rawText = response.extractText();
-            return parseResponse(rawText);
+            log.info("Gemini raw text (extractText, before parse): length={}, preview={}",
+                    rawText != null ? rawText.length() : 0,
+                    rawText != null && rawText.length() > 200 ? rawText.substring(0, 200) + "..." : rawText);
+            
+            log.info("Gemini raw text (full): {}", rawText);
+
+            GeminiParsedResponse parsed = parseResponse(rawText);
+
+            log.info("Gemini parsed text (full): {}", parsed);
+
+            log.info("Gemini parsed result: aiMessage length={}, choices count={}",
+                    parsed.aiMessage() != null ? parsed.aiMessage().length() : 0,
+                    parsed.choices() != null ? parsed.choices().size() : 0);
+            return parsed;
 
         } catch (RestClientException e) {
             log.error("Gemini RestClient 네트워크 통신 에러", e);
