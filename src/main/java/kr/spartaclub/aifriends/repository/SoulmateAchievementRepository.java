@@ -12,4 +12,7 @@ public interface SoulmateAchievementRepository extends JpaRepository<SoulmateAch
 
     /** Soulmate별 획득 뱃지 목록 (획득 시각 순) */
     List<SoulmateAchievement> findBySoulmateIdOrderByEarnedAtDesc(Long soulmateId);
+
+    /** 특정 Soulmate가 특정 뱃지를 이미 획득했는지 여부 확인 */
+    boolean existsBySoulmateIdAndBadgeCode(Long soulmateId, String badgeCode);
 }

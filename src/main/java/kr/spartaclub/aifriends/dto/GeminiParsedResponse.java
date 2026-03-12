@@ -12,6 +12,9 @@ public record GeminiParsedResponse(
         String aiMessage,
         
         /** 모델이 생성한 "다지선다 선택지" 목록 (없을 경우 빈 리스트 반환) */
-        List<String> choices
+        List<String> choices,
+        
+        /** AI가 대화 문맥에 따라 평가한 호감도 증감 수치 */
+        int affectionDelta
 ) {
 }

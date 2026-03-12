@@ -69,9 +69,9 @@ public class Soulmate {
         }
     }
 
-    /** 호감도 증가 (게이미피케이션용, 서비스에서 호출) */
+    /** 호감도 증감 (AI가 계산한 값을 적용, 최소 0 유지) */
     public void addAffection(int delta) {
-        this.affectionScore = this.affectionScore + delta;
+        this.affectionScore = Math.max(0, this.affectionScore + delta);
     }
 
     /** 레벨 설정 (레벨업 시 서비스에서 호출) */

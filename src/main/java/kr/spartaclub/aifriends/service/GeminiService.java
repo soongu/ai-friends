@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import tools.jackson.databind.ObjectMapper;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +30,13 @@ import java.util.stream.Stream;
  * 구글 Gemini API와의 실제 통신 및 프롬프트 조합, 응답 파싱을 담당하는 외부 인프라스트럭처 서비스입니다.
  * Spring AI 라이브러리 등 추상화 레이어를 쓰지 않고, RestClient를 사용하여 날것(Raw)의 HTTP 요청/응답을 직접 핸들링합니다.
  * 이를 통해 LLM 통신의 밑바닥 동작 원리와 파싱 로직을 명확히 이해할 수 있습니다.
+ *
+ * <p>Gemini API 사용 가이드 (공식 문서)</p>
+ * <ul>
+ *   <li>개요 및 시작하기: <a href="https://ai.google.dev/gemini-api/docs">https://ai.google.dev/gemini-api/docs</a></li>
+ *   <li>텍스트 생성 (generateContent): <a href="https://ai.google.dev/gemini-api/docs/text-generation">https://ai.google.dev/gemini-api/docs/text-generation</a></li>
+ *   <li>REST API 메서드 레퍼런스: <a href="https://ai.google.dev/api">https://ai.google.dev/api</a></li>
+ * </ul>
  */
 @Slf4j
 @Service
@@ -67,20 +76,18 @@ public class GeminiService {
                 - 감정과 행동을 생생하게 표현하세요. 대사 뒤나 중간에 *웃으며 고개를 기울인다*, *살짝 얼굴을 붉힌다* 같은 행동 묘사를 적절히 사용하세요.
                 - 대화 주제가 갑자기 바뀌어도 게임 속 자연스러운 흐름으로 받아들이고, 당황 없이 이어가세요.
                 
-                [미연시 선택지 시스템]
-                - 대화의 흐름상 중요한 분기점(감정 고조, 결정적인 순간)에서만 답변 끝에 선택지를 제시하세요. 매번 제시하지 마세요.
-                - 선택지는 반드시 답변 본문을 모두 쓴 뒤, 빈 줄 없이 바로 '[선택지]'를 쓰고 줄 바꿈하여 제시합니다.
-                - 선택지는 2~4개로 제한하며, 각 선택지는 플레이어가 할 수 있는 “말” 또는 “행동” 형태로 작성하세요.
-                - 선택지가 관계(호감도)에 미묘한 영향을 줄 수 있음을 암시적으로 느끼게 하되, 직접적으로 숫자를 언급하지 마세요.
+                [응답 형식 지침 (필수 규칙)]
+                당신의 응답은 반드시 아래 JSON 규격을 정확히 준수해야 합니다. 마크다운 코드 블록(```json ... ```)이나 불필요한 텍스트 없이, 순수한 JSON 객체 문자열만 반환하세요.
                 
-                [선택지 제시 형식 예시]
-                오늘 정말 즐거웠어… *살짝 웃으며 너를 바라본다*
+                {
+                  "aiMessage": "사용자에게 할 대답 (이성친구로서의 친근한 대화)",
+                  "choices": ["영화 보자", "산책하자", "그냥 수다나 떨자"],
+                  "affectionDelta": 1
+                }
                 
-                [선택지]
-                1. 나도! 다음 데이트는 내가 정할게
-                2. *조용히 손을 잡는다*
-                3. 사실… 너한테 하고 싶은 말이 있어
-                4. 그냥 여기서 좀 더 있고 싶어
+                - "aiMessage": 화면에 실제 보여질 당신의 텍스트 답변.
+                - "choices": 가끔(예: 대화가 자연스럽게 물어보는 흐름일 때) 사용자에게 제시할 다지선다 옵션 배열(2~4개). 선택지가 필요 없으면 빈 배열 [].
+                - "affectionDelta": 방금 사용자의 대화가 당신의 설정된 성격과 취향에 얼마나 잘 맞는지 평가하여 호감도 증감치(-5 ~ +5 정수)를 결정.
                 
                 이제부터 당신은 위 설정의 히로인 그 자체입니다. 플레이어를 설레게 하며, 진짜 연애 게임을 플레이하는 듯한 경험을 제공하세요.
                 """.formatted(
@@ -139,63 +146,27 @@ public class GeminiService {
 
     /**
      * (3단계) LLM이 반환한 한 덩어리의 문자열 원문을 파싱(Parsing)하여 애플리케이션에 필요한 조각으로 추출합니다.
-     * 여기서는 "[선택지]" 키워드를 기준으로 실제 화면에 띄울 평문 답변(aiMessage)과 게임식 다지선다 버튼에 들어갈 배열(choices)로 나눕니다.
+     * 프롬프트를 통해 JSON 형태로 반환하도록 지시했으므로, ObjectMapper를 사용하여 파싱합니다.
      */
     private GeminiParsedResponse parseResponse(String rawText) {
         if (rawText == null || rawText.isBlank()) {
-            return new GeminiParsedResponse("응답 생성에 실패했습니다.", Collections.emptyList());
+            return new GeminiParsedResponse("응답 생성에 실패했습니다.", Collections.emptyList(), 0);
         }
 
-        String targetPattern = "[선택지]";
-        int idx = rawText.indexOf(targetPattern);
-
-        if (idx == -1) {
-            // [선택지] 블록이 없으면 선택지 배열을 빈 상태로 두고 원문 전체를 화면에 표기할 메시지로 전달
-            return new GeminiParsedResponse(rawText.trim(), Collections.emptyList());
+        try {
+            // 외부 모델이 실수로 백틱(```json ... ```)을 붙여서 보내는 경우를 대비하여 텍스트 정제
+            String cleanJson = rawText.replaceAll("(?s)^```json\\s*", "")
+                                      .replaceAll("(?s)\\s*```$", "")
+                                      .trim();
+                                      
+            tools.jackson.databind.ObjectMapper objectMapper = new tools.jackson.databind.ObjectMapper();
+            return objectMapper.readValue(cleanJson, GeminiParsedResponse.class);
+            
+        } catch (Exception e) {
+            log.error("Gemini 응답 JSON 파싱 실패. 원문: {}", rawText, e);
+            // 파싱 실패 시 원문을 그대로 aiMessage로 보여주고, 선택지와 호감도 변화는 없도록 Fallback 처리
+            return new GeminiParsedResponse(rawText, Collections.emptyList(), 0);
         }
-
-        // 1. 실제 화면 채팅창 말풍선에 들어갈 텍스트 (명령어 블록 앞부분 잘라내기)
-        String aiMessage = rawText.substring(0, idx).trim();
-
-        // 2. 하단에 표시될 선택지 버튼 텍스트 추출 ("1.", "2." 넘버링 제거 후 순수 텍스트만 수집)
-        // -------------------------------------------------------------------------
-        // [학습용 설명] "[선택지]" 뒤의 문자열을 "한 줄 = 한 개 선택지"로 나누고, 넘버링을 제거해 리스트로 만듭니다.
-        //
-        // ① choicesBlock.isBlank() ? ... : ...
-        //    - 선택지 블록이 비어 있으면 빈 리스트(Collections.emptyList())를 반환합니다.
-        //    - 내용이 있으면 아래 스트림으로 한 줄씩 가공합니다.
-        //
-        // ② Arrays.stream(choicesBlock.split("\n"))
-        //    - split("\n"): 문자열을 줄바꿈 기준으로 잘라 "문자열 배열"로 만듭니다. (예: ["1. 첫 번째", "2. 두 번째"])
-        //    - Arrays.stream(...): 그 배열을 스트림으로 바꿔서 "한 줄씩" 처리할 수 있게 합니다.
-        //
-        // ③ .map(String::trim)
-        //    - 각 줄의 앞뒤 공백을 제거합니다. (String::trim 은 "줄" -> "trim된 줄" 로 바꾸는 메서드 참조)
-        //
-        // ④ .filter(line -> !line.isBlank())
-        //    - filter: 조건을 만족하는 요소만 남깁니다. 빈 줄(공백만 있거나 비어 있는 줄)은 제거합니다.
-        //
-        // ⑤ .map(line -> line.replaceFirst("^\\d+\\.\\s*", "").trim())
-        //    - "1. ", "2. " 같은 숫자 넘버링을 정규식(^\\d+\\.\\s*)으로 찾아 빈 문자열로 치환해 제거합니다.
-        //    - 그 다음 trim()으로 다시 앞뒤 공백을 정리합니다. → 순수 선택지 텍스트만 남습니다.
-        //
-        // ⑥ .filter(cleaned -> !cleaned.isBlank())
-        //    - 넘버링만 있던 줄(예: "3. ")은 치환 후 빈 문자열이 되므로, 여기서 한 번 더 걸러냅니다.
-        //
-        // ⑦ .toList()
-        //    - 스트림에서 나온 문자열들을 최종적으로 List<String>으로 모아서 반환합니다.
-        // -------------------------------------------------------------------------
-        String choicesBlock = rawText.substring(idx + targetPattern.length()).trim();
-        List<String> choices = choicesBlock.isBlank()
-                ? Collections.emptyList()
-                : Arrays.stream(choicesBlock.split("\n"))
-                        .map(String::trim)
-                        .filter(line -> !line.isBlank())
-                        .map(line -> line.replaceFirst("^\\d+\\.\\s*", "").trim())
-                        .filter(cleaned -> !cleaned.isBlank())
-                        .toList();
-
-        return new GeminiParsedResponse(aiMessage, choices);
     }
 
     /**
