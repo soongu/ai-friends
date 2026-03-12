@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.0.3'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'kr.spartaclub'
@@ -37,4 +38,22 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy 'jacocoTestReport'
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        html.required = true
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                'kr/spartaclub/aifriends/dto/**',
+                'kr/spartaclub/aifriends/common/**',
+                'kr/spartaclub/aifriends/config/**',
+                'kr/spartaclub/aifriends/AiFriendsApplication.class'
+            ])
+        }))
+    }
 }
