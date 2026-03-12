@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#fdf2f8" />
+  <title>AI 이성친구</title>
+  <!-- 모듈 방식 CSS (순서 유지) -->
+  <link rel="stylesheet" th:href="@{/css/variables.css}" />
+  <link rel="stylesheet" th:href="@{/css/base.css}" />
+  <link rel="stylesheet" th:href="@{/css/layout.css}" />
+  <link rel="stylesheet" th:href="@{/css/landing.css}" />
+  <link rel="stylesheet" th:href="@{/css/soulmate-list.css}" />
+</head>
+<body>
+  <div class="app-root" data-app-root>
+    <main class="main-container">
+      <!-- 상태 A: 랜딩 (이성친구 0명) -->
+      <section class="landing" data-view="landing" role="region" aria-label="랜딩">
+        <!-- 로고: config.logoImageUrl 있으면 JS에서 src 설정. 없으면 회색 박스(placeholder) -->
+        <img
+          data-landing-logo
+          class="landing__logo landing__logo--placeholder"
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3C/svg%3E"
+          alt="앱 로고"
+          width="200"
+          height="200"
+        />
+        <p class="landing__tagline" data-landing-tagline>나만의 AI 소울메이트를 만나보세요</p>
+        <button type="button" class="landing__cta" data-landing-cta>시작하기</button>
+      </section>
+
+      <!-- 상태 B: 메이트 선택 (1~3명) -->
+      <section class="soulmate-list" data-view="soulmate-list" hidden role="region" aria-label="소울메이트 선택">
+        <div class="soulmate-list__header">
+          <img
+            data-soulmate-list-logo
+            class="soulmate-list__logo landing__logo--placeholder"
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3C/svg%3E"
+            alt="앱 로고"
+            width="200"
+            height="200"
+          />
+          <p class="soulmate-list__tagline">대화할 소울메이트를 선택하세요</p>
+        </div>
+        <ul class="soulmate-list__cards" data-soulmate-cards aria-label="소울메이트 목록">
+          <!-- js/soulmate-list.js에서 동적 렌더 -->
+        </ul>
+        <button type="button" class="soulmate-list__new-btn" data-soulmate-new-btn>새로 만들기</button>
+        <p class="soulmate-list__max-hint" data-soulmate-max-hint hidden>최대 3명까지 생성 가능해요</p>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" th:src="@{/js/pages/home/index.js}"></script>
+</body>
+</html>

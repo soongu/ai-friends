@@ -1,0 +1,39 @@
+/**
+ * Layout — 9:16 메인 컨테이너, 양옆 검정 레터박스
+ */
+.app-root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100dvh;
+  min-height: 100svh;
+  width: 100%;
+  background: var(--letterbox-bg);
+}
+
+.main-container {
+  width: 100%;
+  max-width: calc(100svh * 9 / 16);
+  height: 100svh;
+  max-height: 100dvh;
+  aspect-ratio: var(--aspect-ratio-main);
+  background: var(--color-pink-50);
+  position: relative;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 뷰 전환: 기본은 랜딩만 표시. JS가 .view-soulmate-list 추가 시 선택 뷰 표시 */
+[data-view="soulmate-list"] {
+  display: none !important;
+}
+.main-container.view-soulmate-list [data-view="landing"] {
+  display: none !important;
+}
+.main-container.view-soulmate-list [data-view="soulmate-list"] {
+  display: flex !important;
+}
+
+/* 뷰포트가 9:16보다 넓을 때: 좌우 검정은 .app-root 배경으로 이미 처리됨 */

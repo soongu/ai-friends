@@ -1,0 +1,115 @@
+/**
+ * Soulmate list — 상태 B: 로고, 소개, 카드 목록, 새로 만들기 버튼
+ */
+.soulmate-list {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4svh 5dvh 6svh;
+  gap: var(--spacing-section);
+}
+
+.soulmate-list__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2svh;
+}
+
+.soulmate-list__logo {
+  width: var(--logo-width);
+  max-width: var(--logo-max-width);
+  height: auto;
+  aspect-ratio: 1;
+  background: var(--color-logo-placeholder);
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.soulmate-list__tagline {
+  font-size: var(--tagline-font-size);
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.soulmate-list__cards {
+  flex: 1;
+  width: 100%;
+  max-width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 3svh;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.soulmate-list__card {
+  min-height: var(--card-min-height);
+  padding: 3svh 4dvh;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 3dvh;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.soulmate-list__card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.soulmate-list__card-avatar {
+  width: 10svh;
+  height: 10svh;
+  min-width: 10svh;
+  border-radius: 50%;
+  background: var(--color-pink-200);
+  object-fit: cover;
+}
+
+.soulmate-list__card-name {
+  font-size: 3.5svh;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.soulmate-list__card-meta {
+  font-size: 2.4svh;
+  color: var(--color-text-muted);
+  margin: 0.25svh 0 0 0;
+}
+
+.soulmate-list__new-btn {
+  min-height: var(--btn-height);
+  padding: 0 var(--btn-padding-x);
+  font-size: var(--btn-font-size);
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-cta);
+  border-radius: 9999px;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.soulmate-list__new-btn:hover:not(:disabled) {
+  background: var(--color-cta-hover);
+}
+
+.soulmate-list__new-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.soulmate-list__max-hint {
+  font-size: 2.2svh;
+  color: var(--color-text-muted);
+  margin: 0;
+}

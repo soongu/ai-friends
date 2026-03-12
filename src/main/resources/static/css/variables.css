@@ -1,0 +1,43 @@
+/**
+ * 디자인 토큰 — 화면설계 기반 (9:16, svh/dvh, 핑크 톤)
+ * React 등으로 전환 시 theme 객체로 이식 가능
+ */
+:root {
+  /* 컨테이너 */
+  --aspect-ratio-main: 9 / 16;
+  --letterbox-bg: #000000;
+
+  /* 핑크 톤 (세련된 느낌) */
+  --color-pink-50: #fdf2f8;
+  --color-pink-100: #fce7f3;
+  --color-pink-200: #fbcfe8;
+  --color-pink-300: #f9a8d4;
+  --color-pink-400: #f472b6;
+  --color-pink-500: #ec4899;
+  --color-pink-600: #db2777;
+  --color-pink-700: #be185d;
+  --color-pink-800: #9d174d;
+  --color-pink-900: #831843;
+
+  /* CTA·강조 */
+  --color-cta: var(--color-pink-500);
+  --color-cta-hover: var(--color-pink-600);
+  --color-cta-active: var(--color-pink-700);
+
+  /* 로고 와이어프레임 */
+  --color-logo-placeholder: #e0e0e0;
+
+  /* 텍스트 */
+  --color-text: #1f2937;
+  --color-text-muted: #6b7280;
+
+  /* svh/dvh 기반 크기 (비율 유지) */
+  --logo-width: 25svh;
+  --logo-max-width: 30dvh;
+  --tagline-font-size: 3.2svh;
+  --btn-height: 6svh;
+  --btn-padding-x: 5dvh;
+  --btn-font-size: 2.8svh;
+  --card-min-height: 12svh;
+  --spacing-section: 4svh;
+}
