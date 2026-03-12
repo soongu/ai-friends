@@ -2,11 +2,17 @@ package kr.spartaclub.aifriends.controller;
 
 import jakarta.validation.Valid;
 import kr.spartaclub.aifriends.common.response.ApiResponse;
+import kr.spartaclub.aifriends.dto.ChatLogResponse;
 import kr.spartaclub.aifriends.dto.SoulmateCreateRequest;
 import kr.spartaclub.aifriends.dto.SoulmateProfileResponse;
 import kr.spartaclub.aifriends.dto.SoulmateResponse;
+import kr.spartaclub.aifriends.service.ChatLogService;
 import kr.spartaclub.aifriends.service.SoulmateService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -25,6 +31,7 @@ import java.util.Map;
 public class SoulmateController {
 
     private final SoulmateService soulmateService;
+    private final ChatLogService chatLogService;
 
     /**
      * [이성친구 생성 API]
@@ -71,5 +78,22 @@ public class SoulmateController {
         List<SoulmateResponse> soulmates = soulmateService.getSoulmates();
         // {"soulmates": [...]} 형태로 응답 객체를 래핑하여 전달
         return ResponseEntity.ok(ApiResponse.success(Map.of("soulmates", soulmates)));
+    }
+
+    /**
+     * [이성친구 대화 기록 조회 API]
+     * 특정 이성친구와의 과거 채팅 내역을 무한 스크롤(Slice) 방식으로 조회합니다.
+     * 
+     * @param id 조회할 이성친구의 고유 번호
+     * @param pageable 페이징 정보 (기본값: 최신순 50건)
+     * @return 200 OK 와 함께 대화 기록 내역(Slice) 반환
+     */
+    @GetMapping("/{id}/chat/logs")
+    public ResponseEntity<ApiResponse<Slice<ChatLogResponse>>> getChatLogs(
+            @PathVariable Long id,
+            @PageableDefault(size = 50, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        
+        Slice<ChatLogResponse> chatLogs = chatLogService.getChatLogs(id, pageable);
+        return ResponseEntity.ok(ApiResponse.success(chatLogs));
     }
 }
