@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  콘솔 로그 색상:
+  - 시간: cyan
+  - 레벨: ERROR/FATAL=red, WARN=yellow, INFO=green, DEBUG=cyan, TRACE=blue
+  - traceId(MDC): magenta
+  - 로거 이름: cyan
+  - 메시지: 기본(흰색)
+  터미널이 ANSI 색상을 지원할 때만 색이 보입니다 (IntelliJ, VS Code 터미널, macOS Terminal 등).
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="CONSOLE_LOG_PATTERN" value="%clr(%d{HH:mm:ss.SSS}){cyan} %clr(%-5level){FATAL=red, ERROR=red, WARN=yellow, INFO=green, DEBUG=cyan, TRACE=blue} %clr([%X{traceId}]){magenta} %clr(---){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 우리 API·AOP 로그는 INFO, 그 외 라이브러리는 WARN 으로 줄여서 노이즈 감소 -->
+    <logger name="kr.spartaclub.aifriends" level="INFO"/>
+    <logger name="org.springframework.web" level="INFO"/>
+    <logger name="org.hibernate.SQL" level="DEBUG"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

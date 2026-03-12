@@ -36,3 +36,6 @@ out/
 .vscode/
 .idea/
 docs/
+
+### Local env (secrets) ###
+.env

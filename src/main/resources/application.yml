@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: ai-friends
+
+  datasource:
+    url: ${DB_URL}
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+    open-in-view: false
+
+# SQL 로그는 JPA가 아닌 P6Spy로만 출력 (바인드 파라미터 치환된 형태)
+
+server:
+  port: 8080
+
+# Gemini API (환경 변수 GEMINI_API_KEY 로 오버라이드)
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  base-url: https://generativelanguage.googleapis.com/v1beta
+  model: gemini-2.0-flash
