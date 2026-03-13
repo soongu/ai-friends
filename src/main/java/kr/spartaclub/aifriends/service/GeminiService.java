@@ -21,9 +21,10 @@ import org.springframework.web.client.RestClientException;
 
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -47,6 +48,8 @@ public class GeminiService {
      * RestClientConfig의 geminiRestClient 빈
      */
     private final RestClient geminiRestClient;
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     // application.yml 등에 설정된 모델 정보 
     @Value("${gemini.model}")
@@ -81,27 +84,10 @@ public class GeminiService {
                 - 선택지는 2~4개로 제한하며, 각 선택지는 플레이어가 할 "말" 또는 "행동" 한 줄로 작성하세요. (예: "나도! 다음에 또 만나자", "*손을 잡는다*")
                 - 선택지가 관계(호감도)에 미묘한 영향을 줄 수 있음을 암시적으로 느끼게 하되, 직접적으로 숫자를 언급하지 마세요.
                 
-                [선택지 제시 형식 예시] (캐릭터인 당신의 대사 → 그다음 플레이어가 고를 선택지)
-                오늘 정말 즐거웠어… *살짝 웃으며 너를 바라본다*
-                
-                [선택지] (플레이어가 고를 수 있는 말/행동)
-                1. 나도! 다음 데이트는 내가 정할게
-                2. *조용히 손을 잡는다*
-                3. 사실… 너한테 하고 싶은 말이 있어
-                4. 그냥 여기서 좀 더 있고 싶어
-
-                [응답 형식 지침 (필수 규칙)]
-                당신의 응답은 반드시 아래 JSON 규격을 정확히 준수해야 합니다. 마크다운 코드 블록(```json ... ```)이나 불필요한 텍스트 없이, 순수한 JSON 객체 문자열만 반환하세요.
-                
-                {
-                  "aiMessage": "당신(캐릭터)이 플레이어에게 하는 대사",
-                  "choices": ["플레이어가 고를 수 있는 말 1", "플레이어가 고를 수 있는 말 2"],
-                  "affectionDelta": 1
-                }
-                
-                - "aiMessage": 화면에 보여질 당신(캐릭터)의 대사. 플레이어에게 하는 말이나 반응.
-                - "choices": 플레이어(사용자)가 다음에 할 말/행동을 고르는 선택지(2~4개). 당신이 플레이어에게 묻는 질문이 아니라, 플레이어가 선택해서 말할 내용이어야 함. 필요 없으면 빈 배열 [].
-                - "affectionDelta": 방금 사용자의 대화가 당신의 설정된 성격과 취향에 얼마나 잘 맞는지 평가하여 호감도 증감치(-5 ~ +5 정수)를 결정.
+                [응답 필드 설명] (시스템이 JSON 형식으로 요청하므로 아래 필드만 채우면 됩니다.)
+                - aiMessage: 화면에 보여질 당신(캐릭터)의 대사. 플레이어에게 하는 말이나 반응.
+                - choices: 플레이어가 다음에 할 말/행동을 고르는 선택지(2~4개). 플레이어가 선택해서 말할 내용만. 필요 없으면 빈 배열 [].
+                - affectionDelta: 방금 사용자 대화에 대한 호감도 증감치(-5 ~ +5 정수).
                 
                 이제부터 당신은 위 설정의 히로인 그 자체입니다. 플레이어를 설레게 하며, 진짜 연애 게임을 플레이하는 듯한 경험을 제공하세요.
                 """.formatted(
@@ -165,59 +151,40 @@ public class GeminiService {
         List<Content> contents = baseContents.toList();
 
         // 3. 모델 설정값 조작 (GenerationConfig)
-        // 체감상 가장 자연스러운 대화가 나오는 값들로 초기 셋업 (temperature=0.8 등)
-        GeminiRequest.GenerationConfig config = new GeminiRequest.GenerationConfig(0.8, 1024, 0.95, 40);
+        // responseMimeType + responseJsonSchema 로 Gemini가 확정적으로 JSON만 반환하도록 함
+        GeminiRequest.GenerationConfig config = new GeminiRequest.GenerationConfig(
+                0.8, 1024, 0.95, 40,
+                "application/json",
+                buildResponseJsonSchema()
+        );
 
         return new GeminiRequest(sysInst, contents, config);
     }
 
     /**
-     * (3단계) LLM이 반환한 한 덩어리의 문자열 원문을 파싱하여 aiMessage / choices / affectionDelta 로 추출합니다.
-     * 시스템 프롬프트 규칙: "대사 + [선택지] + 번호 목록" 형식. 모델이 지키지 않고 JSON을 보낼 때만 JSON 파싱 시도.
+     * Gemini Structured Output용 JSON Schema. 응답이 항상 { aiMessage, choices, affectionDelta } 형태가 되도록 합니다.
      */
-    private GeminiParsedResponse parseResponse(String rawText) {
-        if (!StringUtils.hasText(rawText)) {
-            return new GeminiParsedResponse("응답 생성에 실패했습니다.", Collections.emptyList(), 0);
-        }
+    private static Map<String, Object> buildResponseJsonSchema() {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
 
-        String trimmed = rawText.trim();
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("aiMessage", Map.of(
+                "type", "string",
+                "description", "캐릭터가 플레이어에게 하는 대사. 화면에 그대로 표시됩니다."));
+        
+        properties.put("choices", Map.of(
+                "type", "array",
+                "items", Map.of("type", "string"),
+                "description", "플레이어가 고를 수 있는 선택지 2~4개. 없으면 빈 배열 []."));
+        
+        properties.put("affectionDelta", Map.of(
+                "type", "integer",
+                "description", "호감도 증감치. -5 ~ +5 정수."));
 
-        // 1) 시스템 프롬프트 규칙 준수 시: "[선택지]" 문자열 기준으로 평문 파싱 (우선 적용)
-        String choiceMarker = "[선택지]";
-        int idx = trimmed.indexOf(choiceMarker);
-        if (idx != -1) {
-            String aiMessage = trimmed.substring(0, idx).trim();
-            String choicesBlock = trimmed.substring(idx + choiceMarker.length()).trim();
-            List<String> choices = choicesBlock.isBlank()
-                    ? Collections.emptyList()
-                    : Arrays.stream(choicesBlock.split("\n"))
-                            .map(String::trim)
-                            .filter(line -> !line.isBlank())
-                            .map(line -> line.replaceFirst("^\\d+\\.\\s*", "").trim())
-                            .filter(cleaned -> !cleaned.isBlank())
-                            .toList();
-            return new GeminiParsedResponse(aiMessage, choices, 0);
-        }
-
-        // 2) 모델이 규칙을 어기고 JSON(또는 ```json / ```JSON ... ```)으로 보낸 경우에만 JSON 파싱 시도
-        //    ```json ... ```, ```JSON\n{ ... }``` 등 다양한 마크다운 코드블록 형태 허용
-        String forJson = trimmed
-                .replaceAll("(?si)^```\\s*\\w*\\s*", "")   // 여는 ``` + 언어태그(json, JSON 등) + 공백/줄바꿈
-                .replaceAll("(?s)\\s*```\\s*$", "")        // 닫는 ```
-                .trim();
-        // "JSON" 한 줄이 앞에 붙은 경우 제거 (예: ```\nJSON\n{ ... })
-        forJson = forJson.replaceFirst("(?i)^\\s*json\\s*\\n?", "").trim();
-        if (forJson.startsWith("{")) {
-            try {
-                ObjectMapper objectMapper = new ObjectMapper();
-                return objectMapper.readValue(forJson, GeminiParsedResponse.class);
-            } catch (Exception e) {
-                log.warn("Gemini 응답이 JSON 형태이지만 파싱 실패. 원문 일부: {}", trimmed.length() > 100 ? trimmed.substring(0, 100) + "..." : trimmed, e);
-            }
-        }
-
-        // 3) [선택지]도 없고 JSON도 아니면 원문 전체를 aiMessage로 반환
-        return new GeminiParsedResponse(trimmed, Collections.emptyList(), 0);
+        schema.put("properties", properties);
+        schema.put("required", List.of("aiMessage", "choices", "affectionDelta"));
+        return schema;
     }
 
     /**
@@ -278,17 +245,24 @@ public class GeminiService {
                     response.candidates() != null && !response.candidates().isEmpty()
                             ? response.candidates().get(0).finishReason() : null);
 
-            // DTO에서 텍스트 노드를 한 꺼풀 꺼낸 뒤 우리가 설계한 방식대로 파싱 연산 돌입
+            // responseMimeType: application/json + responseJsonSchema 사용 시, extractText()가 스키마에 맞는 JSON 문자열을 그대로 반환
             String rawText = response.extractText();
-            log.info("Gemini raw text (extractText, before parse): length={}, preview={}",
-                    rawText != null ? rawText.length() : 0,
-                    rawText != null && rawText.length() > 200 ? rawText.substring(0, 200) + "..." : rawText);
-            
-            log.info("Gemini raw text (full): {}", rawText);
+            if (!StringUtils.hasText(rawText)) {
+                throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+            }
+            log.info("Gemini raw JSON length={}", rawText.length());
 
-            GeminiParsedResponse parsed = parseResponse(rawText);
-
-            log.info("Gemini parsed text (full): {}", parsed);
+            GeminiParsedResponse parsed;
+            try {
+                parsed = OBJECT_MAPPER.readValue(rawText.trim(), GeminiParsedResponse.class);
+            } catch (Exception e) {
+                log.error("Gemini JSON 응답 파싱 실패. raw 길이={}", rawText != null ? rawText.length() : 0, e);
+                throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+            }
+            if (parsed == null) {
+                throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+            }
+            log.info("Gemini parsed: aiMessage length={}, choices={}", parsed.aiMessage() != null ? parsed.aiMessage().length() : 0, parsed.choices() != null ? parsed.choices().size() : 0);
 
             // 2회 연속 선택지 후 강제 제거: 이번 턴에는 choices를 무조건 빈 배열로 반환
             if (forceNoChoices) {

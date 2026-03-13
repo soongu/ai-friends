@@ -219,6 +219,7 @@
   transform: translateY(0);
 }
 
+/* 첫 진입 시 메시지 박스 비표시, 메시지 있을 때만 표시 */
 .chat-dialog__messages {
   pointer-events: auto;
   overflow-y: auto;
@@ -235,6 +236,21 @@
   line-height: 1.6;
   color: var(--color-text);
   min-height: 10svh;
+  max-height: 40svh;
+  transition: opacity var(--duration-normal) var(--ease-out-soft),
+    min-height var(--duration-normal) var(--ease-out-soft),
+    padding var(--duration-normal) var(--ease-out-soft);
+}
+.app-root:not(.chat-has-message) .chat-dialog__messages {
+  opacity: 0;
+  visibility: hidden;
+  min-height: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+  border: none;
+  box-shadow: none;
 }
 
 /* 커스텀 스크롤바 */
@@ -351,6 +367,10 @@
   align-items: center;
   gap: 2dvh;
   min-height: 7.2svh;
+  transition: min-height var(--duration-fast) var(--ease-out-soft);
+}
+.app-root.chat-sending .chat-input-wrap {
+  min-height: 6.3svh;
 }
 
 .chat-input {
@@ -363,6 +383,10 @@
   border-radius: 9999px;
   background: #fff;
   color: var(--color-text);
+  transition: min-height var(--duration-fast) var(--ease-out-soft);
+}
+.app-root.chat-sending .chat-input {
+  min-height: 5.6svh;
 }
 .chat-input::placeholder {
   color: var(--color-text-muted);
@@ -378,7 +402,7 @@
   cursor: not-allowed;
 }
 
-/* 3.3 전송 버튼: 호버 밝기·스케일, 클릭 시 눌림 */
+/* 3.3 전송 버튼: 호버 밝기·스케일, 클릭 시 눌림 / 전송 중에는 줄어든 크기 */
 .chat-send {
   flex-shrink: 0;
   width: 7svh;
@@ -396,7 +420,18 @@
   transition:
     background var(--duration-fast) ease,
     opacity var(--duration-fast) ease,
-    transform var(--duration-fast) var(--ease-out-soft);
+    transform var(--duration-fast) var(--ease-out-soft),
+    width var(--duration-fast) var(--ease-out-soft),
+    height var(--duration-fast) var(--ease-out-soft),
+    min-width var(--duration-fast) var(--ease-out-soft),
+    min-height var(--duration-fast) var(--ease-out-soft);
+}
+.app-root.chat-sending .chat-send {
+  width: 6.3svh;
+  height: 6.3svh;
+  min-width: 6.3svh;
+  min-height: 6.3svh;
+  transform: scale(0.95);
 }
 .chat-send:hover:not(:disabled) {
   background: var(--color-cta-hover);

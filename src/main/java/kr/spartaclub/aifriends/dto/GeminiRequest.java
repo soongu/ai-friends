@@ -1,6 +1,7 @@
 package kr.spartaclub.aifriends.dto;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Gemini API에 텍스트 생성을 요청(POST)할 때 사용하는 JSON 데이터를 담는 DTO입니다.
@@ -48,6 +49,7 @@ public record GeminiRequest(
     /**
      * 답변 생성과 관련된 설정값 (temperature, 최대 토큰 등)
      * 이 값들을 조절하여 AI의 답변 스타일(얼마나 일관될지, 얼마나 창의적일지)을 통제합니다.
+     * responseMimeType + responseJsonSchema 를 주면 Gemini가 해당 스키마에 맞는 JSON만 반환합니다.
      */
     public record GenerationConfig(
             // 0.0 ~ 2.0. 낮을수록 정답에 가까운 고정된 답변, 높을수록 창의적이고 다양한 답변을 생성합니다.
@@ -60,6 +62,12 @@ public record GeminiRequest(
             Double topP,
             
             // 상위 N개의 확률 토큰 풀 안에서 샘플링합니다. 낮을수록 엉뚱한 답변이 나올 확률이 줄어듭니다.
-            Integer topK
+            Integer topK,
+            
+            // "application/json" 이면 응답 본문이 스키마에 맞는 JSON 문자열로 고정됩니다.
+            String responseMimeType,
+            
+            // JSON 응답일 때 필수. JSON Schema 객체 (type, properties, required 등). null이면 무시됩니다.
+            Map<String, Object> responseJsonSchema
     ) {}
 }

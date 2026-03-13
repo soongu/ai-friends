@@ -36,7 +36,12 @@ const SELECTORS = {
 function getChatBgBase(characterImageId) {
   if (!characterImageId || typeof characterImageId !== 'string') return null;
   const base = characterImageId.replace(/^character-/, '');
-  const allowed = ['female-bright', 'female-warm', 'male-calm', 'male-cheerful'];
+  const allowed = [
+    'female-bright',
+    'female-warm',
+    'male-calm',
+    'male-cheerful',
+  ];
   return allowed.includes(base) ? base : null;
 }
 function getChatBgUrl(base, mood) {
@@ -67,6 +72,10 @@ function setLoading(loading) {
   if (loadingEl) loadingEl.hidden = !loading;
   const sendBtn = $(SELECTORS.sendBtn);
   if (sendBtn) sendBtn.disabled = loading;
+  if (rootEl) {
+    if (loading) rootEl.classList.add('chat-sending');
+    else rootEl.classList.remove('chat-sending');
+  }
 }
 
 function setInputEnabled(enabled) {
@@ -146,8 +155,10 @@ function setDialogMessage(aiMessage) {
   const text = aiMessage || '';
   if (!text) {
     container.textContent = '';
+    if (rootEl) rootEl.classList.remove('chat-has-message');
     return;
   }
+  if (rootEl) rootEl.classList.add('chat-has-message');
   const inner = document.createElement('span');
   inner.className = 'chat-dialog__message-inner';
   inner.textContent = text;
@@ -156,7 +167,10 @@ function setDialogMessage(aiMessage) {
   container.classList.remove('chat-dialog__messages--animate');
   void container.offsetWidth;
   container.classList.add('chat-dialog__messages--animate');
-  setTimeout(() => container.classList.remove('chat-dialog__messages--animate'), 400);
+  setTimeout(
+    () => container.classList.remove('chat-dialog__messages--animate'),
+    400,
+  );
 }
 
 function showChoiceModal(aiMessage, choices) {
