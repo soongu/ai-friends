@@ -53,6 +53,8 @@
 
   /* 애니메이션·그림자 (미연시 고도화) */
   --ease-out-soft: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-out-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 0.2s;
   --duration-normal: 0.35s;
   --duration-slow: 0.5s;
   --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.06);

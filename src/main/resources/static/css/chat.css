@@ -8,7 +8,7 @@
   background: var(--color-pink-100);
 }
 
-/* ----- 풀스크린 캐릭터 배경 ----- */
+/* ----- 풀스크린 캐릭터 배경 (3.1 채팅 진입: 페이드인) ----- */
 .chat-bg {
   position: absolute;
   inset: 0;
@@ -16,6 +16,11 @@
   background-position: center;
   background-repeat: no-repeat;
   background-color: var(--color-pink-200);
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-out-soft);
+}
+.app-root.chat-entered .chat-bg {
+  opacity: 1;
 }
 
 .chat-bg__overlay {
@@ -25,7 +30,7 @@
   pointer-events: none;
 }
 
-/* ----- 호감도·레벨 상단 표시 ----- */
+/* ----- 호감도·레벨 상단 표시 (3.1 진입 시 페이드인) ----- */
 .chat-status {
   position: absolute;
   top: 0;
@@ -38,6 +43,11 @@
   gap: 4dvh;
   padding: 3svh 4dvh;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-out-soft);
+}
+.app-root.chat-entered .chat-status {
+  opacity: 1;
 }
 
 /* 햄버거 + 펼침 메뉴 */
@@ -75,7 +85,8 @@
   height: 2.5px;
   border-radius: 2px;
   background: currentColor;
-  transition: transform 0.25s ease, opacity 0.25s ease;
+  transition: transform var(--duration-normal) var(--ease-out-soft),
+    opacity var(--duration-normal) var(--ease-out-soft);
 }
 
 .chat-status__hamburger[aria-expanded="true"] .chat-status__hamburger-bar:nth-child(1) {
@@ -157,6 +168,15 @@
   object-fit: contain;
   display: block;
 }
+/* 3.2 호감도 변경 시 하트 펄스 */
+.chat-status__affection.affection-pulse .chat-status__affection-icon {
+  animation: chat-heart-pulse 0.5s var(--ease-out-bounce);
+}
+@keyframes chat-heart-pulse {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.25); }
+  70% { transform: scale(1.1); }
+}
 .chat-status__level {
   font-size: 3svh;
   font-weight: 700;
@@ -167,8 +187,17 @@
   background: rgba(236, 72, 153, 0.9);
   border-radius: 9999px;
 }
+/* 3.2 레벨업 연출: 스케일·빛남 */
+.chat-status__level.level-up-flash {
+  animation: chat-level-flash 0.6s var(--ease-out-soft);
+}
+@keyframes chat-level-flash {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.5); }
+  30% { transform: scale(1.15); box-shadow: 0 0 20px 4px rgba(236, 72, 153, 0.6); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
 
-/* ----- 다이얼로그 영역 (하단, 입력창 위) ----- */
+/* ----- 다이얼로그 영역 (하단, 입력창 위, 3.1 슬라이드 업) ----- */
 .chat-dialog {
   position: absolute;
   left: 0;
@@ -180,6 +209,14 @@
   justify-content: flex-end;
   padding: 0 3dvh 2svh;
   pointer-events: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity var(--duration-slow) var(--ease-out-soft),
+    transform var(--duration-slow) var(--ease-out-soft);
+}
+.app-root.chat-entered .chat-dialog {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .chat-dialog__messages {
@@ -203,6 +240,22 @@
   color: var(--color-text-muted);
 }
 
+/* 3.2 AI 메시지 등장: 페이드인 */
+.chat-dialog__message-inner {
+  display: block;
+}
+.chat-dialog__messages--animate .chat-dialog__message-inner {
+  animation: chat-msg-fadein var(--duration-normal) var(--ease-out-soft);
+}
+@keyframes chat-msg-fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .chat-dialog__affection {
   pointer-events: auto;
   padding: 1.5svh 4dvh;
@@ -222,6 +275,17 @@
 
 .chat-dialog__level-up {
   color: var(--color-cta);
+  animation: chat-levelup-text-in var(--duration-normal) var(--ease-out-bounce);
+}
+@keyframes chat-levelup-text-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .chat-dialog__affection[hidden] {
@@ -238,7 +302,7 @@
   color: #dc2626;
 }
 
-/* ----- 하단 입력 영역 ----- */
+/* ----- 하단 입력 영역 (3.1 진입 시 슬라이드 업) ----- */
 .chat-footer {
   position: absolute;
   left: 0;
@@ -247,6 +311,14 @@
   padding: 2svh 3dvh 3svh;
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity var(--duration-slow) var(--ease-out-soft),
+    transform var(--duration-slow) var(--ease-out-soft);
+}
+.app-root.chat-entered .chat-footer {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .chat-input-wrap {
@@ -279,6 +351,7 @@
   cursor: not-allowed;
 }
 
+/* 3.3 전송 버튼: 호버 밝기·스케일, 클릭 시 눌림 */
 .chat-send {
   flex-shrink: 0;
   width: 10svh;
@@ -294,11 +367,16 @@
   color: #fff;
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    opacity 0.2s ease;
+    background var(--duration-fast) ease,
+    opacity var(--duration-fast) ease,
+    transform var(--duration-fast) var(--ease-out-soft);
 }
 .chat-send:hover:not(:disabled) {
   background: var(--color-cta-hover);
+  transform: scale(1.05);
+}
+.chat-send:active:not(:disabled) {
+  transform: scale(0.92);
 }
 .chat-send:disabled {
   cursor: not-allowed;
@@ -350,7 +428,7 @@
   }
 }
 
-/* ----- 선택지 모달 ----- */
+/* ----- 선택지 모달 (3.3 백드롭 블러·페이드인, 버튼 stagger) ----- */
 .chat-choice-modal {
   position: absolute;
   inset: 0;
@@ -371,8 +449,19 @@
 .chat-choice-modal__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   pointer-events: none;
+  animation: chat-backdrop-fadein var(--duration-normal) var(--ease-out-soft);
+}
+@keyframes chat-backdrop-fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .chat-choice-modal__content {
@@ -386,6 +475,17 @@
   display: flex;
   flex-direction: column;
   gap: 4svh;
+  animation: chat-choice-content-in var(--duration-normal) var(--ease-out-soft);
+}
+@keyframes chat-choice-content-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .chat-choice-modal__message {
@@ -402,6 +502,7 @@
   gap: 2svh;
 }
 
+/* 3.3 선택지 버튼 순차 등장(stagger) + 호버 확대·글로우 */
 .chat-choice-modal__btn {
   width: 100%;
   min-height: 7svh;
@@ -415,12 +516,36 @@
   border-radius: 12px;
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    border-color 0.2s ease;
+    background var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    transform var(--duration-fast) var(--ease-out-soft),
+    box-shadow var(--duration-fast) ease;
+  animation: chat-choice-btn-in var(--duration-normal) var(--ease-out-soft) backwards;
+}
+.chat-choice-modal__btn:nth-child(1) { animation-delay: 0.05s; }
+.chat-choice-modal__btn:nth-child(2) { animation-delay: 0.1s; }
+.chat-choice-modal__btn:nth-child(3) { animation-delay: 0.15s; }
+.chat-choice-modal__btn:nth-child(4) { animation-delay: 0.2s; }
+.chat-choice-modal__btn:nth-child(5) { animation-delay: 0.25s; }
+.chat-choice-modal__btn:nth-child(6) { animation-delay: 0.3s; }
+@keyframes chat-choice-btn-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .chat-choice-modal__btn:hover {
   background: var(--color-pink-100);
   border-color: var(--color-cta);
+  transform: scale(1.02);
+  box-shadow: var(--shadow-glow-pink);
+}
+.chat-choice-modal__btn:active {
+  transform: scale(0.98);
 }
 
 /* ----- 대화 기록 모달 (카카오톡 스타일) ----- */
@@ -581,4 +706,31 @@
 }
 .chat-history-modal__load[hidden] {
   display: none !important;
+}
+
+/* 접근성: 동작 축소 선호 시 애니메이션 최소화 */
+@media (prefers-reduced-motion: reduce) {
+  .chat-bg,
+  .chat-dialog,
+  .chat-status,
+  .chat-footer {
+    transition-duration: 0.01ms;
+  }
+  .chat-dialog__message-inner,
+  .chat-choice-modal__backdrop,
+  .chat-choice-modal__content,
+  .chat-choice-modal__btn,
+  .chat-dialog__level-up {
+    animation-duration: 0.01ms;
+  }
+  .chat-status__affection.affection-pulse .chat-status__affection-icon,
+  .chat-status__level.level-up-flash {
+    animation-duration: 0.01ms;
+  }
+  .chat-send:hover:not(:disabled),
+  .chat-send:active:not(:disabled),
+  .chat-choice-modal__btn:hover,
+  .chat-choice-modal__btn:active {
+    transform: none;
+  }
 }

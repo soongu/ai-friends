@@ -95,6 +95,8 @@ function showAffectionDelta(delta, newLevel) {
   const el = $(SELECTORS.affection);
   const deltaEl = $(SELECTORS.affectionDelta);
   const levelUpEl = $(SELECTORS.levelUp);
+  const statusAffection = $(SELECTORS.statusAffection);
+  const statusLevel = $(SELECTORS.statusLevel);
   if (!el) return;
   el.hidden = false;
   if (deltaEl) {
@@ -123,13 +125,38 @@ function showAffectionDelta(delta, newLevel) {
       levelUpEl.hidden = true;
     }
   }
+  if (statusAffection && (delta > 0 || delta < 0)) {
+    statusAffection.classList.remove('affection-pulse');
+    void statusAffection.offsetWidth;
+    statusAffection.classList.add('affection-pulse');
+    setTimeout(() => statusAffection.classList.remove('affection-pulse'), 550);
+  }
+  if (statusLevel && newLevel != null && newLevel > 0) {
+    statusLevel.classList.remove('level-up-flash');
+    void statusLevel.offsetWidth;
+    statusLevel.classList.add('level-up-flash');
+    setTimeout(() => statusLevel.classList.remove('level-up-flash'), 650);
+  }
 }
 
-/** 현재 응답만 표시 (히스토리 없음) */
+/** 현재 응답만 표시 (히스토리 없음), 3.2 AI 메시지 페이드인 연출 */
 function setDialogMessage(aiMessage) {
   const container = $(SELECTORS.messages);
   if (!container) return;
-  container.textContent = aiMessage || '';
+  const text = aiMessage || '';
+  if (!text) {
+    container.textContent = '';
+    return;
+  }
+  const inner = document.createElement('span');
+  inner.className = 'chat-dialog__message-inner';
+  inner.textContent = text;
+  container.innerHTML = '';
+  container.appendChild(inner);
+  container.classList.remove('chat-dialog__messages--animate');
+  void container.offsetWidth;
+  container.classList.add('chat-dialog__messages--animate');
+  setTimeout(() => container.classList.remove('chat-dialog__messages--animate'), 400);
 }
 
 function showChoiceModal(aiMessage, choices) {
@@ -377,6 +404,9 @@ function init() {
         const url = getChatBgUrl(chatBgBase, 'neutral');
         if (url) bg.style.backgroundImage = `url(${url})`;
       }
+      requestAnimationFrame(() => {
+        rootEl.classList.add('chat-entered');
+      });
     })
     .catch(() => {
       // 404 등: 캐릭터가 없으면 홈으로 보내서 캐릭터 생성 유도
