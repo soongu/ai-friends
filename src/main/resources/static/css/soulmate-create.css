@@ -298,8 +298,24 @@
 
 .create-custom__row {
   display: flex;
+}
+
+.create-custom__row .create-field--inline {
+  flex: 1;
+  min-width: 0;
+}
+
+/* input과 버튼을 한 줄에 배치해 y축 정렬 맞춤 */
+.create-custom__input-row {
+  display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 2dvh;
+}
+
+.create-custom__input-row .create-field__input {
+  flex: 1;
+  min-width: 0;
 }
 
 .create-custom__add {

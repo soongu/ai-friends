@@ -40,4 +40,15 @@
   --btn-font-size: 2.8svh;
   --card-min-height: 12svh;
   --spacing-section: 4svh;
+
+  /* 랜딩 배경 */
+  --landing-bg-image: url('/images/landing/landing-bg-main.jpg');
+
+  /* 애니메이션·그림자 (미연시 고도화) */
+  --ease-out-soft: cubic-bezier(0.33, 1, 0.68, 1);
+  --duration-normal: 0.35s;
+  --duration-slow: 0.5s;
+  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-glow-pink: 0 0 20px rgba(236, 72, 153, 0.35);
 }

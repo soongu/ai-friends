@@ -1,14 +1,48 @@
 /**
- * Soulmate list — 상태 B: 로고, 소개, 카드 목록, 새로 만들기 버튼
+ * Soulmate list — 랜딩과 동일 배경·오버레이, 글래스 카드·버튼
  */
+@keyframes soulmate-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .soulmate-list {
   flex: 1;
   width: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 4svh 5dvh 6svh;
   gap: var(--spacing-section);
+  position: relative;
+  background: var(--landing-bg-image) no-repeat center center;
+  background-size: cover;
+  background-color: var(--color-pink-100);
+}
+
+.soulmate-list::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(253, 242, 248, 0.4) 0%,
+    rgba(252, 231, 243, 0.5) 35%,
+    rgba(249, 168, 212, 0.6) 100%
+  );
+  pointer-events: none;
+}
+
+.soulmate-list > * {
+  position: relative;
+  z-index: 1;
 }
 
 .soulmate-list__header {
@@ -24,16 +58,25 @@
   height: auto;
   aspect-ratio: 1;
   background: var(--color-logo-placeholder);
-  border-radius: 12px;
+  border-radius: 16px;
   object-fit: cover;
+  box-shadow: var(--shadow-soft), var(--shadow-medium);
+  animation: soulmate-fade-in-up var(--duration-slow) var(--ease-out-soft) both;
 }
 
 .soulmate-list__tagline {
   font-size: var(--tagline-font-size);
-  color: var(--color-text-muted);
+  color: var(--color-text);
   text-align: center;
   margin: 0;
   line-height: 1.4;
+  padding: 0.5em 1em;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-soft);
+  animation: soulmate-fade-in-up var(--duration-slow) var(--ease-out-soft) 0.08s both;
 }
 
 .soulmate-list__cards {
@@ -46,33 +89,83 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .soulmate-list__card {
   min-height: var(--card-min-height);
   padding: 3svh 4dvh;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(253, 242, 248, 0.92) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  box-shadow:
+    0 2px 12px rgba(219, 39, 119, 0.08),
+    0 4px 20px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   display: flex;
   align-items: center;
   gap: 3dvh;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform var(--duration-normal) var(--ease-out-soft),
+    box-shadow var(--duration-normal) ease,
+    border-color var(--duration-fast) ease;
+  animation: soulmate-fade-in-up var(--duration-slow) var(--ease-out-soft) both;
 }
 
+.soulmate-list__card:nth-child(1) { animation-delay: 0.15s; }
+.soulmate-list__card:nth-child(2) { animation-delay: 0.25s; }
+.soulmate-list__card:nth-child(3) { animation-delay: 0.35s; }
+
 .soulmate-list__card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: scale(1.02) translateY(-2px);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(253, 242, 248, 0.98) 100%
+  );
+  border-color: rgba(249, 168, 212, 0.4);
+  box-shadow:
+    0 6px 24px rgba(219, 39, 119, 0.15),
+    0 12px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.soulmate-list__card:active {
+  transform: scale(0.99);
+  box-shadow:
+    0 2px 12px rgba(219, 39, 119, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .soulmate-list__card-avatar {
   width: 10svh;
   height: 10svh;
   min-width: 10svh;
+  min-height: 10svh;
   border-radius: 50%;
   background: var(--color-pink-200);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-soft);
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.soulmate-list__card-avatar img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  object-position: center top;
 }
 
 .soulmate-list__card-name {
@@ -90,22 +183,59 @@
 
 .soulmate-list__new-btn {
   min-height: var(--btn-height);
-  padding: 0 var(--btn-padding-x);
+  padding: 0 calc(var(--btn-padding-x) * 1.6);
   font-size: var(--btn-font-size);
   font-weight: 600;
-  color: #fff;
-  background: var(--color-cta);
+  letter-spacing: 0.02em;
+  color: var(--color-pink-700);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(253, 242, 248, 0.95) 50%,
+    rgba(252, 231, 243, 0.98) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: 9999px;
-  transition: background 0.2s ease, opacity 0.2s ease;
+  box-shadow:
+    0 2px 12px rgba(219, 39, 119, 0.12),
+    0 4px 24px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition:
+    color 0.2s ease,
+    background 0.35s ease,
+    transform 0.35s var(--ease-out-soft),
+    box-shadow 0.35s ease,
+    opacity 0.2s ease;
+  animation: soulmate-fade-in-up var(--duration-slow) var(--ease-out-soft) 0.4s both;
 }
 
 .soulmate-list__new-btn:hover:not(:disabled) {
-  background: var(--color-cta-hover);
+  color: var(--color-pink-800);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(253, 242, 248, 1) 50%,
+    rgba(252, 231, 243, 1) 100%
+  );
+  border-color: rgba(249, 168, 212, 0.5);
+  transform: scale(1.03);
+  box-shadow:
+    0 4px 20px rgba(219, 39, 119, 0.18),
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.soulmate-list__new-btn:active:not(:disabled) {
+  color: var(--color-pink-900);
+  transform: scale(0.98);
 }
 
 .soulmate-list__new-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .soulmate-list__max-hint {
@@ -113,7 +243,3 @@
   color: var(--color-text-muted);
   margin: 0;
 }
-  object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  box-shadow: var(--shadow-soft);
-  flex-shrink: 0;

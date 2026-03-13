@@ -1,15 +1,50 @@
 /**
- * Landing — 상태 A: 로고, 한 줄 소개, 시작하기 버튼
+ * Landing — 미연시 스타일: 풀스크린 배경, 오버레이, 글래스·CTA 연출
  */
+
+@keyframes landing-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .landing {
   flex: 1;
   width: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 6svh 5dvh;
   gap: var(--spacing-section);
+  position: relative;
+  background: var(--landing-bg-image) no-repeat center center;
+  background-size: cover;
+  background-color: var(--color-pink-100);
+}
+
+.landing::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(253, 242, 248, 0.4) 0%,
+    rgba(252, 231, 243, 0.5) 35%,
+    rgba(249, 168, 212, 0.6) 100%
+  );
+  pointer-events: none;
+}
+
+.landing > * {
+  position: relative;
+  z-index: 1;
 }
 
 .landing__logo {
@@ -18,39 +53,81 @@
   height: auto;
   aspect-ratio: 1;
   background: var(--color-logo-placeholder);
-  border-radius: 12px;
+  border-radius: 16px;
   object-fit: cover;
+  box-shadow: var(--shadow-soft), var(--shadow-medium);
+  animation: landing-fade-in-up var(--duration-slow) var(--ease-out-soft) both;
 }
 
 .landing__logo--placeholder {
-  /* 이미지 없을 때 회색 박스 (img onerror 시 부모에 클래스 추가 가능) */
   background: var(--color-logo-placeholder);
 }
 
 .landing__tagline {
   font-size: var(--tagline-font-size);
-  color: var(--color-text-muted);
+  color: var(--color-text);
   text-align: center;
   margin: 0;
   line-height: 1.4;
   max-width: 85%;
+  padding: 0.6em 1em;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-soft);
+  animation: landing-fade-in-up var(--duration-slow) var(--ease-out-soft) 0.1s both;
 }
 
 .landing__cta {
   min-height: var(--btn-height);
-  padding: 0 var(--btn-padding-x);
+  padding: 0 calc(var(--btn-padding-x) * 1.6);
   font-size: var(--btn-font-size);
   font-weight: 600;
-  color: #fff;
-  background: var(--color-cta);
+  letter-spacing: 0.02em;
+  color: var(--color-pink-700);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(253, 242, 248, 0.95) 50%,
+    rgba(252, 231, 243, 0.98) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: 9999px;
-  transition: background 0.2s ease;
+  box-shadow:
+    0 2px 12px rgba(219, 39, 119, 0.12),
+    0 4px 24px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition:
+    color 0.2s ease,
+    background 0.35s ease,
+    transform 0.35s var(--ease-out-soft),
+    box-shadow 0.35s ease;
+  animation: landing-fade-in-up var(--duration-slow) var(--ease-out-soft) 0.2s both;
 }
 
 .landing__cta:hover {
-  background: var(--color-cta-hover);
+  color: var(--color-pink-800);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(253, 242, 248, 1) 50%,
+    rgba(252, 231, 243, 1) 100%
+  );
+  border-color: rgba(249, 168, 212, 0.5);
+  transform: scale(1.03);
+  box-shadow:
+    0 4px 20px rgba(219, 39, 119, 0.18),
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
 .landing__cta:active {
-  background: var(--color-cta-active);
+  color: var(--color-pink-900);
+  transform: scale(0.98);
+  box-shadow:
+    0 2px 8px rgba(219, 39, 119, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
