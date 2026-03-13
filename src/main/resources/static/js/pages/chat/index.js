@@ -7,6 +7,7 @@ const SELECTORS = {
   root: '[data-app-root]',
   bg: '[data-chat-bg]',
   statusAffection: '[data-chat-status-affection]',
+  statusAffectionValue: '[data-chat-status-affection-value]',
   statusLevel: '[data-chat-status-level]',
   hamburger: '[data-chat-hamburger]',
   dropdown: '[data-chat-dropdown]',
@@ -31,9 +32,28 @@ const SELECTORS = {
   historyLoad: '[data-chat-history-load]',
 };
 
+/** characterImageId → chat-bg 파일 접두사 */
+function getChatBgBase(characterImageId) {
+  if (!characterImageId || typeof characterImageId !== 'string') return null;
+  const base = characterImageId.replace(/^character-/, '');
+  const allowed = ['female-bright', 'female-warm', 'male-calm', 'male-cheerful'];
+  return allowed.includes(base) ? base : null;
+}
+function getChatBgUrl(base, mood) {
+  if (!base) return null;
+  return `/images/chat-bg/chat-bg-${base}-${mood}.jpg`;
+}
+/** characterImageId → 캐릭터 얼굴 이미지 URL (히스토리 AI 버블 아바타용) */
+function getCharacterFaceUrl(characterImageId) {
+  if (!characterImageId || typeof characterImageId !== 'string') return null;
+  return `/images/characters/${characterImageId}-face.jpg`;
+}
+
 let soulmateId;
 let previousAffectionScore = 0;
 let previousLevel = 1;
+let chatBgBase = null;
+let characterFaceUrl = null;
 let rootEl;
 
 function $(sel, parent = document) {
@@ -57,10 +77,18 @@ function setInputEnabled(enabled) {
 }
 
 function updateStatusBar(affectionScore, level) {
-  const affectionEl = $(SELECTORS.statusAffection);
+  const affectionValueEl = $(SELECTORS.statusAffectionValue);
   const levelEl = $(SELECTORS.statusLevel);
-  if (affectionEl) affectionEl.textContent = `❤ ${affectionScore ?? 0}`;
+  if (affectionValueEl) affectionValueEl.textContent = affectionScore ?? 0;
   if (levelEl) levelEl.textContent = `Lv.${level ?? 1}`;
+}
+
+function setChatBackground(mood) {
+  if (!chatBgBase) return;
+  const url = getChatBgUrl(chatBgBase, mood);
+  if (!url) return;
+  const bg = $(SELECTORS.bg);
+  if (bg) bg.style.backgroundImage = `url(${url})`;
 }
 
 function showAffectionDelta(delta, newLevel) {
@@ -71,7 +99,11 @@ function showAffectionDelta(delta, newLevel) {
   el.hidden = false;
   if (deltaEl) {
     deltaEl.className = '';
-    deltaEl.classList.remove('chat-dialog__affection--up', 'chat-dialog__affection--same', 'chat-dialog__affection--down');
+    deltaEl.classList.remove(
+      'chat-dialog__affection--up',
+      'chat-dialog__affection--same',
+      'chat-dialog__affection--down',
+    );
     if (delta > 0) {
       deltaEl.classList.add('chat-dialog__affection--up');
       deltaEl.textContent = `↑ 호감도 +${delta}`;
@@ -106,7 +138,12 @@ function showChoiceModal(aiMessage, choices) {
   const buttonsEl = $(SELECTORS.choiceButtons);
   if (!modal || !messageEl || !buttonsEl) return;
   messageEl.textContent = aiMessage || '';
-  buttonsEl.innerHTML = (choices || []).map((text) => `<button type="button" class="chat-choice-modal__btn" data-choice>${escapeHtml(text)}</button>`).join('');
+  buttonsEl.innerHTML = (choices || [])
+    .map(
+      (text) =>
+        `<button type="button" class="chat-choice-modal__btn" data-choice>${escapeHtml(text)}</button>`,
+    )
+    .join('');
   modal.hidden = false;
   setInputEnabled(false);
   buttonsEl.querySelectorAll('[data-choice]').forEach((btn) => {
@@ -124,6 +161,12 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
+function escapeAttr(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML.replace(/"/g, '&quot;');
+}
 
 async function sendMessage(text) {
   if (!text || !soulmateId) return;
@@ -132,12 +175,21 @@ async function sendMessage(text) {
   hideChoiceModal();
   try {
     const res = await postChat(soulmateId, text);
-    const delta = res.affectionScore != null && previousAffectionScore != null ? res.affectionScore - previousAffectionScore : 0;
-    const levelUp = res.level != null && previousLevel != null && res.level > previousLevel ? res.level : null;
+    const delta =
+      res.affectionScore != null && previousAffectionScore != null
+        ? res.affectionScore - previousAffectionScore
+        : 0;
+    const levelUp =
+      res.level != null && previousLevel != null && res.level > previousLevel
+        ? res.level
+        : null;
     previousAffectionScore = res.affectionScore ?? previousAffectionScore;
     previousLevel = res.level ?? previousLevel;
 
     updateStatusBar(res.affectionScore, res.level);
+    if (delta > 0) setChatBackground('happy');
+    else if (delta < 0) setChatBackground('sad');
+    else setChatBackground('neutral');
     setDialogMessage(res.aiMessage);
     showAffectionDelta(delta, levelUp);
     if (res.choices && res.choices.length > 0) {
@@ -196,17 +248,35 @@ function formatBubbleTime(isoString) {
   const now = new Date();
   const isToday = d.toDateString() === now.toDateString();
   if (isToday) {
-    return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return d.toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
   }
-  return d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) + ' ' +
-    d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return (
+    d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) +
+    ' ' +
+    d.toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+  );
 }
 
 function renderHistoryBubble(log) {
   const isUser = log.speaker === 'USER';
   const time = formatBubbleTime(log.createdAt);
   const msg = escapeHtml(log.message || '');
-  return `<div class="chat-history-bubble chat-history-bubble--${isUser ? 'user' : 'ai'}">${msg}<span class="chat-history-bubble__time">${escapeHtml(time)}</span></div>`;
+  if (isUser) {
+    return `<div class="chat-history-bubble chat-history-bubble--user">${msg}<span class="chat-history-bubble__time">${escapeHtml(time)}</span></div>`;
+  }
+  const avatarSrc = characterFaceUrl ? escapeAttr(characterFaceUrl) : '';
+  const avatarHtml = characterFaceUrl
+    ? `<img class="chat-history-bubble__avatar" src="${avatarSrc}" alt="" />`
+    : '';
+  return `<div class="chat-history-bubble chat-history-bubble--ai">${avatarHtml}<div class="chat-history-bubble__content">${msg}<span class="chat-history-bubble__time">${escapeHtml(time)}</span></div></div>`;
 }
 
 function showHistoryLoad(show) {
@@ -219,7 +289,11 @@ async function loadHistoryPage(prepend = false) {
   historyLoading = true;
   showHistoryLoad(true);
   try {
-    const { content, hasNext } = await getChatLogs(soulmateId, historyNextPage, HISTORY_PAGE_SIZE);
+    const { content, hasNext } = await getChatLogs(
+      soulmateId,
+      historyNextPage,
+      HISTORY_PAGE_SIZE,
+    );
     historyHasMore = hasNext;
     historyNextPage += 1;
     const listEl = $(SELECTORS.historyList);
@@ -232,7 +306,9 @@ async function loadHistoryPage(prepend = false) {
       const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
       listEl.insertAdjacentHTML('afterbegin', html);
       requestAnimationFrame(() => {
-        if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight - prevScrollHeight + prevScrollTop;
+        if (scrollEl)
+          scrollEl.scrollTop =
+            scrollEl.scrollHeight - prevScrollHeight + prevScrollTop;
       });
     } else {
       listEl.innerHTML = html;
@@ -241,7 +317,11 @@ async function loadHistoryPage(prepend = false) {
       });
     }
   } catch (e) {
-    if (listEl) listEl.insertAdjacentHTML('afterbegin', `<p class="chat-history-modal__load">${escapeHtml(e.message || '불러오기 실패')}</p>`);
+    if (listEl)
+      listEl.insertAdjacentHTML(
+        'afterbegin',
+        `<p class="chat-history-modal__load">${escapeHtml(e.message || '불러오기 실패')}</p>`,
+      );
   } finally {
     historyLoading = false;
     showHistoryLoad(false);
@@ -290,9 +370,12 @@ function init() {
       previousAffectionScore = profile.affectionScore ?? 0;
       previousLevel = profile.level ?? 1;
       updateStatusBar(previousAffectionScore, previousLevel);
+      chatBgBase = getChatBgBase(profile.characterImageId);
+      characterFaceUrl = getCharacterFaceUrl(profile.characterImageId);
       const bg = $(SELECTORS.bg);
-      if (bg && profile.characterImageUrl) {
-        bg.style.backgroundImage = `url(${profile.characterImageUrl})`;
+      if (bg && chatBgBase) {
+        const url = getChatBgUrl(chatBgBase, 'neutral');
+        if (url) bg.style.backgroundImage = `url(${url})`;
       }
     })
     .catch(() => {
@@ -339,7 +422,8 @@ function init() {
 
   const historyBackdrop = $(SELECTORS.historyBackdrop);
   const historyClose = $(SELECTORS.historyClose);
-  if (historyBackdrop) historyBackdrop.addEventListener('click', closeHistoryModal);
+  if (historyBackdrop)
+    historyBackdrop.addEventListener('click', closeHistoryModal);
   if (historyClose) historyClose.addEventListener('click', closeHistoryModal);
 }
 

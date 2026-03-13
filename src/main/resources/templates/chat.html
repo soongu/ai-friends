@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1f2937" />
   <title>대화 | AI 이성친구</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" th:href="@{/css/variables.css}" />
   <link rel="stylesheet" th:href="@{/css/base.css}" />
   <link rel="stylesheet" th:href="@{/css/layout.css}" />
@@ -20,7 +23,10 @@
 
       <!-- 호감도·레벨 상단 표시 + 햄버거 메뉴 -->
       <header class="chat-status" data-chat-status aria-label="호감도와 레벨">
-        <span class="chat-status__affection" data-chat-status-affection>❤ 0</span>
+        <span class="chat-status__affection" data-chat-status-affection>
+          <img class="chat-status__affection-icon" src="/images/ui/ui-heart.png" alt="" aria-hidden="true" />
+          <span class="chat-status__affection-value" data-chat-status-affection-value>0</span>
+        </span>
         <span class="chat-status__level" data-chat-status-level>Lv.1</span>
         <div class="chat-status__menu-wrap">
           <button type="button" class="chat-status__hamburger" data-chat-hamburger aria-label="메뉴 열기" aria-expanded="false">

@@ -45,7 +45,10 @@ function showView(viewName) {
   if (!root) return;
   const mainContainer = root.querySelector('.main-container');
   if (!mainContainer) return;
-  mainContainer.classList.toggle('view-soulmate-list', viewName === 'soulmate-list');
+  mainContainer.classList.toggle(
+    'view-soulmate-list',
+    viewName === 'soulmate-list',
+  );
 }
 
 async function main() {
@@ -60,7 +63,10 @@ async function main() {
     initLanding(root);
     renderLandingLogo(root);
   } else {
-    renderSoulmateList(root.querySelector(SELECTORS.viewSoulmateList), state.soulmates);
+    renderSoulmateList(
+      root.querySelector(SELECTORS.viewSoulmateList),
+      state.soulmates,
+    );
     initSoulmateListLogo(root.querySelector(SELECTORS.viewSoulmateList));
   }
 }

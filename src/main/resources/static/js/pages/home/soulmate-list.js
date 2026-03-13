@@ -34,7 +34,7 @@ export function renderSoulmateList(container, list = []) {
         ${s.meta ? `<p class="soulmate-list__card-meta">${escapeHtml(s.meta)}</p>` : ''}
       </div>
     </li>
-  `
+  `,
     )
     .join('');
 

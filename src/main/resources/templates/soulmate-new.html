@@ -1,107 +1,252 @@
-<!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#fdf2f8" />
-  <title>새 소울메이트 만들기 | AI 소울메이트</title>
-  <link rel="stylesheet" th:href="@{/css/variables.css}" />
-  <link rel="stylesheet" th:href="@{/css/base.css}" />
-  <link rel="stylesheet" th:href="@{/css/layout.css}" />
-  <link rel="stylesheet" th:href="@{/css/soulmate-create.css}" />
-</head>
-<body>
-  <div class="app-root" data-app-root>
-    <main class="main-container main-container--create">
-      <header class="create-header">
-        <a class="create-header__back" href="/" data-create-back aria-label="뒤로가기">←</a>
-        <h1 class="create-header__title" data-create-title>새 소울메이트 만들기</h1>
-      </header>
+<!doctype html>
+<html
+  lang="ko"
+  xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="theme-color"
+      content="#fdf2f8" />
+    <title>새 소울메이트 만들기 | AI 소울메이트</title>
+    <link
+      rel="stylesheet"
+      th:href="@{/css/variables.css}" />
+    <link
+      rel="stylesheet"
+      th:href="@{/css/base.css}" />
+    <link
+      rel="stylesheet"
+      th:href="@{/css/layout.css}" />
+    <link
+      rel="stylesheet"
+      th:href="@{/css/soulmate-create.css}" />
+  </head>
+  <body>
+    <div
+      class="app-root"
+      data-app-root>
+      <main class="main-container main-container--create">
+        <header class="create-header">
+          <a
+            class="create-header__back"
+            href="/"
+            data-create-back
+            aria-label="뒤로가기"
+            >←</a
+          >
+          <h1
+            class="create-header__title"
+            data-create-title>
+            새 소울메이트 만들기
+          </h1>
+        </header>
 
-      <div class="create-steps" data-create-steps>
-        <div class="create-step-indicator" data-create-step-indicator aria-hidden="true">
-          <span class="create-step-indicator__dot" data-step-dot="1"></span>
-          <span class="create-step-indicator__dot" data-step-dot="2"></span>
-          <span class="create-step-indicator__dot" data-step-dot="3"></span>
-          <span class="create-step-indicator__dot" data-step-dot="4"></span>
+        <div
+          class="create-steps"
+          data-create-steps>
+          <div
+            class="create-step-indicator"
+            data-create-step-indicator
+            aria-hidden="true">
+            <span
+              class="create-step-indicator__dot"
+              data-step-dot="1"></span>
+            <span
+              class="create-step-indicator__dot"
+              data-step-dot="2"></span>
+            <span
+              class="create-step-indicator__dot"
+              data-step-dot="3"></span>
+            <span
+              class="create-step-indicator__dot"
+              data-step-dot="4"></span>
+          </div>
+
+          <!-- Step 1: 이름·성별 -->
+          <section
+            class="create-step"
+            data-step="1">
+            <label class="create-field">
+              <span class="create-field__label">이름</span>
+              <input
+                type="text"
+                class="create-field__input"
+                data-create-name
+                placeholder="이름을 입력해 주세요"
+                maxlength="50" />
+            </label>
+            <div class="create-field">
+              <span class="create-field__label">성별</span>
+              <div
+                class="create-gender"
+                data-create-gender
+                role="group"
+                aria-label="성별 선택">
+                <button
+                  type="button"
+                  class="create-gender__btn"
+                  data-gender="FEMALE">
+                  여성
+                </button>
+                <button
+                  type="button"
+                  class="create-gender__btn"
+                  data-gender="MALE">
+                  남성
+                </button>
+                <button
+                  type="button"
+                  class="create-gender__btn"
+                  data-gender="OTHER">
+                  기타
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Step 2: 캐릭터 이미지 -->
+          <section
+            class="create-step"
+            data-step="2"
+            hidden>
+            <p
+              class="create-step__hint"
+              data-create-image-hint>
+              캐릭터를 선택해 주세요
+            </p>
+            <div
+              class="create-image-grid"
+              data-create-image-grid
+              aria-label="캐릭터 이미지 선택">
+              <!-- JS에서 성별별 이미지 주입 -->
+            </div>
+          </section>
+
+          <!-- Step 3: 성격·취미·말투 (알약 칩, 최대 3개씩) -->
+          <section
+            class="create-step"
+            data-step="3"
+            hidden>
+            <div class="create-field">
+              <span class="create-field__label"
+                >성격 <span class="create-field__hint">(최대 3개)</span></span
+              >
+              <div
+                class="create-chips"
+                data-create-personality
+                role="group"
+                aria-label="성격 선택"></div>
+            </div>
+            <div class="create-field">
+              <span class="create-field__label"
+                >취미 <span class="create-field__hint">(최대 3개)</span></span
+              >
+              <div
+                class="create-chips"
+                data-create-hobbies
+                role="group"
+                aria-label="취미 선택"></div>
+            </div>
+            <div class="create-field">
+              <span class="create-field__label"
+                >말투 <span class="create-field__hint">(최대 3개)</span></span
+              >
+              <div
+                class="create-chips"
+                data-create-speech
+                role="group"
+                aria-label="말투 선택"></div>
+            </div>
+          </section>
+
+          <!-- Step 4: 요약 + 커스텀 추가 + 제출 -->
+          <section
+            class="create-step"
+            data-step="4"
+            hidden>
+            <div
+              class="create-summary"
+              data-create-summary></div>
+            <div class="create-custom">
+              <div class="create-custom__row">
+                <label class="create-field create-field--inline">
+                  <span class="create-field__label">성격 +1</span>
+                  <input
+                    type="text"
+                    class="create-field__input"
+                    data-custom-personality
+                    placeholder="직접 입력"
+                    maxlength="20" />
+                </label>
+                <button
+                  type="button"
+                  class="create-custom__add"
+                  data-add-personality>
+                  추가
+                </button>
+              </div>
+              <div class="create-custom__row">
+                <label class="create-field create-field--inline">
+                  <span class="create-field__label">취미 +1</span>
+                  <input
+                    type="text"
+                    class="create-field__input"
+                    data-custom-hobby
+                    placeholder="직접 입력"
+                    maxlength="20" />
+                </label>
+                <button
+                  type="button"
+                  class="create-custom__add"
+                  data-add-hobby>
+                  추가
+                </button>
+              </div>
+              <div class="create-custom__row">
+                <label class="create-field create-field--inline">
+                  <span class="create-field__label">말투 +1</span>
+                  <input
+                    type="text"
+                    class="create-field__input"
+                    data-custom-speech
+                    placeholder="직접 입력"
+                    maxlength="20" />
+                </label>
+                <button
+                  type="button"
+                  class="create-custom__add"
+                  data-add-speech>
+                  추가
+                </button>
+              </div>
+            </div>
+          </section>
         </div>
 
-        <!-- Step 1: 이름·성별 -->
-        <section class="create-step" data-step="1">
-          <label class="create-field">
-            <span class="create-field__label">이름</span>
-            <input type="text" class="create-field__input" data-create-name placeholder="이름을 입력해 주세요" maxlength="50" />
-          </label>
-          <div class="create-field">
-            <span class="create-field__label">성별</span>
-            <div class="create-gender" data-create-gender role="group" aria-label="성별 선택">
-              <button type="button" class="create-gender__btn" data-gender="FEMALE">여성</button>
-              <button type="button" class="create-gender__btn" data-gender="MALE">남성</button>
-              <button type="button" class="create-gender__btn" data-gender="OTHER">기타</button>
-            </div>
-          </div>
-        </section>
+        <footer class="create-footer">
+          <button
+            type="button"
+            class="create-footer__btn create-footer__btn--next"
+            data-create-next
+            disabled>
+            다음
+          </button>
+          <button
+            type="button"
+            class="create-footer__btn create-footer__btn--submit"
+            data-create-submit
+            hidden>
+            만들기
+          </button>
+        </footer>
+      </main>
+    </div>
 
-        <!-- Step 2: 캐릭터 이미지 -->
-        <section class="create-step" data-step="2" hidden>
-          <p class="create-step__hint" data-create-image-hint>캐릭터를 선택해 주세요</p>
-          <div class="create-image-grid" data-create-image-grid aria-label="캐릭터 이미지 선택">
-            <!-- JS에서 성별별 이미지 주입 -->
-          </div>
-        </section>
-
-        <!-- Step 3: 성격·취미·말투 (알약 칩, 최대 3개씩) -->
-        <section class="create-step" data-step="3" hidden>
-          <div class="create-field">
-            <span class="create-field__label">성격 <span class="create-field__hint">(최대 3개)</span></span>
-            <div class="create-chips" data-create-personality role="group" aria-label="성격 선택"></div>
-          </div>
-          <div class="create-field">
-            <span class="create-field__label">취미 <span class="create-field__hint">(최대 3개)</span></span>
-            <div class="create-chips" data-create-hobbies role="group" aria-label="취미 선택"></div>
-          </div>
-          <div class="create-field">
-            <span class="create-field__label">말투 <span class="create-field__hint">(최대 3개)</span></span>
-            <div class="create-chips" data-create-speech role="group" aria-label="말투 선택"></div>
-          </div>
-        </section>
-
-        <!-- Step 4: 요약 + 커스텀 추가 + 제출 -->
-        <section class="create-step" data-step="4" hidden>
-          <div class="create-summary" data-create-summary></div>
-          <div class="create-custom">
-            <div class="create-custom__row">
-              <label class="create-field create-field--inline">
-                <span class="create-field__label">성격 +1</span>
-                <input type="text" class="create-field__input" data-custom-personality placeholder="직접 입력" maxlength="20" />
-              </label>
-              <button type="button" class="create-custom__add" data-add-personality>추가</button>
-            </div>
-            <div class="create-custom__row">
-              <label class="create-field create-field--inline">
-                <span class="create-field__label">취미 +1</span>
-                <input type="text" class="create-field__input" data-custom-hobby placeholder="직접 입력" maxlength="20" />
-              </label>
-              <button type="button" class="create-custom__add" data-add-hobby>추가</button>
-            </div>
-            <div class="create-custom__row">
-              <label class="create-field create-field--inline">
-                <span class="create-field__label">말투 +1</span>
-                <input type="text" class="create-field__input" data-custom-speech placeholder="직접 입력" maxlength="20" />
-              </label>
-              <button type="button" class="create-custom__add" data-add-speech>추가</button>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <footer class="create-footer">
-        <button type="button" class="create-footer__btn create-footer__btn--next" data-create-next disabled>다음</button>
-        <button type="button" class="create-footer__btn create-footer__btn--submit" data-create-submit hidden>만들기</button>
-      </footer>
-    </main>
-  </div>
-
-  <script type="module" th:src="@{/js/pages/soulmate-create/index.js}"></script>
-</body>
+    <script
+      type="module"
+      th:src="@{/js/pages/soulmate-create/index.js}"></script>
+  </body>
 </html>

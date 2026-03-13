@@ -113,3 +113,7 @@
   color: var(--color-text-muted);
   margin: 0;
 }
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-soft);
+  flex-shrink: 0;

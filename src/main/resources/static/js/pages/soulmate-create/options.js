@@ -3,19 +3,19 @@
  * 확장 시 여기만 수정
  */
 
-/** 성별별 캐릭터 이미지 목록. 이미지 추가 시 배열만 확장 */
+/** 성별별 캐릭터 이미지: 전신(썸네일) = 선택 화면 표시, avatarUrl = 목록/아바타용 얼굴 */
 export const CHARACTER_IMAGES_BY_GENDER = {
   FEMALE: [
-    { id: 'female-1', url: 'https://picsum.photos/seed/f1/400/400' },
-    { id: 'female-2', url: 'https://picsum.photos/seed/f2/400/400' },
+    { id: 'character-female-bright', url: '/images/characters/character-female-bright-thumb.jpg', avatarUrl: '/images/characters/character-female-bright-face.jpg' },
+    { id: 'character-female-warm', url: '/images/characters/character-female-warm-thumb.jpg', avatarUrl: '/images/characters/character-female-warm-face.jpg' },
   ],
   MALE: [
-    { id: 'male-1', url: 'https://picsum.photos/seed/m1/400/400' },
-    { id: 'male-2', url: 'https://picsum.photos/seed/m2/400/400' },
+    { id: 'character-male-calm', url: '/images/characters/character-male-calm-thumb.jpg', avatarUrl: '/images/characters/character-male-calm-face.jpg' },
+    { id: 'character-male-cheerful', url: '/images/characters/character-male-cheerful-thumb.jpg', avatarUrl: '/images/characters/character-male-cheerful-face.jpg' },
   ],
   OTHER: [
-    { id: 'other-1', url: 'https://picsum.photos/seed/o1/400/400' },
-    { id: 'other-2', url: 'https://picsum.photos/seed/o2/400/400' },
+    { id: 'character-female-bright', url: '/images/characters/character-female-bright-thumb.jpg', avatarUrl: '/images/characters/character-female-bright-face.jpg' },
+    { id: 'character-male-cheerful', url: '/images/characters/character-male-cheerful-thumb.jpg', avatarUrl: '/images/characters/character-male-cheerful-face.jpg' },
   ],
 };
 
@@ -54,8 +54,8 @@ export const SPEECH_OPTIONS = [
 ];
 
 export const STEP_TITLES = {
-  1: '새 이성친구 만들기',
-  2: '캐릭터 선택',
-  3: '성격·취미·말투',
-  4: '확인하고 만들기',
+  1: 'Create New Soulmate',
+  2: 'Select Character',
+  3: 'Personality·Hobby·Speech',
+  4: 'Check and Create',
 };

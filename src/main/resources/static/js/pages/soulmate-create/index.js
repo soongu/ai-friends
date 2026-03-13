@@ -110,7 +110,7 @@ function renderStep2() {
             data-image-id="${escapeAttr(img.id)}" data-image-url="${escapeAttr(img.url || '')}">
       <img class="create-image-card__img" src="${escapeAttr(img.url)}" alt="" loading="lazy" />
     </button>
-  `
+  `,
     )
     .join('');
 
@@ -136,7 +136,7 @@ function renderChips(container, options, stateKey) {
       <span class="create-chip__emoji">${escapeHtml(opt.emoji)}</span>
       <span class="create-chip__label">${escapeHtml(opt.label)}</span>
     </button>
-  `
+  `,
     )
     .join('');
 
@@ -165,7 +165,9 @@ function renderChips(container, options, stateKey) {
 function renderStep4Summary() {
   const summaryEl = $(SELECTORS.summary, rootEl);
   if (!summaryEl) return;
-  const genderLabel = { FEMALE: '여성', MALE: '남성', OTHER: '기타' }[state.gender] || state.gender;
+  const genderLabel =
+    { FEMALE: '여성', MALE: '남성', OTHER: '기타' }[state.gender] ||
+    state.gender;
   const personality = [...state.personalityKeywords];
   if (state.customPersonality) personality.push(state.customPersonality);
   const hobbies = [...state.hobbies];
@@ -223,7 +225,9 @@ function init() {
   const nameInput = $(SELECTORS.name, rootEl);
   if (nameInput) {
     nameInput.value = state.name;
-    nameInput.addEventListener('input', () => { state.name = nameInput.value; });
+    nameInput.addEventListener('input', () => {
+      state.name = nameInput.value;
+    });
   }
 
   const genderContainer = $(SELECTORS.gender, rootEl);
@@ -231,7 +235,9 @@ function init() {
     genderContainer.querySelectorAll(SELECTORS.genderBtn).forEach((btn) => {
       btn.addEventListener('click', () => {
         state.gender = btn.getAttribute('data-gender') || '';
-        genderContainer.querySelectorAll(SELECTORS.genderBtn).forEach((b) => b.classList.remove('is-selected'));
+        genderContainer
+          .querySelectorAll(SELECTORS.genderBtn)
+          .forEach((b) => b.classList.remove('is-selected'));
         btn.classList.add('is-selected');
         const nextBtn = $(SELECTORS.nextBtn, rootEl);
         if (nextBtn) nextBtn.disabled = false;
@@ -261,9 +267,17 @@ function init() {
         renderStep2();
       } else if (state.step === 2) {
         showStep(3);
-        renderChips($(SELECTORS.personality, rootEl), PERSONALITY_OPTIONS, 'personalityKeywords');
+        renderChips(
+          $(SELECTORS.personality, rootEl),
+          PERSONALITY_OPTIONS,
+          'personalityKeywords',
+        );
         renderChips($(SELECTORS.hobbies, rootEl), HOBBIES_OPTIONS, 'hobbies');
-        renderChips($(SELECTORS.speech, rootEl), SPEECH_OPTIONS, 'speechStyles');
+        renderChips(
+          $(SELECTORS.speech, rootEl),
+          SPEECH_OPTIONS,
+          'speechStyles',
+        );
       } else if (state.step === 3) {
         showStep(4);
         syncCustomRows();
@@ -327,9 +341,17 @@ function init() {
       renderStep4Summary();
     });
   }
-  addOrUpdateCustom('customPersonality', SELECTORS.customPersonality, SELECTORS.addPersonality);
+  addOrUpdateCustom(
+    'customPersonality',
+    SELECTORS.customPersonality,
+    SELECTORS.addPersonality,
+  );
   addOrUpdateCustom('customHobby', SELECTORS.customHobby, SELECTORS.addHobby);
-  addOrUpdateCustom('customSpeech', SELECTORS.customSpeech, SELECTORS.addSpeech);
+  addOrUpdateCustom(
+    'customSpeech',
+    SELECTORS.customSpeech,
+    SELECTORS.addSpeech,
+  );
 
   showStep(1);
 }
