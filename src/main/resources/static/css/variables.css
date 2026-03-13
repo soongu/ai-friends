@@ -51,13 +51,20 @@
   /* 랜딩 배경 */
   --landing-bg-image: url('/images/landing/landing-bg-main.jpg');
 
+  /* 폰트 */
+  --font-family-base: 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+  --font-family-accent: 'Jua', sans-serif;
+  --font-family-round: 'NanumSquareRound', 'Noto Sans KR', sans-serif;
+
   /* 애니메이션·그림자 (미연시 고도화) */
   --ease-out-soft: cubic-bezier(0.33, 1, 0.68, 1);
   --ease-out-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --duration-fast: 0.2s;
-  --duration-normal: 0.35s;
+  --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 0.15s;
+  --duration-normal: 0.3s;
   --duration-slow: 0.5s;
-  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-glow-pink: 0 0 20px rgba(236, 72, 153, 0.35);
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-glow-pink: 0 0 15px rgba(236, 72, 153, 0.4);
+  --shadow-glow-white: 0 0 20px rgba(255, 255, 255, 0.5);
 }

@@ -1,0 +1,62 @@
+/**
+ * Animations — 미연시 스타일 전역 애니메이션 키프레임
+ */
+
+/* 메시지 타이핑 커서 연출 */
+@keyframes typing-cursor {
+  from, to { border-color: transparent; }
+  50% { border-color: var(--color-cta); }
+}
+
+/* 사용자 메시지 오른쪽 슬라이드 인 */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 다이얼로그/모달 위로 페이드 인 */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 부드러운 글로우 펄스 */
+@keyframes glow-pulse {
+  0% { box-shadow: 0 0 5px rgba(236, 72, 153, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(236, 72, 153, 0.5); }
+  100% { box-shadow: 0 0 5px rgba(236, 72, 153, 0.2); }
+}
+
+/* 배경 색상 미세 순환 (고급진 느낌) */
+@keyframes bg-soft-cycle {
+  0% { background-color: var(--color-pink-50); }
+  50% { background-color: #fffafb; }
+  100% { background-color: var(--color-pink-50); }
+}
+
+/* 하트 비트 (호감도) */
+@keyframes heart-beat {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.3); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.3); }
+  70% { transform: scale(1); }
+}
+
+/* 레벨업 텍스트 반짝임 */
+@keyframes text-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
