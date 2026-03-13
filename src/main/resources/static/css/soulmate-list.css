@@ -87,7 +87,7 @@
   flex-direction: column;
   gap: 3svh;
   list-style: none;
-  margin: 0;
+  margin: 50% 0 0;
   padding: 0;
   overflow-y: auto;
   overflow-x: hidden;
