@@ -39,8 +39,8 @@ public class RestClientConfig {
     @Bean("geminiRestClient")
     public RestClient geminiRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5000); // 5초 커넥션 타임아웃
-        factory.setReadTimeout(30000);   // 30초 (AI 응답 생성이 길어질 수 있으므로 여유롭게)
+        factory.setConnectTimeout(5000); // 5초 안에 연결 안 되면 포기
+        factory.setReadTimeout(30000);   // 연결 후 30초 안에 응답 안 오면 포기
 
         return RestClient.builder()
                 .requestFactory(factory)
