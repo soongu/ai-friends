@@ -12,7 +12,7 @@ const SELECTORS = {
 
 /**
  * @param {HTMLElement} container
- * @param {{ id: string, name: string, meta?: string }[]} list
+ * @param {{ id: string, name: string, meta?: string, characterImageUrl?: string }[]} list
  */
 export function renderSoulmateList(container, list = []) {
   if (!container) return;
@@ -28,7 +28,9 @@ export function renderSoulmateList(container, list = []) {
     .map(
       (s) => `
     <li class="soulmate-list__card" data-soulmate-id="${s.id}">
-      <div class="soulmate-list__card-avatar" aria-hidden="true"></div>
+      <div class="soulmate-list__card-avatar" aria-hidden="true">
+        ${s.characterImageUrl ? `<img src="${escapeAttr(s.characterImageUrl)}" alt="" />` : ''}
+      </div>
       <div>
         <p class="soulmate-list__card-name">${escapeHtml(s.name)}</p>
         ${s.meta ? `<p class="soulmate-list__card-meta">${escapeHtml(s.meta)}</p>` : ''}
@@ -71,4 +73,11 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function escapeAttr(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML.replace(/"/g, '&quot;');
 }

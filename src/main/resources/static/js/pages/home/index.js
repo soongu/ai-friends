@@ -15,14 +15,14 @@ const SELECTORS = {
 
 /**
  * API 소울메이트 항목을 목록 뷰용 형태로 변환
- * @param {{ id: number, name?: string, personalityKeywords?: string, hobbies?: string }} s
- * @returns {{ id: number, name: string, meta: string }}
+ * @param {{ id: number, name?: string, personalityKeywords?: string, hobbies?: string, characterImageUrl?: string }} s
+ * @returns {{ id: number, name: string, meta: string, characterImageUrl?: string }}
  */
 function toListItem(s) {
   const name = s.name || '소울메이트';
   const parts = [s.personalityKeywords, s.hobbies].filter(Boolean);
   const meta = parts.length ? parts.join(' · ') : '';
-  return { id: s.id, name, meta };
+  return { id: s.id, name, meta, characterImageUrl: s.characterImageUrl };
 }
 
 /**

@@ -166,7 +166,7 @@ function renderStep4Summary() {
   const summaryEl = $(SELECTORS.summary, rootEl);
   if (!summaryEl) return;
   const genderLabel =
-    { FEMALE: '여성', MALE: '남성', OTHER: '기타' }[state.gender] ||
+    { FEMALE: '여성', MALE: '남성' }[state.gender] ||
     state.gender;
   const personality = [...state.personalityKeywords];
   if (state.customPersonality) personality.push(state.customPersonality);

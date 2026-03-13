@@ -19,6 +19,13 @@
   --color-pink-800: #9d174d;
   --color-pink-900: #831843;
 
+  /* 파랑 톤 (남성 아이콘 등) */
+  --color-blue-200: #bfdbfe;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-50: #eff6ff;
+
   /* CTA·강조 */
   --color-cta: var(--color-pink-500);
   --color-cta-hover: var(--color-pink-600);

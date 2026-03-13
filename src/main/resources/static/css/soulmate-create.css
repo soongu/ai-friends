@@ -126,7 +126,7 @@
   min-width: 0;
 }
 
-/* ----- 성별 버튼 ----- */
+/* ----- 성별 버튼 (아이콘, 여=핑크 / 남=파랑) ----- */
 .create-gender {
   display: flex;
   gap: 2dvh;
@@ -136,24 +136,55 @@
 .create-gender__btn {
   flex: 1;
   min-width: 20%;
-  min-height: 6svh;
-  padding: 0 3dvh;
-  font-size: 2.8svh;
-  font-weight: 500;
-  color: var(--color-text);
+  min-height: 10svh;
+  padding: 2dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #fff;
-  border: 2px solid var(--color-pink-200);
+  border: 2px solid;
   border-radius: 9999px;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
-.create-gender__btn:hover {
+/* 여성: 핑크 */
+.create-gender__btn[data-gender="FEMALE"] {
+  color: var(--color-pink-500);
+  border-color: var(--color-pink-200);
+}
+.create-gender__btn[data-gender="FEMALE"]:hover {
   border-color: var(--color-pink-400);
   background: var(--color-pink-50);
 }
-.create-gender__btn.is-selected {
-  border-color: var(--color-cta);
-  background: var(--color-cta);
+.create-gender__btn[data-gender="FEMALE"].is-selected {
+  border-color: var(--color-pink-500);
+  background: var(--color-pink-500);
   color: #fff;
+}
+/* 남성: 파랑 */
+.create-gender__btn[data-gender="MALE"] {
+  color: var(--color-blue-500);
+  border-color: var(--color-blue-200);
+}
+.create-gender__btn[data-gender="MALE"]:hover {
+  border-color: var(--color-blue-400);
+  background: var(--color-blue-50);
+}
+.create-gender__btn[data-gender="MALE"].is-selected {
+  border-color: var(--color-blue-500);
+  background: var(--color-blue-500);
+  color: #fff;
+}
+
+.create-gender__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 6svh;
+  height: 6svh;
+}
+.create-gender__icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 /* ----- Step 2: 캐릭터 선택 (전신/반신 이미지 배치) ----- */
