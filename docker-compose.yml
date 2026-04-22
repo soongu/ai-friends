@@ -35,15 +35,25 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    # 컨테이너 안의 앱이 호스트(노트북)에 설치된 Ollama 데몬으로 접속할 수 있도록
+    # host.docker.internal 호스트명을 게이트웨이로 매핑한다 (Linux 호환 목적, Mac/Win 은 기본 지원)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      # 활성 프로파일은 .env 의 SPRING_PROFILES_ACTIVE 로 제어
+      # 기본값: docker(=MySQL) + gemini(=클라우드 모델)
+      # 로컬 Ollama 로 바꾸고 싶으면 .env 에 SPRING_PROFILES_ACTIVE=docker,ollama 로 적기
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker,gemini}
       # MySQL 접속 (컨테이너 내부 포트 3306으로 접속)
       DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-aifriends}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
       DB_USERNAME: ${MYSQL_USER:-aifriends}
       DB_PASSWORD: ${MYSQL_PASSWORD:-aifriends1234}
-      # Gemini API
+      # Gemini API (OpenAI 호환 엔드포인트로 호출)
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      # 컨테이너 내부에서 호스트의 Ollama 데몬으로 접속할 base-url
+      # 호스트에서 직접 IDE 로 띄울 때는 application.yml 기본값(localhost:11434)이 적용됨
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       TZ: Asia/Seoul
     ports:
       - "8080:8080"
