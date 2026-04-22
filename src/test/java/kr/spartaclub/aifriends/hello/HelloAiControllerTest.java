@@ -7,6 +7,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
@@ -17,6 +18,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -35,6 +37,9 @@ class HelloAiControllerTest {
 
     @Autowired
     private ChatClient chatClient;
+
+    @MockBean
+    private ProviderInfo providerInfo;
 
     @Test
     @DisplayName("GET /api/hello-ai - message 파라미터를 그대로 user 메시지로 넘겨 ChatClient 응답을 반환한다")
@@ -58,6 +63,37 @@ class HelloAiControllerTest {
         mockMvc.perform(get("/api/hello-ai"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("default-ok"));
+    }
+
+    @Test
+    @DisplayName("GET /api/hello-ai/v2 - provider / message / reply / latencyMs 4필드를 담은 JSON 응답을 반환한다")
+    void helloV2_returnsJsonWithProviderAndLatency() throws Exception {
+        reset(chatClient);
+        given(providerInfo.currentLabel()).willReturn("ollama-llama3.2:3b");
+        given(chatClient.prompt().user(anyString()).call().content())
+                .willReturn("Docker / RDB / Kafka 3가지 추천드려요.");
+
+        mockMvc.perform(get("/api/hello-ai/v2").param("message", "기술 3가지 추천해줘"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.provider").value("ollama-llama3.2:3b"))
+                .andExpect(jsonPath("$.message").value("기술 3가지 추천해줘"))
+                .andExpect(jsonPath("$.reply").value("Docker / RDB / Kafka 3가지 추천드려요."))
+                .andExpect(jsonPath("$.latencyMs").isNumber());
+    }
+
+    @Test
+    @DisplayName("GET /api/hello-ai/v2 - message 파라미터 없이도 기본 메시지로 200 JSON 응답을 반환한다")
+    void helloV2_withoutMessageParam_usesDefault() throws Exception {
+        reset(chatClient);
+        given(providerInfo.currentLabel()).willReturn("gemini-2.5-flash-lite");
+        given(chatClient.prompt().user(anyString()).call().content())
+                .willReturn("안녕하세요, Gemini 입니다.");
+
+        mockMvc.perform(get("/api/hello-ai/v2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.provider").value("gemini-2.5-flash-lite"))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.reply").value("안녕하세요, Gemini 입니다."));
     }
 
     @TestConfiguration
