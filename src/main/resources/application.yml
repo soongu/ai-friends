@@ -26,6 +26,40 @@ spring:
         use_sql_comments: false
     open-in-view: false
 
+  # ─────────────────────────────────────────────
+  # Spring AI — 두 프로바이더 모두 등록해두고
+  # `ollama` / `gemini` 프로파일로 활성화 모델을 선택한다.
+  # ─────────────────────────────────────────────
+  ai:
+    # ⓐ 활성 모델 스위치 — 프로파일별로 덮어쓴다 (default: none)
+    #    chat 외의 모달리티(embedding/image/audio/moderation)는 Day 1 에서는 쓰지 않으므로
+    #    OpenAI 스타터가 끌어오는 자동설정들이 api-key 없이 기동 실패하지 않도록 전부 none 처리.
+    model:
+      chat: none
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+
+    # ⓑ Ollama (로컬) 설정
+    #    - IDE 로컬 실행: 환경변수 없음 → http://localhost:11434
+    #    - ./run.sh 도커 실행: OLLAMA_BASE_URL=http://host.docker.internal:11434 주입됨
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: llama3.2:3b
+
+    # ⓒ OpenAI 호환 엔드포인트 (Gemini 를 OpenAI 스타터로 호출)
+    openai:
+      api-key: ${GEMINI_API_KEY:}
+      base-url: https://generativelanguage.googleapis.com/v1beta/openai
+      chat:
+        options:
+          model: ${GEMINI_MODEL:gemini-2.5-flash-lite}
+
 # SQL 로그는 JPA가 아닌 P6Spy로만 출력 (바인드 파라미터 치환된 형태)
 
 server:
@@ -33,10 +67,11 @@ server:
 
 # Gemini API (공식 문서: https://ai.google.dev/gemini-api/docs)
 # curl 예제와 동일: base-url + /models/{model}:generateContent, 헤더 x-goog-api-key
+# (Day 1 이후 Spring AI ChatClient 로 대체되지만 기존 RestClient 데모 코드를 위해 유지)
 gemini:
-  api-key: ${GEMINI_API_KEY}
+  api-key: ${GEMINI_API_KEY:}
   base-url: https://generativelanguage.googleapis.com/v1beta
-  model: ${GEMINI_MODEL}
+  model: ${GEMINI_MODEL:gemini-2.5-flash-lite}
 
 ---
 # =========================================================
@@ -70,3 +105,33 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
+
+---
+# =========================================================
+# ollama 프로파일: 로컬 Ollama 로 호출
+# 사용 예 (도커): .env 에 SPRING_PROFILES_ACTIVE=docker,ollama
+# 사용 예 (IDE) : SPRING_PROFILES_ACTIVE=local,ollama
+# =========================================================
+spring:
+  config:
+    activate:
+      on-profile: ollama
+
+  ai:
+    model:
+      chat: ollama
+
+---
+# =========================================================
+# gemini 프로파일: OpenAI 호환 엔드포인트로 Gemini 호출
+# 사용 예 (도커): .env 에 SPRING_PROFILES_ACTIVE=docker,gemini
+# 사용 예 (IDE) : SPRING_PROFILES_ACTIVE=local,gemini
+# =========================================================
+spring:
+  config:
+    activate:
+      on-profile: gemini
+
+  ai:
+    model:
+      chat: openai

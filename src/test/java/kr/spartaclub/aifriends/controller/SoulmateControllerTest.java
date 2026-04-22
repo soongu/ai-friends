@@ -18,7 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -43,10 +43,10 @@ class SoulmateControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private SoulmateService soulmateService;
 
-    @MockitoBean
+    @MockBean
     private ChatLogService chatLogService;
 
     @Test

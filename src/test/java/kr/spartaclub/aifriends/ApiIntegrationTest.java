@@ -28,7 +28,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * </ul>
  */
 @SpringBootTest(
-        properties = {"DB_URL=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"}
+        properties = {
+                "DB_URL=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+                // ChatClient.Builder 자동 설정이 ChatModel 빈을 요구하므로 openai 스타터만 활성화.
+                // 실제 API 호출은 이 통합 테스트에서 하지 않으므로 더미 키로 충분하다.
+                "spring.ai.model.chat=openai",
+                "spring.ai.openai.api-key=test-dummy"
+        }
 )
 @AutoConfigureMockMvc
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

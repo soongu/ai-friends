@@ -38,6 +38,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.0'
     implementation 'io.github.cdimascio:dotenv-java:3.0.0'
+
+    // 🤖 Spring AI 모델 스타터 (Day 1 Step 3 에서 추가)
+    implementation 'org.springframework.ai:spring-ai-starter-model-ollama'   // 로컬 Ollama (무료)
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'   // OpenAI 호환 (Gemini 도 이 스타터로 호출)
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'com.mysql:mysql-connector-j'
     compileOnly 'org.projectlombok:lombok'
