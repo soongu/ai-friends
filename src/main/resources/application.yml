@@ -2,11 +2,15 @@ spring:
   application:
     name: ai-friends
 
+  profiles:
+    # 기본 프로파일: 로컬에서 IDE로 실행할 때는 H2 사용
+    # docker-compose로 띄울 때는 SPRING_PROFILES_ACTIVE=docker 가 자동 주입됨
+    default: local
+
   datasource:
     url: ${DB_URL}
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
 
   h2:
     console:
@@ -32,4 +36,37 @@ server:
 gemini:
   api-key: ${GEMINI_API_KEY}
   base-url: https://generativelanguage.googleapis.com/v1beta
-  model: ${GEMINI_MODEL}   
+  model: ${GEMINI_MODEL}
+
+---
+# =========================================================
+# local 프로파일 (IDE 실행 기본값): H2 인메모리
+# =========================================================
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    driver-class-name: org.h2.Driver
+
+---
+# =========================================================
+# docker 프로파일 (docker-compose 실행 시): MySQL 8
+# =========================================================
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # 컨테이너를 띄울 때마다 스키마 초기화 (강의용)
+      # 운영 전환 시 validate + Flyway/Liquibase 로 교체
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
