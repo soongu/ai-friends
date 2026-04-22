@@ -50,13 +50,21 @@ spring:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       chat:
         options:
-          model: llama3.2:3b
+          model: gemma3:4b
 
     # ⓒ OpenAI 호환 엔드포인트 (Gemini 를 OpenAI 스타터로 호출)
+    #
+    # ⚠️ OpenAI 호환 프로바이더(Gemini/Groq 등)는 실제 OpenAI 와 경로가 다르다.
+    #    Spring AI 기본 completions-path = "/v1/chat/completions" 이지만,
+    #    Gemini 는 "/v1beta/openai/chat/completions", Groq 은 "/openai/v1/chat/completions"
+    #    이라 "/v1" 이 이중으로 붙으면 404 가 난다.
+    #    → 공용으로 "/chat/completions" 로 오버라이드하고, 각 프로파일의 base-url 에
+    #      provider 고유 prefix 를 포함시킨다.
     openai:
       api-key: ${GEMINI_API_KEY:}
       base-url: https://generativelanguage.googleapis.com/v1beta/openai
       chat:
+        completions-path: /chat/completions
         options:
           model: ${GEMINI_MODEL:gemini-2.5-flash-lite}
 
@@ -135,3 +143,33 @@ spring:
   ai:
     model:
       chat: openai
+
+---
+# =========================================================
+# groq 프로파일 (Day 1 과제 2): OpenAI 호환 엔드포인트로 Groq 호출
+# 사용 예 (도커): .env 에 SPRING_PROFILES_ACTIVE=docker,groq
+# 사용 예 (IDE) : SPRING_PROFILES_ACTIVE=local,groq
+#
+# 핵심:
+#   - 스타터는 그대로 spring-ai-starter-model-openai 재활용
+#   - base-url 만 Groq 엔드포인트로, api-key 는 GROQ_API_KEY 로 덮어쓴다
+#   - 자바 코드는 단 한 줄도 손대지 않는다 (과제 2 의 핵심 채점 포인트)
+# =========================================================
+spring:
+  config:
+    activate:
+      on-profile: groq
+
+  ai:
+    model:
+      chat: openai
+
+    openai:
+      api-key: ${GROQ_API_KEY:}
+      base-url: https://api.groq.com/openai/v1
+      chat:
+        # ⚠️ 위 공통 섹션과 동일 이유 — 기본 completions-path 가 "/v1/chat/completions" 라
+        #    base-url 끝의 "/v1" 과 겹쳐 "/openai/v1/v1/chat/completions" 404 를 만든다.
+        completions-path: /chat/completions
+        options:
+          model: ${GROQ_MODEL:llama-3.3-70b-versatile}

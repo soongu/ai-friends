@@ -51,6 +51,9 @@ services:
       # Gemini API (OpenAI 호환 엔드포인트로 호출)
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      # Groq API (Day 1 과제 2 — SPRING_PROFILES_ACTIVE=docker,groq 일 때 사용)
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
       # 컨테이너 내부에서 호스트의 Ollama 데몬으로 접속할 base-url
       # 호스트에서 직접 IDE 로 띄울 때는 application.yml 기본값(localhost:11434)이 적용됨
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
