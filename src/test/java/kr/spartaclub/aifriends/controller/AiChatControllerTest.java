@@ -2,14 +2,14 @@ package kr.spartaclub.aifriends.controller;
 
 import kr.spartaclub.aifriends.common.exception.GlobalExceptionHandler;
 import org.springframework.context.annotation.Import;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.spartaclub.aifriends.dto.AiChatRequest;
 import kr.spartaclub.aifriends.dto.AiChatResponse;
 import kr.spartaclub.aifriends.service.AiChatService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
