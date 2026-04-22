@@ -173,3 +173,36 @@ spring:
         completions-path: /chat/completions
         options:
           model: ${GROQ_MODEL:llama-3.3-70b-versatile}
+
+---
+# =========================================================
+# compare 프로파일 (Day 2 과제 2): Ollama + Gemini 두 프로바이더를 동시에 주입
+# 사용 예 (도커): .env 에 SPRING_PROFILES_ACTIVE=docker,compare
+# 사용 예 (IDE) : SPRING_PROFILES_ACTIVE=local,compare
+#
+# 핵심:
+#   - AutoConfig 는 `chat: none` 으로 우회 (한 번에 하나만 활성화되는 제약 때문)
+#   - ChatModelCompareConfig 에서 두 ChatModel 을 @Bean 으로 수동 등록
+#   - /api/compare 에서 @Qualifier 로 각각 주입받아 병렬 호출
+# =========================================================
+spring:
+  config:
+    activate:
+      on-profile: compare
+
+  ai:
+    # 수동 빈 등록을 쓰기 위해 AutoConfig 를 명시적으로 우회 (Day 2 Step 1 복습)
+    model:
+      chat: none
+
+# compare 프로파일 전용 커스텀 프로퍼티 — ChatModelCompareConfig 가 @Value 로 읽어 쓴다.
+app:
+  compare:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      model: ${OLLAMA_MODEL:gemma3:4b}
+    gemini:
+      api-key: ${GEMINI_API_KEY:}
+      base-url: https://generativelanguage.googleapis.com/v1beta/openai
+      completions-path: /chat/completions
+      model: ${GEMINI_MODEL:gemini-2.5-flash-lite}
