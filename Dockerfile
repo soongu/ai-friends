@@ -1,7 +1,7 @@
 # =========================================================
 # 1단계: Gradle 빌드 스테이지
 # =========================================================
-FROM eclipse-temurin:25-jdk AS builder
+FROM eclipse-temurin:21-jdk AS builder
 
 WORKDIR /workspace
 
@@ -22,7 +22,7 @@ RUN ./gradlew clean bootJar -x test --no-daemon
 # =========================================================
 # 2단계: 런타임 스테이지 (슬림 JRE)
 # =========================================================
-FROM eclipse-temurin:25-jre
+FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 

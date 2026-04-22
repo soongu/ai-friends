@@ -12,7 +12,7 @@ Spring AI 강의의 기반 프로젝트입니다. Day 1 기준으로는 RestClie
 
 | 항목 | 버전 | 비고 |
 |------|------|------|
-| JDK | 25 | IDE 실행 시에만 필요. Docker 실행에는 불필요. |
+| JDK | 21 | IDE 실행 시에만 필요. Docker 실행에는 불필요. |
 | Docker Desktop | 최신 | `docker compose` v2 명령어 사용 |
 | Google Gemini API Key | — | https://aistudio.google.com/app/apikey |
 
@@ -129,6 +129,6 @@ Spring 기본 프로파일이 `local` 이므로 IDE 에서 그냥 Run 하면 H2 
 
 ## 6. 참고
 
-- Spring Boot Gradle Plugin: https://docs.spring.io/spring-boot/4.0.3/gradle-plugin
-- Spring AI Reference (1.1.x): https://docs.spring.io/spring-ai/reference/1.1/
+- Spring Boot 3.3.x: https://docs.spring.io/spring-boot/docs/3.3.x/reference/html/
+- Spring AI 1.1.x: https://docs.spring.io/spring-ai/reference/1.1/
 - Gemini API: https://ai.google.dev/gemini-api/docs
