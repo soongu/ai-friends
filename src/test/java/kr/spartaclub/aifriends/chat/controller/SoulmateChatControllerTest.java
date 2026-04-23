@@ -15,6 +15,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -47,5 +48,20 @@ class SoulmateChatControllerTest {
                 .andExpect(content().string("에이, 무슨 일 있었어? 천천히 얘기해봐."));
 
         verify(service).chat("user_1", "우울", "오늘 진짜 별로였어");
+    }
+
+    @Test
+    @DisplayName("GET /api/chat/soulmate - 필수 파라미터 누락 시 400 과 BAD_REQUEST 에러 응답을 반환한다")
+    void soulmate_missingRequiredParam_returns400() throws Exception {
+        mockMvc.perform(get("/api/chat/soulmate")
+                        .param("userId", "1")
+                        .param("message", "안녕"))   // mood 누락
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.status").value(400))
+                .andExpect(jsonPath("$.error.error").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.error.code").value("E001"))
+                .andExpect(jsonPath("$.error.message").value(
+                        org.hamcrest.Matchers.containsString("mood")));
     }
 }
