@@ -153,4 +153,35 @@ class GeminiServiceTest {
         // 치환 후엔 플레이스홀더가 남아 있으면 안 된다
         assertThat(rendered).doesNotContain("{gender}", "{characterName}", "{personality}");
     }
+
+    @Test
+    @DisplayName("시스템 프롬프트의 Few-shot 예시 2쌍(일상 대화/관계 분기)이 Example 섹션에 포함된다")
+    void buildSystemInstruction_containsFewShotExamples() {
+        Soulmate soulmate = new Soulmate(
+                1L, "여성", "img", null, "유키",
+                "차분함", "독서", "존댓말",
+                0, 1, null
+        );
+
+        String rendered = ReflectionTestUtils.invokeMethod(geminiService,
+                "buildSystemInstructionText", soulmate);
+
+        // Example 섹션 존재 및 Step 6 플레이스홀더 문구는 제거됨
+        assertThat(rendered)
+                .contains("# Example")
+                .doesNotContain("(Step 6 Few-shot 에서 채워 넣는다 — 현재는 비어 있음)");
+
+        // 예시 1 — 일상 대화(choices 빈 배열) 앵커
+        assertThat(rendered)
+                .contains("예시 1")
+                .contains("오늘 점심 뭐 먹었어?")
+                .contains("\"choices\": []")
+                .contains("\"affectionDelta\": 1");
+
+        // 예시 2 — 관계 분기의 순간(choices 채움) 앵커
+        assertThat(rendered)
+                .contains("예시 2")
+                .contains("너… 나 좋아해?")
+                .contains("\"affectionDelta\": 3");
+    }
 }

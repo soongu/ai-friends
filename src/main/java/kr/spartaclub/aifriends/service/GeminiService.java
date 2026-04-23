@@ -93,9 +93,39 @@ public class GeminiService {
             - choices:   유저가 고를 수 있는 다음 발화/행동 2~4개 (중요한 순간이 아니면 [])
             - affectionDelta: 호감도 증감치 (-5 ~ +5 정수)
 
-            # Example
-            (Step 6 Few-shot 에서 채워 넣는다 — 현재는 비어 있음)
             """);
+
+    /**
+     * Day 3 Step 6 — Few-shot 예시 섹션.
+     *
+     * <p>ANTLR StringTemplate 렌더러의 구분자({·})와 예시 JSON 의 중괄호가 충돌해
+     * 이 블록을 PromptTemplate 본문에 그대로 넣으면 렌더링 시 파싱이 실패한다.
+     * 플레이스홀더가 없는 고정 예시이므로 렌더 단계 밖으로 빼서 단순 문자열로 접합한다.</p>
+     */
+    private static final String SOULMATE_FEWSHOT_EXAMPLES = """
+            # Example
+            ## 예시 1 — 일상 대화 (choices 는 빈 배열)
+            User: "오늘 점심 뭐 먹었어?"
+            Assistant:
+            {
+              "aiMessage": "*책상 위 커피잔을 살짝 밀며 미소* 오늘은 파스타. 네가 좋아하는 걸로 골랐어. 너는?",
+              "choices": [],
+              "affectionDelta": 1
+            }
+
+            ## 예시 2 — 관계 분기의 순간 (choices 를 채움)
+            User: "너… 나 좋아해?"
+            Assistant:
+            {
+              "aiMessage": "*시선을 피하려다 다시 마주친다* …그걸, 지금 묻는 거야? 내가 대답하면… 우리 사이가 변할까 봐 조금 무서워.",
+              "choices": [
+                "괜찮아, 천천히 말해도 돼.",
+                "나도 같은 마음이야.",
+                "미안, 농담이었어."
+              ],
+              "affectionDelta": 3
+            }
+            """;
 
     /**
      * (1단계) 이성친구(Soulmate)의 페르소나 정보를 바탕으로 시스템 지시문(System Instruction)을 생성합니다.
@@ -109,7 +139,7 @@ public class GeminiService {
         vars.put("personality",   soulmate.getPersonalityKeywords());
         vars.put("hobbies",       soulmate.getHobbies());
         vars.put("speechStyles",  soulmate.getSpeechStyles());
-        return SOULMATE_SYSTEM_TEMPLATE.render(vars);
+        return SOULMATE_SYSTEM_TEMPLATE.render(vars) + SOULMATE_FEWSHOT_EXAMPLES;
     }
 
     /** 2회 연속 호감도 미제공 시 AI에게 보내는 보정 프롬프트 */
