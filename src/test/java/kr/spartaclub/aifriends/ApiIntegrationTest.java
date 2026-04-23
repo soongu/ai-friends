@@ -159,7 +159,9 @@ class ApiIntegrationTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> data = (Map<String, Object>) body.get("data");
         assertThat(data).isNotNull();
-        assertThat(data.get("id")).isEqualTo(createdSoulmateId);
+        // Jackson 이 작은 정수를 Integer 로 역직렬화하므로 Long 원본과 직접 비교하면 타입 불일치.
+        // 생성 테스트에서 쓴 ((Number) ...).longValue() 변환 패턴을 여기서도 유지해 long 값끼리 비교한다.
+        assertThat(((Number) data.get("id")).longValue()).isEqualTo(createdSoulmateId);
         assertThat(data.get("affectionScore")).isNotNull();
         assertThat(data.get("level")).isNotNull();
     }

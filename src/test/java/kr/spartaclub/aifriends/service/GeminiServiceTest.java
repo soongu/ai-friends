@@ -102,8 +102,11 @@ class GeminiServiceTest {
     }
 
     @Test
-    @DisplayName("Gemini JSON 응답 파싱 실패 시 원문 담기")
-    void generateReply_parseFailureFallback() {
+    @DisplayName("Gemini JSON 스키마 위반 응답 시 AI_UNAVAILABLE 예외로 승격한다")
+    void generateReply_parseFailureThrowsAiUnavailable() {
+        // Gemini 가 스키마를 지키지 않고 평범한 텍스트를 내려보내는 병리적 케이스.
+        // 현재 정책은 "조용히 raw 를 fallback" 이 아니라 "AI_UNAVAILABLE 로 빠르게 승격" — 프로토콜 깨짐을 감추지 않는다.
+        // (Day 4 BeanOutputConverter 도입 시 이 try/catch 블록 전체가 교체되며, 그 시점에 복구 전략을 다시 설계한다.)
         Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, null, "x", "y", "z", 0, 1, null);
         String mockResponseBody = """
                 {
@@ -125,10 +128,10 @@ class GeminiServiceTest {
                 .setBody(mockResponseBody)
                 .addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE));
 
-        GeminiParsedResponse response = geminiService.generateReply(soulmate, Collections.emptyList(), "hi", false, false);
-
-        assertThat(response.aiMessage()).isEqualTo("그냥 평범한 텍스트로 응답함");
-        assertThat(response.affectionDelta()).isEqualTo(0);
+        assertThatThrownBy(() -> geminiService.generateReply(
+                soulmate, Collections.emptyList(), "hi", false, false))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.AI_UNAVAILABLE.getMessage());
     }
 
     @Test
