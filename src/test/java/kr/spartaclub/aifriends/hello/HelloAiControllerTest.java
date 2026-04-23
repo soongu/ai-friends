@@ -149,6 +149,69 @@ class HelloAiControllerTest {
         then(chatClient.prompt().system(anyString())).should().user("의존성 주입이 뭔가요?");
     }
 
+    @Test
+    @DisplayName("GET /api/hello-ai/v3-ab - 짝수 userId 는 v1 프롬프트로 분기된다")
+    void helloV3Ab_evenUserIdRoutesToV1() throws Exception {
+        reset(chatClient);
+        given(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+                .willReturn("v1-차분한-응답");
+        clearInvocations(chatClient.prompt());
+
+        mockMvc.perform(get("/api/hello-ai/v3-ab")
+                        .param("userId", "10")
+                        .param("message", "REST와 GraphQL 의 차이?")
+                        .param("topicTag", "Spring AI"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.promptVersion").value("v1"))
+                .andExpect(jsonPath("$.userName").value("tutor-student-1"))
+                .andExpect(jsonPath("$.topicTag").value("Spring AI"))
+                .andExpect(jsonPath("$.reply").value("v1-차분한-응답"));
+
+        ArgumentCaptor<String> systemCaptor = ArgumentCaptor.forClass(String.class);
+        then(chatClient.prompt()).should().system(systemCaptor.capture());
+        // v1 고유 표지(답변 마무리 문구) 가 시스템 프롬프트에 들어있어야 한다.
+        assertThat(systemCaptor.getValue()).contains("그럼 다음 질문?");
+    }
+
+    @Test
+    @DisplayName("GET /api/hello-ai/v3-ab - 홀수 userId 는 v2 프롬프트로 분기된다")
+    void helloV3Ab_oddUserIdRoutesToV2() throws Exception {
+        reset(chatClient);
+        given(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+                .willReturn("v2-쾌활한-응답 🚀");
+        clearInvocations(chatClient.prompt());
+
+        mockMvc.perform(get("/api/hello-ai/v3-ab")
+                        .param("userId", "11")
+                        .param("message", "REST와 GraphQL 의 차이?"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.promptVersion").value("v2"))
+                .andExpect(jsonPath("$.userName").value("tutor-student-1"))
+                .andExpect(jsonPath("$.topicTag").value("Spring AI"))
+                .andExpect(jsonPath("$.reply").value("v2-쾌활한-응답 🚀"));
+
+        ArgumentCaptor<String> systemCaptor = ArgumentCaptor.forClass(String.class);
+        then(chatClient.prompt()).should().system(systemCaptor.capture());
+        // v2 고유 표지 — 쾌활 마무리 문구.
+        assertThat(systemCaptor.getValue()).contains("또 궁금한 거 있으면 언제든 🚀");
+    }
+
+    @Test
+    @DisplayName("GET /api/hello-ai/v3-ab - 같은 userId 로 두 번 호출하면 같은 promptVersion 으로 고정된다 (sticky)")
+    void helloV3Ab_sameUserIdSticksToSameVersion() throws Exception {
+        reset(chatClient);
+        given(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+                .willReturn("reply");
+        clearInvocations(chatClient.prompt());
+
+        // 동일한 짝수 id 로 3번 호출 — 전부 v1 이어야 한다.
+        for (int i = 0; i < 3; i++) {
+            mockMvc.perform(get("/api/hello-ai/v3-ab").param("userId", "42"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.promptVersion").value("v1"));
+        }
+    }
+
     @TestConfiguration
     static class ChatClientTestConfig {
 
