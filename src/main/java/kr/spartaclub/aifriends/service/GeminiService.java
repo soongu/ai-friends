@@ -10,18 +10,22 @@ import kr.spartaclub.aifriends.dto.GeminiRequest.Content;
 import kr.spartaclub.aifriends.dto.GeminiRequest.Part;
 import kr.spartaclub.aifriends.dto.GeminiRequest.SystemInstruction;
 import kr.spartaclub.aifriends.dto.GeminiResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -43,7 +47,6 @@ import java.util.stream.Stream;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class GeminiService {
 
     /**
@@ -53,7 +56,7 @@ public class GeminiService {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    // application.yml 등에 설정된 모델 정보 
+    // application.yml 등에 설정된 모델 정보
     @Value("${gemini.model}")
     private String geminiModel;
 
@@ -62,70 +65,43 @@ public class GeminiService {
     private static final int MAX_CONTEXT_MESSAGES = 20;
 
     /**
-     * Day 3 Step 5 — 히로인 페르소나 시스템 프롬프트 템플릿.
+     * Day 3 Step 7 — 외부 파일에서 읽어들인 히로인 시스템 프롬프트 템플릿.
      *
-     * <p>RCTFE 5축으로 섹션을 재구성하고, 매 호출 바뀌는 값은 {slot} 플레이스홀더로 비워뒀다.
-     * static final 로 잡은 이유: PromptTemplate 은 상태를 보존하지 않아 스레드 안전하다.
-     * Step 7 에서는 이 템플릿 원본을 외부 파일로 빼 코드 배포 없이 갈아끼우는 구조로 한 번 더 진화시킨다.</p>
+     * <p>프롬프트 본문은 src/main/resources/prompts/soulmate/system-v1.st 에 있다.
+     * Spring 부팅 시 한 번만 파싱되어 PromptTemplate 인스턴스로 보관된다.
+     * v2 프롬프트를 실험하고 싶을 땐 system-v2.st 파일을 추가하고 이 필드의 경로만 바꾸면 된다.</p>
      */
-    private static final PromptTemplate SOULMATE_SYSTEM_TEMPLATE = new PromptTemplate("""
-            # Role
-            너는 미연시(연애 시뮬레이션) 게임 속 히로인 역할을 하는 AI 캐릭터야.
-            유저(플레이어)와 점점 가까워지는 연애 상대 캐릭터로 완전히 몰입해서 대화한다.
-
-            # Context
-            - 성별: {gender}
-            - 캐릭터 이름: {characterName}
-            - 성격 키워드: {personality}
-            - 취미: {hobbies}
-            - 말투: {speechStyles}
-
-            # Task
-            1. 반드시 캐릭터로서만 응답한다. 'AI', '시스템', '프롬프트' 같은 메타 발언 금지.
-            2. 감정과 행동을 생생히 표현한다. *웃으며 고개를 기울인다* 같은 묘사를 적절히 사용.
-            3. 선택지(choices)는 기본 빈 배열 []. "진짜 중요한 순간"(고백·관계 분기·갈등 해소 등)에만 2~4개 제시.
-            4. 선택지를 낼 때만: 반드시 "플레이어가 다음에 할 말/행동"만 2~4개로. 캐릭터의 질문·대사는 선택지에 넣지 않는다.
-            5. 유저가 주제를 바꿔도 자연스럽게 받아 이어간다.
-
-            # Format
-            다음 JSON 스키마로 응답한다.
-            - aiMessage: 화면에 보여질 캐릭터의 대사 (문자열)
-            - choices:   유저가 고를 수 있는 다음 발화/행동 2~4개 (중요한 순간이 아니면 [])
-            - affectionDelta: 호감도 증감치 (-5 ~ +5 정수)
-
-            """);
+    private final PromptTemplate soulmateSystemTemplate;
 
     /**
-     * Day 3 Step 6 — Few-shot 예시 섹션.
+     * Day 3 Step 7 — 외부 파일에서 읽어들인 Few-shot 예시 블록.
      *
-     * <p>ANTLR StringTemplate 렌더러의 구분자({·})와 예시 JSON 의 중괄호가 충돌해
-     * 이 블록을 PromptTemplate 본문에 그대로 넣으면 렌더링 시 파싱이 실패한다.
-     * 플레이스홀더가 없는 고정 예시이므로 렌더 단계 밖으로 빼서 단순 문자열로 접합한다.</p>
+     * <p>예시 JSON 의 중괄호가 ST 렌더러 구분자와 충돌하므로 템플릿이 아닌 고정 문자열로 보관한다.
+     * 파일 경로는 src/main/resources/prompts/soulmate/fewshot-v1.st.</p>
      */
-    private static final String SOULMATE_FEWSHOT_EXAMPLES = """
-            # Example
-            ## 예시 1 — 일상 대화 (choices 는 빈 배열)
-            User: "오늘 점심 뭐 먹었어?"
-            Assistant:
-            {
-              "aiMessage": "*책상 위 커피잔을 살짝 밀며 미소* 오늘은 파스타. 네가 좋아하는 걸로 골랐어. 너는?",
-              "choices": [],
-              "affectionDelta": 1
-            }
+    private final String soulmateFewshotExamples;
 
-            ## 예시 2 — 관계 분기의 순간 (choices 를 채움)
-            User: "너… 나 좋아해?"
-            Assistant:
-            {
-              "aiMessage": "*시선을 피하려다 다시 마주친다* …그걸, 지금 묻는 거야? 내가 대답하면… 우리 사이가 변할까 봐 조금 무서워.",
-              "choices": [
-                "괜찮아, 천천히 말해도 돼.",
-                "나도 같은 마음이야.",
-                "미안, 농담이었어."
-              ],
-              "affectionDelta": 3
-            }
-            """;
+    public GeminiService(
+            RestClient geminiRestClient,
+            @Value("classpath:prompts/soulmate/system-v1.st") Resource soulmateSystemResource,
+            @Value("classpath:prompts/soulmate/fewshot-v1.st") Resource soulmateFewshotResource
+    ) {
+        this.geminiRestClient = geminiRestClient;
+        this.soulmateSystemTemplate = new PromptTemplate(soulmateSystemResource);
+        this.soulmateFewshotExamples = readResource(soulmateFewshotResource);
+    }
+
+    /**
+     * Classpath 리소스를 UTF-8 문자열로 읽어들이는 헬퍼.
+     * 부팅 시 한 번만 호출되므로 IOException 을 치명적 오류로 승격시킨다.
+     */
+    private static String readResource(Resource resource) {
+        try (InputStream in = resource.getInputStream()) {
+            return StreamUtils.copyToString(in, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException("프롬프트 리소스 로딩 실패: " + resource, e);
+        }
+    }
 
     /**
      * (1단계) 이성친구(Soulmate)의 페르소나 정보를 바탕으로 시스템 지시문(System Instruction)을 생성합니다.
@@ -139,7 +115,7 @@ public class GeminiService {
         vars.put("personality",   soulmate.getPersonalityKeywords());
         vars.put("hobbies",       soulmate.getHobbies());
         vars.put("speechStyles",  soulmate.getSpeechStyles());
-        return SOULMATE_SYSTEM_TEMPLATE.render(vars) + SOULMATE_FEWSHOT_EXAMPLES;
+        return soulmateSystemTemplate.render(vars) + soulmateFewshotExamples;
     }
 
     /** 2회 연속 호감도 미제공 시 AI에게 보내는 보정 프롬프트 */

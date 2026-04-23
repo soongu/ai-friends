@@ -11,6 +11,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -36,7 +38,13 @@ class GeminiServiceTest {
                 .baseUrl(mockWebServer.url("/").toString())
                 .build();
 
-        geminiService = new GeminiService(restClient);
+        // Step 7 이후: 생성자가 프롬프트 리소스 두 개(template + fewshot)를 더 받는다.
+        // 테스트는 Spring 컨테이너를 안 띄우므로 @Value("classpath:...") 가 만들어주던
+        // ClassPathResource 를 손으로 동일하게 만들어 넘긴다.
+        Resource systemResource = new ClassPathResource("prompts/soulmate/system-v1.st");
+        Resource fewshotResource = new ClassPathResource("prompts/soulmate/fewshot-v1.st");
+
+        geminiService = new GeminiService(restClient, systemResource, fewshotResource);
     }
 
     @AfterEach
