@@ -12,7 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -47,7 +47,7 @@ class SoulmateChatControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string("에이, 무슨 일 있었어? 천천히 얘기해봐."));
 
-        verify(service).chat("user_1", "우울", "오늘 진짜 별로였어");
+        then(service).should().chat("user_1", "우울", "오늘 진짜 별로였어");
     }
 
     @Test

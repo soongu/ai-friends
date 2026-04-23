@@ -13,9 +13,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 /**
  * Day 3 Step 3 — PromptTemplate 람다 문법으로 시스템 프롬프트를 조립하는 서비스 단위 테스트.
@@ -63,7 +63,7 @@ class SoulmateChatServiceTest {
                 .content())
                 .willReturn("ok");
         // 스터빙 체인이 .system(any()) 을 한 번 호출하므로,
-        // 실제 서비스 호출 전 interaction 카운터를 리셋해 verify 가 "진짜 람다" 만 붙잡도록 한다.
+        // 실제 서비스 호출 전 interaction 카운터를 리셋해 then().should() 가 "진짜 람다" 만 붙잡도록 한다.
         clearInvocations(chatClient.prompt());
 
         service.chat("user_1", "우울", "힘들어");
@@ -71,19 +71,19 @@ class SoulmateChatServiceTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Consumer<ChatClient.PromptSystemSpec>> captor =
                 ArgumentCaptor.forClass(Consumer.class);
-        verify(chatClient.prompt()).system(captor.capture());
+        then(chatClient.prompt()).should().system(captor.capture());
 
         ChatClient.PromptSystemSpec systemSpec =
                 mock(ChatClient.PromptSystemSpec.class, Answers.RETURNS_SELF);
         captor.getValue().accept(systemSpec);
 
         ArgumentCaptor<String> textCaptor = ArgumentCaptor.forClass(String.class);
-        verify(systemSpec).text(textCaptor.capture());
+        then(systemSpec).should().text(textCaptor.capture());
         assertThat(textCaptor.getValue())
                 .contains("{userName}")
                 .contains("{mood}");
 
-        verify(systemSpec).param("userName", "user_1");
-        verify(systemSpec).param("mood", "우울");
+        then(systemSpec).should().param("userName", "user_1");
+        then(systemSpec).should().param("mood", "우울");
     }
 }
