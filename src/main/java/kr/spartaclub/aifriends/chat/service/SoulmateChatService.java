@@ -4,12 +4,14 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
 /**
- * Day 3 Step 2 — 소꿉친구 페르소나 ChatClient 를 사용하는 서비스.
+ * Day 3 Step 3 — 소꿉친구 페르소나 ChatClient 를 사용하는 서비스.
  *
- * <p>이 서비스의 코드에는 "소꿉친구" 라는 단어가 단 한 번도 등장하지 않는다.
- * 페르소나는 ChatClientConfig 의 defaultSystem 에 박혀 있고,
- * 이 서비스는 그냥 "주입받은 ChatClient 로 유저 메시지를 호출" 할 뿐이다.
- * 프롬프트와 비즈니스 로직의 관심사 분리가 여기서 시작된다.</p>
+ * <p>Step 2 에서는 ChatClientConfig 의 defaultSystem 이 페르소나의 전부였지만,
+ * Step 3 부터는 호출 시점에 {userName}·{mood} 같은 동적 값을 꽂을 수 있도록
+ * .system(Consumer) 람다 + PromptSystemSpec.text/param 으로 덮어쓴다.</p>
+ *
+ * <p>익명 ID 변환은 UserAnonymizer 가 책임지고, 이 서비스는 이미 익명화된 값만 받는다.
+ * PII 가 흘러 들어오지 않도록 호출 계층에서 마스킹을 끝내고 넘기는 규율이다.</p>
  */
 @Service
 public class SoulmateChatService {
@@ -20,8 +22,16 @@ public class SoulmateChatService {
         this.soulmateChatClient = soulmateChatClient;
     }
 
-    public String chat(String userMessage) {
+    public String chat(String anonymizedUserName, String mood, String userMessage) {
         return soulmateChatClient.prompt()
+                .system(system -> system
+                        .text("""
+                                너는 {userName} 님의 AI 친구야.
+                                유저의 현재 기분은 '{mood}' 이야.
+                                답변은 3문장 이내로, 반말로 친근하게 해.
+                                """)
+                        .param("userName", anonymizedUserName)
+                        .param("mood", mood))
                 .user(userMessage)
                 .call()
                 .content();
