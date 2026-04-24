@@ -1,9 +1,8 @@
 package kr.spartaclub.aifriends.hello;
 
+import kr.spartaclub.aifriends.common.exception.BusinessException;
+import kr.spartaclub.aifriends.common.exception.ErrorCode;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,7 +10,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.LongSummaryStatistics;
-import java.util.Map;
 
 /**
  * Day 2 과제 1 — 프로바이더 성능 벤치마크 엔드포인트.
@@ -43,9 +41,10 @@ public class BenchmarkController {
             @RequestParam(defaultValue = "3") int iterations
     ) {
         if (iterations < MIN_ITERATIONS || iterations > MAX_ITERATIONS) {
-            throw new IllegalArgumentException(
-                    "iterations must be between " + MIN_ITERATIONS + " and " + MAX_ITERATIONS
-            );
+            // Day 2 시점에는 예외 처리를 본격적으로 안 다루지만,
+            // 프로젝트 공통 예외 체계(BusinessException + ErrorCode)에 합류시키는 게
+            // 앞으로의 일관성에 유리하다. 세부는 뒤 Day 에서 다시 설명.
+            throw new BusinessException(ErrorCode.BAD_REQUEST);
         }
 
         List<Long> allMs = new ArrayList<>(iterations);
@@ -76,15 +75,5 @@ public class BenchmarkController {
                 ),
                 lastReply
         );
-    }
-
-    /**
-     * iterations 범위 위반 시 400 응답을 명시적으로 만들어 준다.
-     * (전역 @ControllerAdvice 가 없는 슬라이스 테스트에서도 안정적으로 400 으로 떨어지게 하기 위함)
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleBadRequest(IllegalArgumentException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", ex.getMessage()));
     }
 }

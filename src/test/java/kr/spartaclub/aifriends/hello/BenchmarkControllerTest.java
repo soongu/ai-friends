@@ -1,5 +1,6 @@
 package kr.spartaclub.aifriends.hello;
 
+import kr.spartaclub.aifriends.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
@@ -28,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * latency 자체는 거의 0 에 가깝지만, 통계 필드의 형태와 호출 횟수 검증은 충분히 가능하다.</p>
  */
 @WebMvcTest(BenchmarkController.class)
-@Import(BenchmarkControllerTest.ChatClientTestConfig.class)
+@Import({BenchmarkControllerTest.ChatClientTestConfig.class, GlobalExceptionHandler.class})
 class BenchmarkControllerTest {
 
     @Autowired
