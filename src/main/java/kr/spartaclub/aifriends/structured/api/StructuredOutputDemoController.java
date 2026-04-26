@@ -2,10 +2,14 @@ package kr.spartaclub.aifriends.structured.api;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.converter.BeanOutputConverter;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Day 4 Step 2 — 구조화 출력(Structured Output) PoC 데모 컨트롤러.
@@ -80,5 +84,41 @@ public class StructuredOutputDemoController {
                 === BeanOutputConverter<Quote>.getFormat() ===
                 %s
                 """.formatted(converter.getJsonSchema(), converter.getFormat());
+    }
+
+    /**
+     * Day 4 Step 4 — {@code List<Quote>} 반환을 통해 {@link ParameterizedTypeReference} 의 필요성을 보여주는 엔드포인트.
+     *
+     * <p>{@code .entity(List.class)} 는 컴파일은 통과하지만 원소 타입 정보가 erase 되어
+     * 의도한 {@code List<Quote>} 가 아니라 그냥 {@code List<?>} 로 다뤄진다.
+     * 그래서 익명 서브클래스 트릭({@code new ParameterizedTypeReference<List<Quote>>() {}})으로
+     * 런타임까지 타입 토큰을 살려 보내야 한다.</p>
+     */
+    @GetMapping("/api/structured/quotes")
+    public List<Quote> quotes(
+            @RequestParam(defaultValue = "용기") String topic,
+            @RequestParam(defaultValue = "3") int count) {
+        return chatClient.prompt()
+                .user(u -> u.text("'{topic}' 에 관한 짧은 명언을 서로 다른 인물의 것으로 {count} 개 알려줘.")
+                        .param("topic", topic)
+                        .param("count", count))
+                .call()
+                .entity(new ParameterizedTypeReference<List<Quote>>() {});
+    }
+
+    /**
+     * Day 4 Step 4 — {@code Map<String, Integer>} 반환 케이스. 키가 미리 정해지지 않은 동적 응답에 적합한 패턴.
+     *
+     * <p>record 처럼 컴파일 시점에 키를 고정할 수 없는 데이터(키워드 빈도, 분류 점수 등)를 받을 때
+     * Map 으로 받는 게 자연스럽다. {@code List<T>} 와 마찬가지로 {@code ParameterizedTypeReference} 가 필요하다.</p>
+     */
+    @GetMapping("/api/structured/keyword-counts")
+    public Map<String, Integer> keywordCounts(
+            @RequestParam(defaultValue = "Spring AI 는 자바 백엔드에서 LLM 을 다루는 표준 추상화를 제공한다.") String text) {
+        return chatClient.prompt()
+                .user(u -> u.text("다음 문장에서 핵심 명사를 추출해 키워드별 등장 횟수를 JSON 객체로 반환해줘. 문장: {text}")
+                        .param("text", text))
+                .call()
+                .entity(new ParameterizedTypeReference<Map<String, Integer>>() {});
     }
 }
