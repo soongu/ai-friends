@@ -1,6 +1,8 @@
 package kr.spartaclub.aifriends.structured.api;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.converter.BeanOutputConverter;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -53,5 +55,30 @@ public class StructuredOutputDemoController {
                 .user(u -> u.text("'{topic}' 에 관한 짧은 명언 한 줄을 알려줘.").param("topic", topic))
                 .call()
                 .entity(Quote.class);
+    }
+
+    /**
+     * Day 4 Step 3 — {@link BeanOutputConverter} 가 LLM 한테 무엇을 보내는지 들여다보는 디버그 엔드포인트.
+     *
+     * <p>{@code .entity(Quote.class)} 안쪽에서 Spring AI 가 내부적으로 만들어 쓰는 두 가지 텍스트를
+     * 그대로 응답으로 떨어뜨려 학생이 직접 눈으로 확인할 수 있게 한다.</p>
+     * <ul>
+     *   <li>{@code getJsonSchema()} — record 를 분석해 자동 생성된 순수 JSON Schema 텍스트.</li>
+     *   <li>{@code getFormat()} — 위 스키마를 감싸 LLM 한테 "이 형식만 지켜라" 라고 명시하는 자연어 지시문.
+     *       {@code .entity()} 호출 시 사용자 프롬프트 끝에 자동 주입되는 것과 동일한 텍스트.</li>
+     * </ul>
+     *
+     * <p>{@code text/plain} 으로 응답하므로 curl 결과를 콘솔에서 그대로 읽기 좋다.</p>
+     */
+    @GetMapping(value = "/api/structured/quote/format-debug", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String quoteFormatDebug() {
+        BeanOutputConverter<Quote> converter = new BeanOutputConverter<>(Quote.class);
+        return """
+                === BeanOutputConverter<Quote>.getJsonSchema() ===
+                %s
+
+                === BeanOutputConverter<Quote>.getFormat() ===
+                %s
+                """.formatted(converter.getJsonSchema(), converter.getFormat());
     }
 }
