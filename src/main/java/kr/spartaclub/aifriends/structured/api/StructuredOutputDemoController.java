@@ -190,4 +190,59 @@ public class StructuredOutputDemoController {
         log.warn("recover-retry: all {} attempts failed, returning fallback", maxAttempts);
         return ResponseEntity.ok(ApiResponse.success(FALLBACK_QUOTE));
     }
+
+    /**
+     * Day 4 Step 7 학습용 — schema 크기 비교를 위한 작은 record. Quote 와 동일한 2 필드 baseline.
+     */
+    public record QuoteMini(String text, String author) { }
+
+    /**
+     * Day 4 Step 7 학습용 — schema 크기 비교 중간 단계. 우리 AiReply 와 같은 3 필드 (List 포함).
+     */
+    public record AiReplyLike(String aiMessage, List<String> choices, int affectionDelta) { }
+
+    /**
+     * Day 4 Step 7 학습용 — 풍부한 미연시 게임 응답을 가정한 큰 record (11 필드, List + Map 포함).
+     * "응답을 너무 풍부하게 키우면 schema 도 같이 부풀어 오른다" 는 트레이드오프 시연용.
+     */
+    public record AiReplyBig(
+            String aiMessage,
+            List<String> choices,
+            int affectionDelta,
+            String emotion,
+            String backgroundMusic,
+            List<String> tags,
+            int turnNumber,
+            String sceneDescription,
+            String characterPose,
+            boolean shouldEndConversation,
+            Map<String, Integer> additionalStats
+    ) { }
+
+    /**
+     * Day 4 Step 7 — record 의 필드 수를 키우면 schema 텍스트가 어떻게 부풀어 오르는지 비교.
+     *
+     * <p>학습용 디버그 평문 출력 (text/plain). LLM 호출 없음.
+     * 토큰 수 추정은 영어/숫자 위주 schema 텍스트 기준으로 1 토큰 ≈ 4 바이트 휴리스틱을 쓴다.
+     * 정확한 토큰 수는 토크나이저별로 다르므로 어디까지나 감각 잡기용 근사치.</p>
+     */
+    @GetMapping(value = "/api/structured/schema-size", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String schemaSize() {
+        StringBuilder sb = new StringBuilder();
+        appendSchemaInfo(sb, "QuoteMini  (2 fields)",                     QuoteMini.class);
+        appendSchemaInfo(sb, "AiReplyLike (3 fields, incl. List)",        AiReplyLike.class);
+        appendSchemaInfo(sb, "AiReplyBig (11 fields, incl. List + Map)",  AiReplyBig.class);
+        return sb.toString();
+    }
+
+    private void appendSchemaInfo(StringBuilder sb, String label, Class<?> clazz) {
+        BeanOutputConverter<?> converter = new BeanOutputConverter<>(clazz);
+        String schema = converter.getJsonSchema();
+        int bytes = schema.getBytes().length;
+        int approxTokens = (int) Math.ceil(bytes / 4.0);   // 1 token ≈ 4 bytes (영어 위주 휴리스틱)
+        sb.append("=== ").append(label).append(" ===\n");
+        sb.append(schema).append('\n');
+        sb.append("length: ").append(bytes).append(" bytes  ≈  ")
+                .append(approxTokens).append(" tokens (estimated, English-heavy heuristic)\n\n");
+    }
 }
