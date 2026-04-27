@@ -49,10 +49,11 @@ class SoulmateChatControllerTest {
                         .param("mood", "우울")
                         .param("message", "오늘 진짜 별로였어"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.aiMessage").value("에이, 무슨 일 있었어? 천천히 얘기해봐."))
-                .andExpect(jsonPath("$.choices.length()").value(3))
-                .andExpect(jsonPath("$.choices[0]").value("괜찮아"))
-                .andExpect(jsonPath("$.affectionDelta").value(1));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.aiMessage").value("에이, 무슨 일 있었어? 천천히 얘기해봐."))
+                .andExpect(jsonPath("$.data.choices.length()").value(3))
+                .andExpect(jsonPath("$.data.choices[0]").value("괜찮아"))
+                .andExpect(jsonPath("$.data.affectionDelta").value(1));
 
         then(service).should().chat("user_1", "우울", "오늘 진짜 별로였어");
     }

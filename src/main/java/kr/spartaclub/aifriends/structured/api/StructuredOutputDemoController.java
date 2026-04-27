@@ -1,9 +1,11 @@
 package kr.spartaclub.aifriends.structured.api;
 
+import kr.spartaclub.aifriends.common.response.ApiResponse;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,6 +24,10 @@ import java.util.Map;
  * {@link ChatClient.Builder} 는 spring-ai-starter 가 자동 등록하며,
  * 그 뒤의 ChatModel 구현체는 {@code spring.ai.model.chat} 프로퍼티에 의해 결정되므로
  * 사용자 코드는 특정 프로바이더(OpenAI/Ollama/Gemini)에 묶이지 않는다.</p>
+ *
+ * <p>모든 정상 응답은 표준 응답 래퍼 {@link ApiResponse} 로 감싼다 — GlobalExceptionHandler 가
+ * 에러를 {@code ApiResponse.fail(...)} 로 자동 감싸므로 정상 응답도 같은 형태로 통일하기 위함.
+ * 단 {@code /quote/format-debug} 는 학습용 디버그 평문 출력이므로 예외적으로 raw {@code text/plain}.</p>
  */
 @RestController
 public class StructuredOutputDemoController {
@@ -45,20 +51,20 @@ public class StructuredOutputDemoController {
     public record Quote(String text, String author) { }
 
     /**
-     * topic 에 관한 짧은 명언 한 줄을 {@link Quote} record 로 받아 그대로 반환한다.
+     * topic 에 관한 짧은 명언 한 줄을 {@link Quote} record 로 받아 표준 래퍼에 담아 반환한다.
      *
-     * <p>핵심은 마지막 한 줄, {@code .call().entity(Quote.class)} 이다.
-     * JSON 스키마 손 조립도, ObjectMapper.readValue try-catch 도 사용자 코드에 등장하지 않는다.</p>
+     * <p>핵심은 {@code .call().entity(Quote.class)} — JSON 스키마 손 조립도,
+     * ObjectMapper.readValue try-catch 도 사용자 코드에 등장하지 않는다.</p>
      *
      * @param topic 명언의 주제 (예: "용기", "인내")
-     * @return Spring MVC 가 자동으로 JSON 직렬화해서 응답 본문으로 흘려보낸다.
      */
     @GetMapping("/api/structured/quote")
-    public Quote quote(@RequestParam(defaultValue = "용기") String topic) {
-        return chatClient.prompt()
+    public ResponseEntity<ApiResponse<Quote>> quote(@RequestParam(defaultValue = "용기") String topic) {
+        Quote quote = chatClient.prompt()
                 .user(u -> u.text("'{topic}' 에 관한 짧은 명언 한 줄을 알려줘.").param("topic", topic))
                 .call()
                 .entity(Quote.class);
+        return ResponseEntity.ok(ApiResponse.success(quote));
     }
 
     /**
@@ -72,7 +78,8 @@ public class StructuredOutputDemoController {
      *       {@code .entity()} 호출 시 사용자 프롬프트 끝에 자동 주입되는 것과 동일한 텍스트.</li>
      * </ul>
      *
-     * <p>{@code text/plain} 으로 응답하므로 curl 결과를 콘솔에서 그대로 읽기 좋다.</p>
+     * <p><b>예외 — ApiResponse 래핑하지 않음.</b> 학습용 디버그 평문 출력이므로 {@code text/plain} 으로
+     * 떨어뜨려 curl 콘솔에서 그대로 가독성 있게 읽도록 한다.</p>
      */
     @GetMapping(value = "/api/structured/quote/format-debug", produces = MediaType.TEXT_PLAIN_VALUE)
     public String quoteFormatDebug() {
@@ -95,15 +102,16 @@ public class StructuredOutputDemoController {
      * 런타임까지 타입 토큰을 살려 보내야 한다.</p>
      */
     @GetMapping("/api/structured/quotes")
-    public List<Quote> quotes(
+    public ResponseEntity<ApiResponse<List<Quote>>> quotes(
             @RequestParam(defaultValue = "용기") String topic,
             @RequestParam(defaultValue = "3") int count) {
-        return chatClient.prompt()
+        List<Quote> quotes = chatClient.prompt()
                 .user(u -> u.text("'{topic}' 에 관한 짧은 명언을 서로 다른 인물의 것으로 {count} 개 알려줘.")
                         .param("topic", topic)
                         .param("count", count))
                 .call()
                 .entity(new ParameterizedTypeReference<List<Quote>>() {});
+        return ResponseEntity.ok(ApiResponse.success(quotes));
     }
 
     /**
@@ -113,12 +121,13 @@ public class StructuredOutputDemoController {
      * Map 으로 받는 게 자연스럽다. {@code List<T>} 와 마찬가지로 {@code ParameterizedTypeReference} 가 필요하다.</p>
      */
     @GetMapping("/api/structured/keyword-counts")
-    public Map<String, Integer> keywordCounts(
+    public ResponseEntity<ApiResponse<Map<String, Integer>>> keywordCounts(
             @RequestParam(defaultValue = "Spring AI 는 자바 백엔드에서 LLM 을 다루는 표준 추상화를 제공한다.") String text) {
-        return chatClient.prompt()
+        Map<String, Integer> counts = chatClient.prompt()
                 .user(u -> u.text("다음 문장에서 핵심 명사를 추출해 키워드별 등장 횟수를 JSON 객체로 반환해줘. 문장: {text}")
                         .param("text", text))
                 .call()
                 .entity(new ParameterizedTypeReference<Map<String, Integer>>() {});
+        return ResponseEntity.ok(ApiResponse.success(counts));
     }
 }
