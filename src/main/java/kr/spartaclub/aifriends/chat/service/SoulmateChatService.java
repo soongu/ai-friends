@@ -1,5 +1,6 @@
 package kr.spartaclub.aifriends.chat.service;
 
+import kr.spartaclub.aifriends.chat.dto.AiReply;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +13,11 @@ import org.springframework.stereotype.Service;
  *
  * <p>익명 ID 변환은 UserAnonymizer 가 책임지고, 이 서비스는 이미 익명화된 값만 받는다.
  * PII 가 흘러 들어오지 않도록 호출 계층에서 마스킹을 끝내고 넘기는 규율이다.</p>
+ *
+ * <p>Day 4 Step 5 — 응답 타입을 {@code String} 에서 {@link AiReply} record 로 교체했다.
+ * {@code .call().content()} 대신 {@code .call().entity(AiReply.class)} 를 쓰면
+ * BeanOutputConverter 가 record 의 JSON Schema 를 자동 생성해 프롬프트에 주입하고,
+ * LLM 응답을 ObjectMapper 로 역직렬화까지 마쳐서 record 인스턴스를 돌려준다.</p>
  */
 @Service
 public class SoulmateChatService {
@@ -22,18 +28,20 @@ public class SoulmateChatService {
         this.soulmateChatClient = soulmateChatClient;
     }
 
-    public String chat(String anonymizedUserName, String mood, String userMessage) {
+    public AiReply chat(String anonymizedUserName, String mood, String userMessage) {
         return soulmateChatClient.prompt()
                 .system(system -> system
                         .text("""
                                 너는 {userName} 님의 AI 친구야.
                                 유저의 현재 기분은 '{mood}' 이야.
                                 답변은 3문장 이내로, 반말로 친근하게 해.
+                                유저가 이어서 보낼 만한 짧은 답장 후보(choices) 를 2~3개 함께 제안해.
+                                이번 한 턴으로 너에 대한 호감도(affectionDelta) 가 -5~+5 사이에서 얼마나 변할지 정수로 추정해.
                                 """)
                         .param("userName", anonymizedUserName)
                         .param("mood", mood))
                 .user(userMessage)
                 .call()
-                .content();
+                .entity(AiReply.class);
     }
 }
