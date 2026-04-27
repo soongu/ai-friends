@@ -1,6 +1,7 @@
 package kr.spartaclub.aifriends.structured.api;
 
 import kr.spartaclub.aifriends.common.response.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.core.ParameterizedTypeReference;
@@ -29,8 +30,31 @@ import java.util.Map;
  * 에러를 {@code ApiResponse.fail(...)} 로 자동 감싸므로 정상 응답도 같은 형태로 통일하기 위함.
  * 단 {@code /quote/format-debug} 는 학습용 디버그 평문 출력이므로 예외적으로 raw {@code text/plain}.</p>
  */
+@Slf4j
 @RestController
 public class StructuredOutputDemoController {
+
+    /**
+     * Day 4 Step 6 학습용 — 모든 retry 가 실패했을 때 사용자에게 돌려줄 안전 응답.
+     * "지금은 답을 만들 수 없지만 사용자한텐 항상 200 OK 가 가는" fallback 정책의 표본.
+     */
+    private static final Quote FALLBACK_QUOTE = new Quote(
+            "지금은 명언을 가져올 수 없어요. 잠시 후 다시 시도해주세요.",
+            "ai-friends");
+
+    /**
+     * Day 4 Step 6 학습용 — 잘 만들어진 정상 JSON 응답 시뮬레이션.
+     */
+    private static final String SIMULATED_VALID_RAW = """
+            {"text":"용기는 두려움이 없는 것이 아니라, 두려움을 이겨내는 판단이다.","author":"넬슨 만델라"}
+            """;
+
+    /**
+     * Day 4 Step 6 학습용 — LLM 이 자유 형식으로 답해 JSON 파싱이 깨진 응답 시뮬레이션.
+     * BeanOutputConverter.convert() 가 RuntimeException(JsonProcessingException) 을 던진다.
+     */
+    private static final String SIMULATED_BROKEN_RAW =
+            "이건 JSON 이 아니라 모델이 자유롭게 답해버린 평문입니다. 파싱 실패 시뮬레이션용.";
 
     private final ChatClient chatClient;
 
@@ -129,5 +153,41 @@ public class StructuredOutputDemoController {
                 .call()
                 .entity(new ParameterizedTypeReference<Map<String, Integer>>() {});
         return ResponseEntity.ok(ApiResponse.success(counts));
+    }
+
+    /**
+     * Day 4 Step 6 — JSON 파싱 실패 복구 전략 시연: <b>retry → fallback</b> 결합.
+     *
+     * <p>실제 LLM 호출 없이 학습용으로 시뮬레이션한다. {@code simulatedFailures} 만큼의 초반 시도는
+     * 일부러 깨진 평문 응답으로 {@link BeanOutputConverter#convert(String)} 를 호출해
+     * {@code RuntimeException(JsonProcessingException)} 을 발생시킨다. 모든 재시도 (max 3회) 가
+     * 실패하면 사전 정의된 {@link #FALLBACK_QUOTE} 를 200 OK 로 돌려준다 — 사용자한테는
+     * "답이 항상 가지만 품질이 낮은 경우" 가 발생할 수 있다는 정책 표본.</p>
+     *
+     * <p>동일 흐름을 실제 LLM 호출에 적용하려면 시뮬레이션 응답 자리에 {@code chatClient.prompt()...call().content()}
+     * 를 두고 그 결과를 {@code converter.convert(...)} 로 흘리면 된다. 단 진짜 LLM 응답이 일관되게
+     * 깨지는 경우는 드물어 학습용으로는 시뮬레이션 흐름이 더 명료하다.</p>
+     *
+     * @param simulatedFailures 0~3, 초반 N회를 일부러 실패시킴 (기본 2)
+     */
+    @GetMapping("/api/structured/quote/recover-retry")
+    public ResponseEntity<ApiResponse<Quote>> recoverWithRetryThenFallback(
+            @RequestParam(defaultValue = "2") int simulatedFailures) {
+        BeanOutputConverter<Quote> converter = new BeanOutputConverter<>(Quote.class);
+        int maxAttempts = 3;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            String simulated = (attempt <= simulatedFailures) ? SIMULATED_BROKEN_RAW : SIMULATED_VALID_RAW;
+            try {
+                Quote quote = converter.convert(simulated);
+                log.info("recover-retry: attempt {}/{} succeeded", attempt, maxAttempts);
+                return ResponseEntity.ok(ApiResponse.success(quote));
+            } catch (RuntimeException e) {
+                log.warn("recover-retry: attempt {}/{} failed: {}", attempt, maxAttempts, e.getMessage());
+            }
+        }
+
+        log.warn("recover-retry: all {} attempts failed, returning fallback", maxAttempts);
+        return ResponseEntity.ok(ApiResponse.success(FALLBACK_QUOTE));
     }
 }
