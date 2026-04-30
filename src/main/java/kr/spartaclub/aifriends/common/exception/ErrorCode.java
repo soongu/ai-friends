@@ -42,7 +42,9 @@ public enum ErrorCode {
 
     // Voice / STT (Day 9)
     VOICE_AUDIO_REQUIRED(HttpStatus.BAD_REQUEST, "VC001", "음성 파일을 첨부해 주세요."),
-    VOICE_TRANSCRIPTION_FAILED(HttpStatus.BAD_GATEWAY, "VC002", "음성 인식에 실패했습니다.");
+    VOICE_AUDIO_FORMAT_INVALID(HttpStatus.BAD_REQUEST, "VC002", "지원하지 않는 음성 파일 형식입니다. (mp3, mp4, mpeg, mpga, m4a, wav, webm)"),
+    VOICE_AUDIO_TOO_LARGE(HttpStatus.BAD_REQUEST, "VC003", "음성 파일 크기가 허용 한도(10MB)를 초과했습니다."),
+    VOICE_TRANSCRIPTION_FAILED(HttpStatus.BAD_GATEWAY, "VC004", "음성 인식에 실패했습니다.");
 
     private final HttpStatus status;
     private final String code;
