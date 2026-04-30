@@ -36,7 +36,10 @@ public class ImageFileStorageService {
     }
 
     /**
-     * 바이트 배열을 파일로 저장하고 정적 리소스 URL 을 돌려준다.
+     * 바이트 배열을 파일로 저장하고 정적 리소스 URL 을 돌려준다 (확장자 jpg 고정).
+     *
+     * <p>Day 7 의 호출부 호환을 위해 시그니처를 유지한다. 내부적으로
+     * {@link #save(byte[], String, String)} 에 {@code "jpg"} 를 넘겨 위임한다.</p>
      *
      * @param bytes        이미지 바이트
      * @param fileNameHint 파일명 힌트 (예: {@code portrait-uuid}). 안전한 문자만 남기고 sanitize 한다.
@@ -44,11 +47,25 @@ public class ImageFileStorageService {
      * @throws IOException 디렉토리 생성 또는 파일 쓰기 실패 시
      */
     public String save(byte[] bytes, String fileNameHint) throws IOException {
+        return save(bytes, fileNameHint, "jpg");
+    }
+
+    /**
+     * Day 8 Step 5 — 사용자 업로드용. 임의 확장자(png · jpg · gif · webp 등) 를 받아 저장한다.
+     *
+     * @param bytes        이미지 바이트
+     * @param fileNameHint 파일명 힌트 (예: {@code upload}). 안전한 문자만 남기고 sanitize 한다.
+     * @param extension    확장자 (예: {@code "png"}). 영문자만 허용, 소문자 정규화, null/blank 면 {@code "jpg"} 폴백.
+     * @return 정적 리소스 URL (예: {@code /uploads/portraits/upload-xxx-1714500000000.png})
+     * @throws IOException 디렉토리 생성 또는 파일 쓰기 실패 시
+     */
+    public String save(byte[] bytes, String fileNameHint, String extension) throws IOException {
         Path dir = Paths.get(uploadDir);
         Files.createDirectories(dir);
 
         String safeHint = sanitize(fileNameHint);
-        String fileName = safeHint + "-" + System.currentTimeMillis() + ".jpg";
+        String safeExt = sanitizeExtension(extension);
+        String fileName = safeHint + "-" + System.currentTimeMillis() + "." + safeExt;
         Path target = dir.resolve(fileName);
         Files.write(target, bytes);
 
@@ -62,5 +79,16 @@ public class ImageFileStorageService {
             return "image";
         }
         return hint.replaceAll("[^a-zA-Z0-9_-]", "_");
+    }
+
+    private String sanitizeExtension(String extension) {
+        if (extension == null || extension.isBlank()) {
+            return "jpg";
+        }
+        String lower = extension.toLowerCase();
+        if (!lower.matches("[a-z]+")) {
+            return "jpg";
+        }
+        return lower;
     }
 }

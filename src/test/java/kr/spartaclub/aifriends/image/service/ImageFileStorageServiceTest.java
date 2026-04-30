@@ -53,4 +53,29 @@ class ImageFileStorageServiceTest {
         assertThat(publicPath).doesNotContain("/etc/");
         assertThat(publicPath).doesNotContain(" ");
     }
+
+    @Test
+    @DisplayName("Day 8 Step 5 — extension=png 으로 저장하면 publicPath 가 .png 로 끝난다")
+    void should_use_png_extension_when_specified(@TempDir Path tempDir) throws IOException {
+        ImageFileStorageService sut = new ImageFileStorageService(tempDir.toString());
+
+        String publicPath = sut.save("x".getBytes(), "upload", "png");
+
+        assertThat(publicPath).startsWith("/uploads/portraits/upload-");
+        assertThat(publicPath).endsWith(".png");
+    }
+
+    @Test
+    @DisplayName("Day 8 Step 5 — extension 이 null 또는 빈 문자열이면 .jpg 로 폴백한다")
+    void should_fallback_to_jpg_when_extension_blank(@TempDir Path tempDir) throws IOException {
+        ImageFileStorageService sut = new ImageFileStorageService(tempDir.toString());
+
+        String nullExtPath = sut.save("x".getBytes(), "upload", null);
+        String blankExtPath = sut.save("x".getBytes(), "upload", "  ");
+        String invalidExtPath = sut.save("x".getBytes(), "upload", "p!ng");
+
+        assertThat(nullExtPath).endsWith(".jpg");
+        assertThat(blankExtPath).endsWith(".jpg");
+        assertThat(invalidExtPath).endsWith(".jpg");
+    }
 }
