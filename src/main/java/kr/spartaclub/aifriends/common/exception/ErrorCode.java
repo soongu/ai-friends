@@ -47,7 +47,15 @@ public enum ErrorCode {
     VOICE_TRANSCRIPTION_FAILED(HttpStatus.BAD_GATEWAY, "VC004", "음성 인식에 실패했습니다."),
     VOICE_TEXT_REQUIRED(HttpStatus.BAD_REQUEST, "VC005", "음성 합성을 위한 텍스트를 입력해 주세요."),
     VOICE_SYNTHESIS_FAILED(HttpStatus.BAD_GATEWAY, "VC006", "음성 합성에 실패했습니다."),
-    VOICE_TEXT_TOO_LONG(HttpStatus.BAD_REQUEST, "VC007", "음성 합성 텍스트가 허용 길이(4000자)를 초과했습니다.");
+    VOICE_TEXT_TOO_LONG(HttpStatus.BAD_REQUEST, "VC007", "음성 합성 텍스트가 허용 길이(4000자)를 초과했습니다."),
+
+    // Video (Day 10) — 선택 실습용 비동기 폴링 + 비용 계산
+    VIDEO_PROMPT_REQUIRED(HttpStatus.BAD_REQUEST, "VD001", "비디오 생성 프롬프트를 입력해 주세요."),
+    VIDEO_DURATION_INVALID(HttpStatus.BAD_REQUEST, "VD002", "비디오 길이는 1~10 초 사이여야 합니다."),
+    VIDEO_RESOLUTION_INVALID(HttpStatus.BAD_REQUEST, "VD003", "지원하지 않는 해상도입니다. (480p, 720p, 1080p)"),
+    VIDEO_JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "VD004", "해당 jobId 의 비디오 작업을 찾을 수 없습니다."),
+    VIDEO_QUOTA_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "VD005", "오늘의 비디오 생성 예산 한도를 초과했습니다."),
+    VIDEO_GENERATION_FAILED(HttpStatus.BAD_GATEWAY, "VD006", "비디오 생성에 실패했습니다.");
 
     private final HttpStatus status;
     private final String code;
