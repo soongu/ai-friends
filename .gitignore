@@ -41,3 +41,5 @@ docs/
 .env
 
 .DS_Store
+# Day 7 — generated images
+uploads/
