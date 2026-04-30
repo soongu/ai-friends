@@ -43,6 +43,15 @@ spring:
         speech: none
         transcription: none
 
+    # ⓓ ChatMemory JDBC schema (Day 5 Step 3) — SPRING_AI_CHAT_MEMORY 테이블을 앱 기동 시 자동 생성
+    #    기본값(embedded)은 H2 같은 임베디드 DB 만 초기화하므로, MySQL(docker) 도 자동 초기화하려면 always.
+    #    운영 전환 시엔 never 로 두고 별도 마이그레이션 도구(Flyway 등) 로 관리한다.
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: always
+
     # ⓑ Ollama (로컬) 설정
     #    - IDE 로컬 실행: 환경변수 없음 → http://localhost:11434
     #    - ./run.sh 도커 실행: OLLAMA_BASE_URL=http://host.docker.internal:11434 주입됨

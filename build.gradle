@@ -42,6 +42,9 @@ dependencies {
     // 🤖 Spring AI 모델 스타터 (Day 1 Step 3 에서 추가)
     implementation 'org.springframework.ai:spring-ai-starter-model-ollama'   // 로컬 Ollama (무료)
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'   // OpenAI 호환 (Gemini 도 이 스타터로 호출)
+
+    // 🧠 Spring AI ChatMemory — JDBC 기반 영속화 (Day 5 Step 3 에서 추가)
+    implementation 'org.springframework.ai:spring-ai-starter-model-chat-memory-repository-jdbc'
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'com.mysql:mysql-connector-j'
     compileOnly 'org.projectlombok:lombok'
