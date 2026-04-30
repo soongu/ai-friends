@@ -8,12 +8,14 @@ import kr.spartaclub.aifriends.chat.service.SoulmateChatService;
 import kr.spartaclub.aifriends.common.response.ApiResponse;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.UUID;
@@ -78,5 +80,29 @@ public class SoulmateChatController {
     public ResponseEntity<ApiResponse<Void>> deleteSession(@PathVariable String conversationId) {
         chatMemory.clear(conversationId);
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    /**
+     * Day 6 Step 2~3 — 토큰 단위 스트리밍 응답 엔드포인트.
+     *
+     * <p>{@code produces = MediaType.TEXT_EVENT_STREAM_VALUE} 로 SSE 임을 명시하면
+     * Spring MVC 의 {@code ReactiveTypeHandler} 가 컨트롤러가 반환한 {@code Flux<String>}
+     * 을 자동으로 {@code ResponseBodyEmitter} 로 변환해 토큰을 흘려준다.</p>
+     *
+     * <p>SSE 응답은 §4-1 ApiResponse 래핑 규약의 정당한 예외다. 청크 단위로 흐르는
+     * {@code text/event-stream} 본문에 JSON wrapper 를 끼워 넣으면 스트리밍 의미가 깨진다.
+     * 에러 처리는 {@code Flux.onErrorResume(...)} 같은 Reactor 연산으로 흐름 안에서 처리한다.</p>
+     *
+     * <p>Day 6 Step 5 에서 ChatMemory 통합이 들어오면 conversationId 파라미터가 추가되고,
+     * {@code Flux.doOnComplete()} 으로 스트림이 끝난 뒤 일괄 저장하는 경로가 붙는다.</p>
+     */
+    @GetMapping(value = "/api/chat/soulmate/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> streamChat(
+            @RequestParam Long userId,
+            @RequestParam String mood,
+            @RequestParam String message
+    ) {
+        String anonymizedName = userAnonymizer.anonymize(userId);
+        return service.chatStream(anonymizedName, mood, message);
     }
 }

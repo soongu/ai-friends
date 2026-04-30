@@ -10,6 +10,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -118,6 +119,34 @@ public class SoulmateChatService {
                 .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, conversationId))
                 .call()
                 .entity(AiReply.class);
+    }
+
+    /**
+     * Day 6 Step 2~3 — 토큰 단위 스트리밍 응답 (학습용 PoC 시그니처).
+     *
+     * <p>{@code .call()} 대신 {@code .stream().content()} 를 호출하면
+     * Spring AI 가 LLM 의 토큰을 받자마자 {@code Flux<String>} 으로 흘려준다.
+     * 컨트롤러는 이 Flux 를 그대로 반환하고, Spring MVC 의 {@code ReactiveTypeHandler}
+     * 가 SSE({@code text/event-stream}) 응답으로 자동 변환한다.</p>
+     *
+     * <p>이번 Step 에서는 구조화 응답({@link AiReply}) 대신 평문 토큰만 흘린다 —
+     * 스트리밍은 본질적으로 "끝나기 전에 보여주기" 인데 record 직렬화는 응답이 끝나야 검증할 수 있어
+     * 두 모드가 섞이면 학습 포인트가 흐려진다. 둘을 동시에 잡는 패턴(스트리밍 + 구조화) 은
+     * Day 6 Step 5~6 에서 ChatMemory 통합과 함께 다룬다.</p>
+     */
+    public Flux<String> chatStream(String anonymizedUserName, String mood, String userMessage) {
+        return soulmateChatClient.prompt()
+                .system(system -> system
+                        .text("""
+                                너는 {userName} 님의 AI 친구야.
+                                유저의 현재 기분은 '{mood}' 이야.
+                                답변은 3문장 이내로, 반말로 친근하게 해.
+                                """)
+                        .param("userName", anonymizedUserName)
+                        .param("mood", mood))
+                .user(userMessage)
+                .stream()
+                .content();
     }
 
     private String readResource(Resource resource) {
