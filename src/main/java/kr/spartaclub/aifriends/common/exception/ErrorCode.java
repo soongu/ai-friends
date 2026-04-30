@@ -37,7 +37,8 @@ public enum ErrorCode {
     VISION_IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "V001", "이미지 파일을 첨부해 주세요."),
     VISION_INVALID_MIME_TYPE(HttpStatus.BAD_REQUEST, "V002", "지원하지 않는 이미지 형식입니다. (png, jpg, gif, webp)"),
     VISION_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "V003", "이미지 업로드에 실패했습니다."),
-    VISION_PORTRAIT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "V004", "이 캐릭터는 아직 portrait 이미지가 없습니다.");
+    VISION_PORTRAIT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "V004", "이 캐릭터는 아직 portrait 이미지가 없습니다."),
+    VISION_QUOTA_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "V005", "오늘의 Vision 호출 횟수 한도를 초과했습니다.");
 
     private final HttpStatus status;
     private final String code;

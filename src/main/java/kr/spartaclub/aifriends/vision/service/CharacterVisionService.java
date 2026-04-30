@@ -33,15 +33,20 @@ public class CharacterVisionService {
 
     private final SoulmateRepository soulmateRepository;
     private final VisionChatService visionChatService;
+    private final VisionDailyQuotaGuard quotaGuard;
 
     public CharacterVisionService(SoulmateRepository soulmateRepository,
-                                  VisionChatService visionChatService) {
+                                  VisionChatService visionChatService,
+                                  VisionDailyQuotaGuard quotaGuard) {
         this.soulmateRepository = soulmateRepository;
         this.visionChatService = visionChatService;
+        this.quotaGuard = quotaGuard;
     }
 
     @Transactional(readOnly = true)
     public SoulmateIntroductionResponse introduce(Long soulmateId) {
+        quotaGuard.checkAndIncrement();
+
         Soulmate soulmate = soulmateRepository.findById(soulmateId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SOULMATE_NOT_FOUND));
 

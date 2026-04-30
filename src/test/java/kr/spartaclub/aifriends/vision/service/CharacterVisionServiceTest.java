@@ -19,7 +19,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -37,6 +39,9 @@ class CharacterVisionServiceTest {
 
     @Mock
     VisionChatService visionChatService;
+
+    @Mock
+    VisionDailyQuotaGuard quotaGuard;
 
     @InjectMocks
     CharacterVisionService characterVisionService;
@@ -108,5 +113,20 @@ class CharacterVisionServiceTest {
                 .isInstanceOf(VisionException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.VISION_PORTRAIT_NOT_AVAILABLE);
+    }
+
+    @Test
+    @DisplayName("일일 호출 한도 초과 시 VISION_QUOTA_EXCEEDED 예외가 그대로 propagate 되고, soulmateRepository 는 호출되지 않는다")
+    void should_propagate_quota_exceeded_and_skip_repository() {
+        doThrow(new VisionException(ErrorCode.VISION_QUOTA_EXCEEDED))
+                .when(quotaGuard).checkAndIncrement();
+
+        assertThatThrownBy(() -> characterVisionService.introduce(1L))
+                .isInstanceOf(VisionException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.VISION_QUOTA_EXCEEDED);
+
+        verifyNoInteractions(soulmateRepository);
+        verifyNoInteractions(visionChatService);
     }
 }
