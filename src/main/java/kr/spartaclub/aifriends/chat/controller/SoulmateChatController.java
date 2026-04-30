@@ -84,6 +84,7 @@ public class SoulmateChatController {
 
     /**
      * Day 6 Step 2~3 — 토큰 단위 스트리밍 응답 엔드포인트.
+     * Day 6 Step 5 — {@code conversationId} 파라미터로 ChatMemory 와 통합.
      *
      * <p>{@code produces = MediaType.TEXT_EVENT_STREAM_VALUE} 로 SSE 임을 명시하면
      * Spring MVC 의 {@code ReactiveTypeHandler} 가 컨트롤러가 반환한 {@code Flux<String>}
@@ -93,16 +94,27 @@ public class SoulmateChatController {
      * {@code text/event-stream} 본문에 JSON wrapper 를 끼워 넣으면 스트리밍 의미가 깨진다.
      * 에러 처리는 {@code Flux.onErrorResume(...)} 같은 Reactor 연산으로 흐름 안에서 처리한다.</p>
      *
-     * <p>Day 6 Step 5 에서 ChatMemory 통합이 들어오면 conversationId 파라미터가 추가되고,
-     * {@code Flux.doOnComplete()} 으로 스트림이 끝난 뒤 일괄 저장하는 경로가 붙는다.</p>
+     * <p>conversationId 정책은 블로킹 엔드포인트({@link #soulmate}) 와 동일하다 —
+     * 비어 있으면 서버가 UUID 를 발급, 있으면 그대로 흘려보낸다. 스트리밍은 응답 본문에
+     * conversationId 를 함께 끼워 넣을 자리가 없어서, 새로 발급된 ID 는 응답 헤더
+     * {@code X-Conversation-Id} 로 클라이언트에게 알려주는 것이 일반적인 패턴이다.</p>
+     *
+     * <p>실제 ChatMemory 저장 타이밍은 {@code MessageChatMemoryAdvisor.adviseStream}
+     * 이 자동 처리한다 — Spring AI 의 {@code ChatClientMessageAggregator} 가 토큰을
+     * 모두 모은 뒤 한 번에 assistant 메시지를 ChatMemory 에 저장하므로 컨트롤러/서비스에
+     * 별도의 {@code .doOnComplete} 보정이 필요 없다.</p>
      */
     @GetMapping(value = "/api/chat/soulmate/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> streamChat(
             @RequestParam Long userId,
             @RequestParam String mood,
-            @RequestParam String message
+            @RequestParam String message,
+            @RequestParam(required = false) String conversationId
     ) {
         String anonymizedName = userAnonymizer.anonymize(userId);
-        return service.chatStream(anonymizedName, mood, message);
+        String convId = (conversationId == null || conversationId.isBlank())
+                ? UUID.randomUUID().toString()
+                : conversationId;
+        return service.chatStream(convId, anonymizedName, mood, message);
     }
 }

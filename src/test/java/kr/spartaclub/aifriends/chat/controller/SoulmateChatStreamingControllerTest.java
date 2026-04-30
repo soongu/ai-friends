@@ -54,7 +54,7 @@ class SoulmateChatStreamingControllerTest {
     @Test
     @DisplayName("GET /api/chat/soulmate/stream - Flux<String> 토큰들이 text/event-stream 으로 흘러나온다")
     void streamChat_streamsTokensAsServerSentEvents() throws Exception {
-        given(service.chatStream(eq("user_1"), eq("우울"), eq("힘들어")))
+        given(service.chatStream(anyString(), eq("user_1"), eq("우울"), eq("힘들어")))
                 .willReturn(Flux.just("오늘", " 많이", " 힘들었구나"));
 
         MvcResult mvcResult = mockMvc.perform(get("/api/chat/soulmate/stream")
@@ -85,7 +85,7 @@ class SoulmateChatStreamingControllerTest {
     @Test
     @DisplayName("GET /api/chat/soulmate/stream - userId 가 익명화된 별칭으로 서비스에 흘러간다")
     void streamChat_passesAnonymizedNameToService() throws Exception {
-        given(service.chatStream(anyString(), anyString(), anyString()))
+        given(service.chatStream(anyString(), anyString(), anyString(), anyString()))
                 .willReturn(Flux.just("ok"));
 
         MvcResult mvcResult = mockMvc.perform(get("/api/chat/soulmate/stream")
@@ -98,7 +98,29 @@ class SoulmateChatStreamingControllerTest {
 
         mockMvc.perform(asyncDispatch(mvcResult)).andExpect(status().isOk());
 
-        // UserAnonymizer 가 userId=42 → "user_42" 로 변환한 결과가 서비스로 들어가야 한다.
-        then(service).should().chatStream("user_42", "신남", "오늘 좋은 일 있었어");
+        // Day 6 Step 5 — conversationId 가 비어 있으면 서버가 새로 발급(blocking 엔드포인트와 동일한 정책).
+        // 첫 번째 인자(conversationId) 는 UUID, 두 번째 인자부터 익명화된 user_42 / mood / message 가 흘러간다.
+        then(service).should().chatStream(anyString(), eq("user_42"), eq("신남"), eq("오늘 좋은 일 있었어"));
+    }
+
+    @Test
+    @DisplayName("GET /api/chat/soulmate/stream - 클라이언트가 conversationId 를 주면 그 값을 그대로 서비스로 흘려보낸다")
+    void streamChat_passesThroughExistingConversationId() throws Exception {
+        String existingConv = "11111111-2222-3333-4444-555555555555";
+        given(service.chatStream(eq(existingConv), eq("user_1"), eq("우울"), eq("힘들어")))
+                .willReturn(Flux.just("ok"));
+
+        MvcResult mvcResult = mockMvc.perform(get("/api/chat/soulmate/stream")
+                        .param("userId", "1")
+                        .param("mood", "우울")
+                        .param("message", "힘들어")
+                        .param("conversationId", existingConv)
+                        .accept(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult)).andExpect(status().isOk());
+
+        then(service).should().chatStream(existingConv, "user_1", "우울", "힘들어");
     }
 }
