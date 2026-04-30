@@ -79,6 +79,25 @@ spring:
 
 # SQL 로그는 JPA가 아닌 P6Spy로만 출력 (바인드 파라미터 치환된 형태)
 
+# =========================================================
+# Day 7 — 이미지 생성 도메인 설정
+# =========================================================
+# Pollinations.ai 는 키 없이 무료로 호출 가능한 학습용 프로바이더.
+# 학생이 다른 프로바이더(OpenAI / Stability / Vertex Imagen) 로 갈아끼울 때
+# 이 섹션 + ImageModel 빈만 교체하면 된다 (§4 프로바이더 추상화).
+aifriends:
+  image:
+    pollinations:
+      base-url: https://image.pollinations.ai
+    quota:
+      # 학습용 단순 일일 호출 한도. 실제 운영은 Redis INCR + EXPIRE 로 대체해야 한다.
+      daily-limit: 30
+    storage:
+      upload-dir: ./uploads/portraits
+    cost:
+      # Pollinations.ai 는 무료. OpenAI DALL-E 3 standard 1장 ≈ $0.04 (참고)
+      pollinations-usd: 0.0
+
 server:
   port: 8080
 
