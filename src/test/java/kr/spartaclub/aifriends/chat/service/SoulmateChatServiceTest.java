@@ -50,11 +50,12 @@ class SoulmateChatServiceTest {
         given(chatClient.prompt()
                 .system(any(Consumer.class))
                 .user(anyString())
+                .advisors(any(Consumer.class))
                 .call()
                 .entity(eq(AiReply.class)))
                 .willReturn(stub);
 
-        AiReply reply = service.chat("user_1", "우울", "힘들어");
+        AiReply reply = service.chat("conv-1", "user_1", "우울", "힘들어");
 
         assertThat(reply).isSameAs(stub);
         assertThat(reply.aiMessage()).isEqualTo("에이, 무슨 일 있었어? 천천히 얘기해봐.");
@@ -68,6 +69,7 @@ class SoulmateChatServiceTest {
         given(chatClient.prompt()
                 .system(any(Consumer.class))
                 .user(anyString())
+                .advisors(any(Consumer.class))
                 .call()
                 .entity(eq(AiReply.class)))
                 .willReturn(new AiReply("ok", List.of(), 0));
@@ -75,7 +77,7 @@ class SoulmateChatServiceTest {
         // 실제 서비스 호출 전 interaction 카운터를 리셋해 then().should() 가 "진짜 람다" 만 붙잡도록 한다.
         clearInvocations(chatClient.prompt());
 
-        service.chat("user_1", "우울", "힘들어");
+        service.chat("conv-1", "user_1", "우울", "힘들어");
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Consumer<ChatClient.PromptSystemSpec>> captor =

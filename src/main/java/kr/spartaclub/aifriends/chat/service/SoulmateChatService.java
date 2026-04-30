@@ -2,6 +2,7 @@ package kr.spartaclub.aifriends.chat.service;
 
 import kr.spartaclub.aifriends.chat.dto.AiReply;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -18,6 +19,11 @@ import org.springframework.stereotype.Service;
  * {@code .call().content()} 대신 {@code .call().entity(AiReply.class)} 를 쓰면
  * BeanOutputConverter 가 record 의 JSON Schema 를 자동 생성해 프롬프트에 주입하고,
  * LLM 응답을 ObjectMapper 로 역직렬화까지 마쳐서 record 인스턴스를 돌려준다.</p>
+ *
+ * <p>Day 5 Step 5 — chat 시그니처에 {@code conversationId} 를 추가했다.
+ * ChatClientConfig 에 등록된 {@code MessageChatMemoryAdvisor} 가 호출 직전·직후에
+ * {@code ChatMemory.get/add} 를 자동으로 돌려주지만, *어느 세션* 의 이력인지는
+ * advisor 파라미터로 conversationId 를 명시해야 사용자별 격리가 보장된다.</p>
  */
 @Service
 public class SoulmateChatService {
@@ -28,7 +34,7 @@ public class SoulmateChatService {
         this.soulmateChatClient = soulmateChatClient;
     }
 
-    public AiReply chat(String anonymizedUserName, String mood, String userMessage) {
+    public AiReply chat(String conversationId, String anonymizedUserName, String mood, String userMessage) {
         return soulmateChatClient.prompt()
                 .system(system -> system
                         .text("""
@@ -41,6 +47,7 @@ public class SoulmateChatService {
                         .param("userName", anonymizedUserName)
                         .param("mood", mood))
                 .user(userMessage)
+                .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, conversationId))
                 .call()
                 .entity(AiReply.class);
     }
