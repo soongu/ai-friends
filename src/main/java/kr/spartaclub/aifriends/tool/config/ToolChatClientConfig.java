@@ -1,5 +1,6 @@
 package kr.spartaclub.aifriends.tool.config;
 
+import kr.spartaclub.aifriends.tool.AffinityTool;
 import kr.spartaclub.aifriends.tool.GameStateTool;
 import kr.spartaclub.aifriends.tool.WeatherTool;
 import org.springframework.ai.chat.client.ChatClient;
@@ -54,6 +55,31 @@ public class ToolChatClientConfig {
                         답변은 3문장 이내로 간결하게.
                         """)
                 .defaultTools(gameStateTool)
+                .build();
+    }
+
+    /**
+     * Day 11 Step 4 — 호감도 조회 전용 ChatClient.
+     *
+     * <p>읽기 전용 도구 {@link AffinityTool} 를 장착한 ChatClient. system 프롬프트에서
+     * "캐릭터가 자기 호감도를 자연스럽게 풀어 말한다" 는 톤을 박아둬, LLM 이 도구로 받은
+     * score/level 을 기계적으로 읊지 않고 캐릭터 어투로 가공하도록 유도한다.</p>
+     *
+     * <p>weatherTool / gameStateTool 빈을 의도적으로 함께 등록하지 않는다 — 시나리오마다
+     * 필요한 도구만 장착한 ChatClient 를 따로 두는 결을 Step 2~4 에서 일관되게 유지한다.</p>
+     */
+    @Bean
+    public ChatClient affinityChatClient(ChatClient.Builder builder, AffinityTool affinityTool) {
+        return builder
+                .defaultSystem("""
+                        너는 유저와 오랜 시간을 함께한 AI 친구야. 반말로 따뜻하게 답해.
+                        유저가 "지금 우리 사이 어때?", "나 좋아해?" 같이 둘의 관계를 물어오면,
+                        등록된 도구(getAffinity)를 호출해 자기 호감도와 라벨을 받아 자연스럽게 풀어 말해줘.
+                        - level 라벨(낯선 사이 / 친구 / 단짝 / 연인) 을 그대로 읊지 말고, 캐릭터 어투로 살짝 변주해.
+                        - found=false 면 "아직 우리 잘 모르는 사이지" 같이 어색한 톤으로 답해.
+                        답변은 3문장 이내로 간결하게.
+                        """)
+                .defaultTools(affinityTool)
                 .build();
     }
 }
