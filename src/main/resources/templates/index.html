@@ -3,37 +3,110 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#fdf2f8" />
-  <title>HeartMate Chat</title>
-  <!-- 한글 웹폰트: 본문 Noto Sans KR, 제목 Jua -->
+  <meta name="theme-color" content="#0e0a18" />
+  <title>AI Friends — Soulmate</title>
+
+  <!-- 한글 웹폰트: 본문 Pretendard, 강조 Noto Serif KR, 모노 JetBrains Mono -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
   <!-- 모듈 방식 CSS (순서 유지) -->
   <link rel="stylesheet" th:href="@{/css/variables.css}" />
   <link rel="stylesheet" th:href="@{/css/base.css}" />
   <link rel="stylesheet" th:href="@{/css/animations.css}" />
   <link rel="stylesheet" th:href="@{/css/layout.css}" />
   <link rel="stylesheet" th:href="@{/css/landing.css}" />
+  <link rel="stylesheet" th:href="@{/css/card.css}" />
   <link rel="stylesheet" th:href="@{/css/soulmate-list.css}" />
 </head>
 <body>
   <div class="app-root" data-app-root>
     <main class="main-container">
-      <!-- 상태 A: 랜딩 (소울메이트 0명) -->
-      <section class="landing" data-view="landing" role="region" aria-label="랜딩">
-        <button type="button" class="landing__cta" data-landing-cta>Start Chat</button>
-      </section>
 
-      <!-- 상태 B: 메이트 선택 (1~3명) -->
-      <section class="soulmate-list" data-view="soulmate-list" hidden role="region" aria-label="소울메이트 선택">
-        
-        <ul class="soulmate-list__cards" data-soulmate-cards aria-label="소울메이트 목록">
-          <!-- js/soulmate-list.js에서 동적 렌더 -->
-        </ul>
-        <button type="button" class="soulmate-list__new-btn" data-soulmate-new-btn>Create New</button>
-        <p class="soulmate-list__max-hint" data-soulmate-max-hint hidden>최대 3명까지 생성 가능해요</p>
-      </section>
+      <!-- ============================================================
+           상태 A: 랜딩 (소울메이트 0명) — 풀스크린 비주얼 + Start CTA
+           ============================================================ -->
+      <div class="landing" data-view="landing" role="region" aria-label="랜딩">
+        <div class="landing__bg" aria-hidden="true"></div>
+        <div class="landing__motes" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+        <div class="landing__title-block">
+          <p class="landing__sub">Interactive Voice-Driven Visual Novel</p>
+          <h1 class="landing__title">
+            AI Friends
+            <span class="landing__title-cn">소울메이트와 만나기</span>
+          </h1>
+          <span class="landing__chapter">CHAPTER 0 · PROLOGUE</span>
+        </div>
+
+        <div class="landing__cta-area">
+          <span class="landing__cta-hint">— TAP TO BEGIN —</span>
+          <button type="button" class="landing__cta" data-landing-cta>
+            <span>Start Chat</span>
+            <span class="landing__cta-jp">시작하기</span>
+            <span class="landing__cta-arrow" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5h6M5.5 2L8 5L5.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
+          </button>
+        </div>
+
+        <div class="landing__face-row-label">— 이 친구들이 기다려요 —</div>
+        <div class="landing__face-row" aria-hidden="true">
+          <div class="landing__face" style="--face-image: url('/images/characters/character-female-bright-face.jpg'); --face-ring: rgba(255,196,132,0.55);"></div>
+          <div class="landing__face" style="--face-image: url('/images/characters/character-female-warm-face.jpg'); --face-ring: rgba(240,163,94,0.50);"></div>
+          <div class="landing__face" style="--face-image: url('/images/characters/character-male-calm-face.jpg'); --face-ring: rgba(141,185,216,0.55);"></div>
+          <div class="landing__face" style="--face-image: url('/images/characters/character-male-cheerful-face.jpg'); --face-ring: rgba(255,138,61,0.55);"></div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           상태 B: 갤러리 (소울메이트 1~3명) — 카드 + 새 친구 만들기
+           ============================================================ -->
+      <div class="landing" data-view="soulmate-list" role="region" aria-label="소울메이트 선택">
+        <div class="landing__bg" aria-hidden="true"></div>
+        <div class="landing__motes" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+        <header class="landing-header">
+          <div class="landing-header__brand">
+            <span class="landing-header__brand-mark" aria-hidden="true">A</span>
+            AI Friends
+            <span class="landing-header__brand-sub">VN · CH.1</span>
+          </div>
+          <button type="button" class="landing-header__settings" aria-label="설정">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.4" />
+              <path d="M7 1.5v1.4M7 11.1v1.4M1.5 7h1.4M11.1 7h1.4M3 3l1 1M10 10l1 1M3 11l1-1M10 4l1-1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+            </svg>
+          </button>
+        </header>
+
+        <div class="gallery" data-soulmate-cards aria-label="소울메이트 목록">
+          <div class="gallery__intro">
+            <span class="gallery__intro-eyebrow" data-soulmate-count-label>YOUR SOULMATES · 0 / 3</span>
+            <span class="gallery__intro-title">친구를 골라주세요</span>
+          </div>
+          <!-- js/pages/home/soulmate-list.js 가 .smcard 들 동적 렌더 -->
+
+          <button type="button" class="gallery__new" data-soulmate-new-btn>
+            <div class="gallery__new-plus" aria-hidden="true">＋</div>
+            <div class="gallery__new-text">새 친구 만들기</div>
+            <div class="gallery__new-sub" data-soulmate-new-sub>Create New · 0 / 3</div>
+          </button>
+
+          <p class="gallery__max-hint" data-soulmate-max-hint hidden>
+            최대 3명까지 함께할 수 있어요
+          </p>
+        </div>
+      </div>
+
     </main>
   </div>
 
