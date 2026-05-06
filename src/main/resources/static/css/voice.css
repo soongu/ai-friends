@@ -1,0 +1,283 @@
+/* ============================================================
+   AI Friends — Voice Interaction (voice.css)
+   STT/TTS 풀보이스 인터랙션. variables.css 토큰 사용 (add-only)
+   ============================================================ */
+
+/* ---------- 입력창 — 마이크 + 전송 동등 비중 ---------- */
+.dialog__input-row { /* chat.css 의 .dialog__input-row 위에 mic 추가만 */ }
+
+/* 마이크: outline (default) — 텍스트 우선 시그널 */
+.dialog__mic {
+  width: 34px; height: 34px;             /* 전송 버튼과 동일 사이즈 */
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,0.6);
+  border: 1.5px solid var(--theme-primary, var(--theme-bright-primary));
+  color: var(--theme-deep, var(--theme-bright-deep));
+  cursor: pointer;
+  position: relative;
+  transition:
+    background var(--dur-fast) var(--ease-glide),
+    color var(--dur-fast) var(--ease-glide),
+    box-shadow var(--dur-base) var(--ease-soft),
+    transform var(--dur-fast) var(--ease-snap);
+  flex-shrink: 0;
+}
+.dialog__mic svg { width: 16px; height: 16px; }
+
+/* hover — fill 로 전환 + 테마 글로우 */
+.dialog__mic:hover {
+  background: linear-gradient(135deg, var(--theme-primary, var(--theme-bright-primary)), var(--theme-accent, var(--theme-bright-accent)));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(255,160,100,0.45), var(--theme-glow, var(--theme-bright-glow));
+  transform: scale(1.04);
+}
+
+/* 녹음 중 (active) — fill + 펄스 글로우 */
+.dialog__mic--rec {
+  background: linear-gradient(135deg, var(--theme-primary, var(--theme-bright-primary)), var(--theme-accent, var(--theme-bright-accent)));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(255,160,100,0.45), var(--theme-glow, var(--theme-bright-glow));
+  animation: mic-pulse 1.6s var(--ease-glide) infinite;
+}
+
+/* ---------- 음성 입력 모드 — 인풋 영역 변형 ---------- */
+.dialog__input-row--voice {
+  background: linear-gradient(135deg, rgba(255,255,255,0.78), color-mix(in oklab, var(--theme-secondary, var(--theme-bright-secondary)) 28%, rgba(255,255,255,0.6)));
+  border: 1px solid var(--theme-primary, var(--theme-bright-primary));
+  box-shadow:
+    0 4px 14px rgba(40,25,70,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    0 0 18px color-mix(in oklab, var(--theme-primary, var(--theme-bright-primary)) 25%, transparent);
+}
+
+/* 녹음 시간 (좌측 ⏱) */
+.voice-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--theme-deep, var(--theme-bright-deep));
+  letter-spacing: 0.06em;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+.voice-time__dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #ff5a5a;
+  box-shadow: 0 0 6px rgba(255,90,90,0.7);
+  animation: rec-blink 1s var(--ease-glide) infinite;
+}
+
+/* 인풋 자리에 들어가는 wave 라인 (CSS only, idle 모션) */
+.voice-wave {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 28px;
+  padding: 0 8px;
+}
+.voice-wave span {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--theme-primary, var(--theme-bright-primary)), var(--theme-accent, var(--theme-bright-accent)));
+  animation: wave-bounce 0.9s var(--ease-glide) infinite;
+}
+.voice-wave span:nth-child(1)  { height: 30%; animation-delay: -0.10s; }
+.voice-wave span:nth-child(2)  { height: 60%; animation-delay: -0.20s; }
+.voice-wave span:nth-child(3)  { height: 90%; animation-delay: -0.30s; }
+.voice-wave span:nth-child(4)  { height: 70%; animation-delay: -0.45s; }
+.voice-wave span:nth-child(5)  { height: 95%; animation-delay: -0.55s; }
+.voice-wave span:nth-child(6)  { height: 50%; animation-delay: -0.05s; }
+.voice-wave span:nth-child(7)  { height: 80%; animation-delay: -0.35s; }
+.voice-wave span:nth-child(8)  { height: 40%; animation-delay: -0.20s; }
+.voice-wave span:nth-child(9)  { height: 70%; animation-delay: -0.50s; }
+.voice-wave span:nth-child(10) { height: 30%; animation-delay: -0.15s; }
+.voice-wave span:nth-child(11) { height: 55%; animation-delay: -0.40s; }
+.voice-wave span:nth-child(12) { height: 25%; animation-delay: -0.25s; }
+
+/* 취소 버튼 ❌ */
+.dialog__cancel {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(60,40,90,0.18);
+  color: var(--base-ink-700);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--dur-fast) var(--ease-glide);
+}
+.dialog__cancel:hover {
+  background: #fff;
+  color: #c9444a;
+  border-color: rgba(201, 68, 74, 0.35);
+}
+
+/* ---------- Partial transcript (다이얼로그 우상단 흐름 텍스트) ---------- */
+.dialog__transcript {
+  position: absolute;
+  top: -10px; right: 16px;
+  max-width: 200px;
+  padding: 8px 12px;
+  border-radius: 14px 14px 14px 4px;
+  background: linear-gradient(135deg, rgba(255,253,250,0.72), rgba(255,245,236,0.5));
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 6px 18px rgba(40,25,70,0.16), 0 0 0 1px var(--theme-mist, var(--theme-bright-mist)) inset;
+  font-family: var(--font-accent);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--base-ink-500);
+  text-align: right;
+  z-index: 4;
+  animation: transcript-rise var(--dur-base) var(--ease-soft);
+}
+.dialog__transcript--final { color: var(--base-ink-900); }
+.dialog__transcript .word {
+  display: inline-block;
+  opacity: 0;
+  animation: word-fade 360ms var(--ease-soft) forwards;
+}
+
+/* ---------- AI 음성 재생 — 캐릭터 face 글로우 링 + 음표 ---------- */
+.dialog__portrait--playing {
+  /* chat.css 의 .dialog__portrait 위 추가 글로우 */
+}
+.voice-ring {
+  position: absolute;
+  top: -56px; left: 14px;
+  width: 86px; height: 86px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+.voice-ring::before,
+.voice-ring::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 2px solid color-mix(in oklab, var(--theme-primary, var(--theme-bright-primary)) 70%, transparent);
+  animation: ring-ripple 1.8s var(--ease-glide) infinite;
+}
+.voice-ring::after { animation-delay: 0.6s; }
+.voice-ring__inner {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  box-shadow:
+    0 0 24px var(--theme-mist, var(--theme-bright-mist)),
+    0 0 0 4px color-mix(in oklab, var(--theme-accent, var(--theme-bright-accent)) 60%, transparent);
+  animation: ring-glow 1.6s var(--ease-glide) infinite alternate;
+}
+
+/* 음표 파티클 ♪ */
+.voice-notes {
+  position: absolute;
+  top: -56px; left: 92px;
+  width: 70px; height: 96px;
+  pointer-events: none;
+  z-index: 3;
+}
+.voice-notes span {
+  position: absolute;
+  font-family: var(--font-accent);
+  font-size: 18px;
+  color: var(--theme-primary, var(--theme-bright-primary));
+  text-shadow: 0 0 10px var(--theme-mist, var(--theme-bright-mist));
+  opacity: 0;
+  animation: note-rise 2.4s var(--ease-soft) infinite;
+}
+.voice-notes span:nth-child(1) { left: 6px;  bottom: 0; animation-delay: 0s;   }
+.voice-notes span:nth-child(2) { left: 26px; bottom: 0; animation-delay: 0.6s; font-size: 14px; }
+.voice-notes span:nth-child(3) { left: 46px; bottom: 0; animation-delay: 1.2s; }
+.voice-notes span:nth-child(4) { left: 14px; bottom: 0; animation-delay: 1.8s; font-size: 12px; }
+
+/* ---------- TTS 생성 대기 — blur placeholder ---------- */
+.dialog__body--awaiting {
+  filter: blur(4px);
+  opacity: 0.55;
+  user-select: none;
+}
+.tts-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.12em;
+  color: var(--theme-deep, var(--theme-bright-deep));
+  text-transform: uppercase;
+}
+.tts-pending .typing-indicator span {
+  background: var(--theme-mist, var(--theme-bright-mist));
+  box-shadow: 0 0 6px var(--theme-mist, var(--theme-bright-mist));
+}
+
+/* ---------- 메시지별 ▶ 다시 듣기 ---------- */
+.voice-play {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, var(--theme-primary, var(--theme-bright-primary)) 50%, rgba(60,40,90,0.18));
+  background: rgba(255,255,255,0.72);
+  color: var(--theme-deep, var(--theme-bright-deep));
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    transform var(--dur-fast) var(--ease-snap),
+    box-shadow var(--dur-base) var(--ease-soft),
+    background var(--dur-fast) var(--ease-glide);
+}
+.voice-play svg { width: 9px; height: 9px; }
+.voice-play:hover {
+  background: #fff;
+  transform: scale(1.08);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--theme-mist, var(--theme-bright-mist)) 60%, transparent), var(--theme-glow, var(--theme-bright-glow));
+  animation: play-pulse 1.4s var(--ease-glide) infinite;
+}
+.voice-play--playing {
+  background: linear-gradient(135deg, var(--theme-primary, var(--theme-bright-primary)), var(--theme-accent, var(--theme-bright-accent)));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--theme-mist, var(--theme-bright-mist)) 60%, transparent);
+}
+
+/* 재생 중 메시지 본문 강조 라인 */
+.dialog__body--vplay {
+  position: relative;
+}
+.dialog__body--vplay::before {
+  content: '';
+  position: absolute;
+  left: -10px; top: 4px; bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--theme-primary, var(--theme-bright-primary)), var(--theme-accent, var(--theme-bright-accent)));
+  box-shadow: 0 0 10px var(--theme-mist, var(--theme-bright-mist));
+}
+
+/* ---------- VOICE 토글 (헤더) ---------- */
+.dialog__toggle--voice {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.dialog__toggle--voice .note {
+  font-family: var(--font-accent);
+  font-size: 11px;
+  line-height: 1;
+}
+.dialog__toggle--voice.dialog__toggle--on .note {
+  text-shadow: 0 0 8px #fff;
+}

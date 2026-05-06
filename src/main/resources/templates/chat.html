@@ -3,107 +3,232 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1f2937" />
-  <title>대화 | AI 이성친구</title>
+  <meta name="theme-color" content="#0e0a18" />
+  <title>대화 | AI Friends</title>
+
+  <!-- 한글 웹폰트: 본문 Pretendard, 강조 Noto Serif KR, 모노 JetBrains Mono -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
   <link rel="stylesheet" th:href="@{/css/variables.css}" />
   <link rel="stylesheet" th:href="@{/css/base.css}" />
   <link rel="stylesheet" th:href="@{/css/animations.css}" />
   <link rel="stylesheet" th:href="@{/css/layout.css}" />
   <link rel="stylesheet" th:href="@{/css/chat.css}" />
+  <link rel="stylesheet" th:href="@{/css/voice.css}" />
+  <link rel="stylesheet" th:href="@{/css/modals.css}" />
 </head>
 <body>
   <div class="app-root" data-app-root data-soulmate-id th:attr="data-soulmate-id=${soulmateId}">
     <main class="main-container main-container--chat">
-      <!-- 풀스크린 캐릭터 배경 -->
-      <div class="chat-bg" data-chat-bg aria-hidden="true">
-        <div class="chat-bg__overlay"></div>
+
+      <!-- ============================================================
+           캐릭터 배경 스테이지 — 풀블리드 + ken-burns + mote 입자
+           ============================================================ -->
+      <div class="stage" data-chat-bg>
+        <div class="stage__bg" data-chat-stage-bg></div>
+        <div class="stage__motes" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
       </div>
 
-      <!-- 호감도·레벨 상단 표시 + 햄버거 메뉴 -->
-      <header class="chat-status" data-chat-status aria-label="호감도와 레벨">
-        <span class="chat-status__affection" data-chat-status-affection>
-          <img class="chat-status__affection-icon" src="/images/ui/ui-heart.png" alt="" aria-hidden="true" />
-          <span class="chat-status__affection-value" data-chat-status-affection-value>0</span>
-        </span>
-        <span class="chat-status__level" data-chat-status-level>Lv.1</span>
+      <!-- ============================================================
+           상단 헤더 — 글래스 알약 + 호감도 게이지 + 햄버거 메뉴
+           ============================================================ -->
+      <header class="chat-header" data-chat-status aria-label="호감도와 레벨">
+        <a class="chat-header__back" href="/" data-chat-back aria-label="뒤로">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+        <div class="chat-header__name-block">
+          <div class="chat-header__name" data-chat-soulmate-name>
+            <span data-chat-soulmate-name-text>—</span>
+            <span class="chat-header__name-tag" data-chat-soulmate-theme-tag>BRIGHT</span>
+          </div>
+          <div class="affection-mini" data-chat-status-affection>
+            <div class="affection-mini__heart" data-chat-status-level data-level="1">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 21s-7-4.5-9.5-9C.7 8.4 2.5 4 6.5 4c2 0 3.5 1 5.5 3.2C13.5 5 15.5 4 17.5 4c4 0 5.8 4.4 4 8-2.5 4.5-9.5 9-9.5 9z" fill="#ff5a8a" stroke="#fff" stroke-width="1.2" />
+              </svg>
+            </div>
+            <div class="affection-mini__gauge" aria-label="호감도">
+              <div class="affection-mini__fill" data-chat-status-affection-value style="--gauge: 0%"></div>
+            </div>
+          </div>
+        </div>
         <div class="chat-status__menu-wrap">
-          <button type="button" class="chat-status__hamburger" data-chat-hamburger aria-label="메뉴 열기" aria-expanded="false">
-            <span class="chat-status__hamburger-bar"></span>
-            <span class="chat-status__hamburger-bar"></span>
-            <span class="chat-status__hamburger-bar"></span>
+          <button type="button" class="affection-mini__menu" data-chat-hamburger aria-label="메뉴 열기" aria-expanded="false">
+            <span class="bar"></span><span class="bar"></span><span class="bar"></span>
           </button>
           <div class="chat-status__dropdown" data-chat-dropdown hidden>
             <a href="/" class="chat-status__dropdown-item" data-chat-menu-home aria-label="홈으로">
-              <span class="chat-status__dropdown-icon" aria-hidden="true">⌂</span>
+              <span class="chat-status__dropdown-icon" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                  <path d="M2 7L7 2L12 7M3.5 6V12H10.5V6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
               <span>홈</span>
             </a>
             <button type="button" class="chat-status__dropdown-item" data-chat-menu-history aria-label="대화 기록">
-              <span class="chat-status__dropdown-icon" aria-hidden="true">💬</span>
+              <span class="chat-status__dropdown-icon" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                  <path d="M2.5 4a1.5 1.5 0 011.5-1.5h6A1.5 1.5 0 0111.5 4v3.5A1.5 1.5 0 0110 9H6.5L4 11V9a1.5 1.5 0 01-1.5-1.5V4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
+                </svg>
+              </span>
               <span>대화 기록</span>
             </button>
           </div>
         </div>
       </header>
 
-      <!-- 대화/다이얼로그 영역 (일반 모드) -->
-      <section class="chat-dialog" data-chat-dialog>
-        <div class="chat-dialog__messages" data-chat-messages>
-          <!-- JS에서 AI 메시지 + 호감도 추가 -->
-        </div>
-        <div class="chat-dialog__affection" data-chat-affection hidden aria-live="polite">
-          <span data-chat-affection-delta></span>
-          <span class="chat-dialog__level-up" data-chat-level-up hidden></span>
-        </div>
-      </section>
+      <!-- ============================================================
+           다이얼로그 박스 — 미연시 정석 A: 단일 화자 (마지막 한 마디)
+           ============================================================ -->
+      <div class="dialog" data-chat-dialog>
+        <div class="dialog__frame">
+          <div class="dialog__cut" aria-hidden="true"></div>
+          <div class="dialog__portrait" data-chat-portrait aria-hidden="true"></div>
+          <div class="dialog__nametag" data-chat-nametag>
+            <span data-chat-nametag-name>—</span>
+            <span data-chat-nametag-mood>· 한낮 옥상 카페</span>
+          </div>
 
-      <!-- 하단 입력 영역 (카카오톡 스타일) -->
-      <footer class="chat-footer">
-        <div class="chat-input-wrap">
-          <input
-            type="text"
-            class="chat-input"
-            data-chat-input
-            placeholder="메시지를 입력하세요"
-            maxlength="500"
-            autocomplete="off"
-          />
-          <button type="button" class="chat-send" data-chat-send aria-label="전송">
-            <span class="chat-send__icon" data-chat-send-icon aria-hidden="true">➤</span>
-            <span class="chat-send__loading" data-chat-send-loading hidden aria-hidden="true">
-              <span class="chat-loading-dot"></span>
-              <span class="chat-loading-dot"></span>
-              <span class="chat-loading-dot"></span>
-            </span>
-          </button>
-        </div>
-      </footer>
+          <!-- 음성 partial transcript (음성 모드에서만 표시) -->
+          <div class="dialog__transcript" data-chat-voice-transcript hidden></div>
 
-      <!-- 선택지 모달 (choices 있을 때만 표시) -->
-      <div class="chat-choice-modal" data-chat-choice-modal hidden aria-modal="true" role="dialog" aria-label="선택지">
-        <div class="chat-choice-modal__backdrop" data-chat-choice-backdrop></div>
-        <div class="chat-choice-modal__content">
-          <p class="chat-choice-modal__message" data-chat-choice-message></p>
-          <div class="chat-choice-modal__buttons" data-chat-choice-buttons></div>
-        </div>
-      </div>
+          <!-- 메시지 본문 (단일 화자: 마지막 한 마디만 표시. 이전 대화는 LOG 모달) -->
+          <div class="dialog__body" data-chat-messages>
+            <span data-chat-current-message>대화를 시작해 보세요.</span>
+          </div>
 
-      <!-- 대화 기록 모달 (카카오톡 스타일, 위로 스크롤 시 이전 페이지 로드) -->
-      <div class="chat-history-modal" data-chat-history-modal hidden aria-modal="true" role="dialog" aria-label="대화 기록">
-        <div class="chat-history-modal__backdrop" data-chat-history-backdrop></div>
-        <div class="chat-history-modal__panel">
-          <header class="chat-history-modal__header">
-            <h2 class="chat-history-modal__title">대화 기록</h2>
-            <button type="button" class="chat-history-modal__close" data-chat-history-close aria-label="닫기">×</button>
-          </header>
-          <div class="chat-history-modal__scroll" data-chat-history-scroll>
-            <div class="chat-history-modal__list" data-chat-history-list></div>
-            <div class="chat-history-modal__load" data-chat-history-load hidden>이전 대화 불러오는 중…</div>
+          <!-- 호감도 변화 라인 (메시지와 함께 페이드인) -->
+          <div class="dialog__affection" data-chat-affection hidden aria-live="polite" style="margin-top: 8px; font-size: 12px; font-family: var(--font-mono); letter-spacing: 0.06em; color: var(--color-affection);">
+            <span data-chat-affection-delta></span>
+            <span class="chat-dialog__level-up" data-chat-level-up hidden></span>
+          </div>
+
+          <!-- 입력창 — 마이크 + 전송 동등 비중 (텍스트 우선, 음성 옵션) -->
+          <div class="dialog__input-row" data-chat-input-row>
+            <input
+              type="text"
+              class="dialog__input"
+              data-chat-input
+              placeholder="메시지를 입력해 보세요…"
+              maxlength="500"
+              autocomplete="off"
+            />
+            <button type="button" class="dialog__mic" data-chat-voice-record aria-label="음성 입력">
+              <svg viewBox="0 0 16 16" fill="none">
+                <rect x="6" y="2" width="4" height="8" rx="2" fill="currentColor" />
+                <path d="M3.5 8a4.5 4.5 0 009 0M8 12.5V14M5.5 14h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none" />
+              </svg>
+            </button>
+            <button type="button" class="dialog__send" data-chat-send aria-label="전송">
+              <span class="chat-send__icon" data-chat-send-icon aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none">
+                  <path d="M2 8L14 2L9 14L7.5 9L2 8Z" fill="currentColor" stroke="white" stroke-width="1.2" stroke-linejoin="round" />
+                </svg>
+              </span>
+              <span class="chat-send__loading" data-chat-send-loading hidden aria-hidden="true">
+                <span class="chat-loading-dot"></span>
+                <span class="chat-loading-dot"></span>
+                <span class="chat-loading-dot"></span>
+              </span>
+            </button>
+          </div>
+
+          <!-- 비주얼노벨 토글 (SKIP / AUTO / LOG / VOICE) -->
+          <div class="dialog__toggles" data-chat-voice-toggle-row>
+            <button type="button" class="dialog__toggle" data-chat-toggle-skip>SKIP</button>
+            <button type="button" class="dialog__toggle dialog__toggle--on" data-chat-toggle-auto>AUTO</button>
+            <button type="button" class="dialog__toggle" data-chat-menu-history data-chat-toggle-log>LOG</button>
+            <button type="button" class="dialog__toggle dialog__toggle--voice" data-chat-voice-toggle aria-pressed="false">
+              <span class="note" aria-hidden="true">♪</span>
+              VOICE
+            </button>
           </div>
         </div>
       </div>
+
+      <!-- ============================================================
+           선택지 모달 — 다이얼로그 위 공중 카드 stagger fade-up
+           ============================================================ -->
+      <div class="choice-modal" data-chat-choice-modal hidden aria-modal="true" role="dialog" aria-label="선택지">
+        <div class="choice-modal__list" data-chat-choice-buttons>
+          <!-- JS 가 .choice-card 들 동적 렌더 -->
+        </div>
+        <!-- 메시지(질문)는 다이얼로그 박스의 dialog__body 가 담당 (별도 message 요소 불필요) -->
+        <span data-chat-choice-message hidden></span>
+      </div>
+
+      <!-- ============================================================
+           LOG 모달 — 대화 기록 / 백로그 (슬라이드업 글래스 패널)
+           ============================================================ -->
+      <div class="log-modal" data-chat-history-modal hidden aria-modal="true" role="dialog" aria-label="대화 기록">
+        <div class="chat-history-modal__backdrop" data-chat-history-backdrop style="position:absolute; inset:0;"></div>
+        <div class="log-panel">
+          <div class="log-panel__header">
+            <div class="log-panel__title">
+              대화 기록 <small>BACKLOG</small>
+            </div>
+            <button type="button" class="log-panel__close" data-chat-history-close aria-label="닫기">
+              <svg viewBox="0 0 14 14" width="12" height="12" fill="none">
+                <path d="M3 3l8 8M11 3L3 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+          <div class="log-list" data-chat-history-list data-chat-history-scroll>
+            <!-- JS 가 .log-msg / .log-user / .log-event 동적 렌더 -->
+          </div>
+          <div class="log-list__loader" data-chat-history-load hidden>
+            <span class="typing-indicator"><span></span><span></span><span></span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           마이크 권한 모달 — VOICE 토글 ON 시 첫 한 번만 노출
+           ============================================================ -->
+      <div class="mic-perm" data-mic-permission-modal hidden aria-modal="true" role="dialog" aria-label="마이크 권한 안내">
+        <div class="mic-perm__sheet">
+          <div class="mic-perm__cut" aria-hidden="true"></div>
+          <div class="mic-perm__viz" aria-hidden="true">
+            <div class="mic-perm__mic">
+              <svg viewBox="0 0 24 24" fill="none">
+                <rect x="9" y="3" width="6" height="12" rx="3" fill="#fff"/>
+                <path d="M5 12a7 7 0 0014 0M12 19v3M8 22h8" stroke="#fff" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+              </svg>
+            </div>
+            <div class="mic-perm__arrow">
+              <span>VOICE</span>
+              <span class="mic-perm__arrow-line"></span>
+              <span>BIDIRECTIONAL</span>
+            </div>
+            <div class="mic-perm__face"></div>
+          </div>
+          <h2 class="mic-perm__title">
+            <strong>목소리</strong>로도 만날 수 있어요
+          </h2>
+          <p class="mic-perm__body">
+            AI Friends 는 텍스트와 음성 양쪽으로 진행됩니다. 마이크 권한을 허용하면
+            캐릭터에게 직접 말 걸 수 있고, 캐릭터의 목소리도 들을 수 있어요.
+          </p>
+          <div class="mic-perm__buttons">
+            <button type="button" class="mic-perm__btn mic-perm__btn--primary" data-mic-permission-allow>
+              마이크 허용하기
+              <span class="mic-perm__btn-jp">Enable Mic</span>
+            </button>
+            <button type="button" class="mic-perm__btn mic-perm__btn--secondary" data-mic-permission-defer>
+              나중에, 텍스트로 시작
+              <span class="mic-perm__btn-jp">Text Only</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 

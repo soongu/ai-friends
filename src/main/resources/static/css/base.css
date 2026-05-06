@@ -39,3 +39,12 @@ img {
   height: auto;
   display: block;
 }
+
+/**
+ * HTML5 hidden 속성 강화 — `display: flex` / `inline-flex` 같은 명시적 룰이
+ * `[hidden]` 의 default `display: none` 을 override 하지 않도록 한다.
+ * 이게 없으면 만들기 CTA / log-modal / mic-perm 등이 hidden=true 여도 보인다.
+ */
+[hidden] {
+  display: none !important;
+}
