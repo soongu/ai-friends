@@ -14,7 +14,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,7 +44,9 @@ class SoulmateChatControllerTest {
                         .param("mood", "우울")
                         .param("message", "오늘 진짜 별로였어"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("에이, 무슨 일 있었어? 천천히 얘기해봐."));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.aiMessage")
+                        .value("에이, 무슨 일 있었어? 천천히 얘기해봐."));
 
         then(service).should().chat("user_1", "우울", "오늘 진짜 별로였어");
     }
