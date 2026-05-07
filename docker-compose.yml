@@ -65,6 +65,18 @@ services:
       # 컨테이너 내부에서 호스트의 Ollama 데몬으로 접속할 base-url
       # 호스트에서 직접 IDE 로 띄울 때는 application.yml 기본값(localhost:11434)이 적용됨
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      # Day 9 — 음성 도메인 (STT: Whisper, TTS: gpt-4o-mini-tts 또는 ElevenLabs)
+      #   gemini 프로파일에서 audio 사브트리가 켜진다. ollama / compare 프로파일에서는
+      #   audio 가 none 이라 OPENAI_API_KEY 가 비어 있어도 기동에 문제 없다.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_STT_MODEL: ${OPENAI_STT_MODEL:-}
+      OPENAI_TTS_MODEL: ${OPENAI_TTS_MODEL:-gpt-4o-mini-tts}
+      # TTS 프로바이더 selector — openai (기본) / elevenlabs 중 택일.
+      # 코드 0줄 수정으로 백엔드가 갈리는 swap. 학생이 .env 한 줄 바꿔 직접 비교해 볼 수 있다.
+      TTS_PROVIDER: ${TTS_PROVIDER:-openai}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      ELEVENLABS_TTS_MODEL: ${ELEVENLABS_TTS_MODEL:-eleven_multilingual_v2}
+      ELEVENLABS_DEFAULT_VOICE_ID: ${ELEVENLABS_DEFAULT_VOICE_ID:-21m00Tcm4TlvDq8ikWAM}
       TZ: Asia/Seoul
     ports:
       - "8080:8080"

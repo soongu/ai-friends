@@ -1,6 +1,7 @@
 package kr.spartaclub.aifriends.voice.controller;
 
 import kr.spartaclub.aifriends.common.exception.GlobalExceptionHandler;
+import kr.spartaclub.aifriends.voice.service.VoiceSynthesisResult;
 import kr.spartaclub.aifriends.voice.service.VoiceSynthesisService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -27,16 +29,20 @@ class VoiceSpeechControllerTest {
     @MockBean VoiceSynthesisService voiceSynthesisService;
 
     @Test
-    @DisplayName("정상 텍스트는 200 + Content-Type audio/mpeg + 합성된 byte[] 를 그대로 돌려준다")
+    @DisplayName("정상 텍스트는 200 + Content-Type audio/mpeg + X-TTS-Provider/Voice 헤더 + 합성된 byte[] 를 돌려준다")
     void should_return_200_with_audio_mpeg_bytes_when_valid_text() throws Exception {
         byte[] stubAudio = new byte[]{0x49, 0x44, 0x33, 0x04, 0x00};  // ID3 헤더 흉내
-        when(voiceSynthesisService.synthesize(anyString())).thenReturn(stubAudio);
+        // 컨트롤러는 synthesizeWithMeta(text, voice) 를 호출 — provider/voice 메타 포함.
+        when(voiceSynthesisService.synthesizeWithMeta(anyString(), any()))
+                .thenReturn(new VoiceSynthesisResult(stubAudio, "openai", "marin"));
 
         mockMvc.perform(post("/api/voice/speak")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"text\": \"안녕하세요\"}"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", "audio/mpeg"))
+                .andExpect(header().string("X-TTS-Provider", "openai"))
+                .andExpect(header().string("X-TTS-Voice", "marin"))
                 .andExpect(content().bytes(stubAudio));
     }
 

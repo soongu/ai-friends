@@ -1,16 +1,21 @@
 package kr.spartaclub.aifriends.voice.controller;
 
 import kr.spartaclub.aifriends.common.exception.ErrorCode;
+import kr.spartaclub.aifriends.common.response.ApiResponse;
 import kr.spartaclub.aifriends.voice.dto.VoiceSpeechRequest;
 import kr.spartaclub.aifriends.voice.exception.VoiceException;
+import kr.spartaclub.aifriends.voice.service.VoiceSynthesisResult;
 import kr.spartaclub.aifriends.voice.service.VoiceSynthesisService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 /**
  * Day 9 Step 6 — 텍스트 → TTS → audio/mpeg 바이너리 응답 엔드포인트.
@@ -43,16 +48,34 @@ public class VoiceSpeechController {
     public ResponseEntity<byte[]> speak(@RequestBody VoiceSpeechRequest request) {
         validate(request);
 
-        byte[] audio = voiceSynthesisService.synthesize(request.text());
+        VoiceSynthesisResult result = voiceSynthesisService.synthesizeWithMeta(request.text(), request.voice());
 
-        log.info("[VoiceSpeech] success: textLength={}, audioBytes={}",
-                request.text().length(), audio.length);
+        log.info("[VoiceSpeech] success: textLength={}, requestedVoice={}, provider={}, resolvedVoice={}, audioBytes={}",
+                request.text().length(), request.voice(), result.provider(), result.voice(), result.audio().length);
 
+        // 학습용 — DevTools Network 탭에서 헤더만 봐도 어떤 프로바이더로 swap 됐는지 즉시 확인 가능.
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("audio/mpeg"))
                 .header("Content-Disposition", "inline; filename=\"speech.mp3\"")
-                .contentLength(audio.length)
-                .body(audio);
+                .header("X-TTS-Provider", result.provider() == null ? "" : result.provider())
+                .header("X-TTS-Voice",    result.voice()    == null ? "" : result.voice())
+                .contentLength(result.audio().length)
+                .body(result.audio());
+    }
+
+    /**
+     * 활성 TTS 프로바이더 / 매핑 테이블 메타정보 조회.
+     *
+     * <p>DevTools 헤더만으로 부족하고 *현재 어떤 프로바이더가 살아 있는지* 단독 확인하고
+     * 싶을 때 호출. 응답: {@code { provider: "elevenlabs" }}. 학습 시연용 — 학생이
+     * {@code .env} 의 {@code TTS_PROVIDER} 를 바꾸고 재기동한 뒤 이 엔드포인트를 한 번
+     * 찍어서 swap 이 반영됐는지 즉시 확인할 수 있다.</p>
+     */
+    @GetMapping("/info")
+    public ResponseEntity<ApiResponse<Map<String, String>>> info() {
+        return ResponseEntity.ok(ApiResponse.success(
+                Map.of("provider", voiceSynthesisService.getActiveProvider())
+        ));
     }
 
     /**
