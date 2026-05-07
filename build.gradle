@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.3.5'
+    id 'org.springframework.boot' version '3.5.14'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'jacoco'
 }
@@ -20,7 +20,7 @@ repositories {
 }
 
 ext {
-    // Spring AI 1.1.x (Spring Boot 3.3.x 호환 라인)
+    // Spring AI 1.1.x (Spring Boot 3.5.x 호환 라인)
     // 강의 전반에 걸쳐 이 버전으로 고정합니다. 2.0.x 는 Boot 4.0 baseline 이라 본 과목에서 사용하지 않습니다.
     set('springAiVersion', '1.1.0')
 }
