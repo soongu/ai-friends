@@ -98,6 +98,38 @@ spring:
           # url (디폴트) — 응답에 publicly accessible URL 박힘. ImageDownloader 가 그걸로 byte[] 받아옴
           response-format: url
 
+      # ⚠️ Day 9 — audio 사브트리도 채팅용 api-key/base-url 을 *그대로 쓰지 않고* 분리 오버라이드.
+      #    채팅은 Gemini 키 + Gemini 호환 엔드포인트, 음성은 OpenAI 키 + OpenAI 정식 엔드포인트.
+      #    이 사브트리는 spring.ai.model.audio.{transcription,speech} = openai 일 때만 활성화된다
+      #    (기본값 none → Day 1~8 학생은 OPENAI_API_KEY 없이도 부담 없이 기동). gemini 프로파일이
+      #    Day 9 의 voice 활성화를 함께 걸어두는 자리.
+      audio:
+        transcription:
+          api-key: ${OPENAI_API_KEY:}
+          base-url: https://api.openai.com
+          options:
+            model: ${OPENAI_STT_MODEL:}
+        speech:
+          api-key: ${OPENAI_API_KEY:}
+          base-url: https://api.openai.com
+          options:
+            model: ${OPENAI_TTS_MODEL:gpt-4o-mini-tts}
+
+    # ⓔ ElevenLabs TTS (Day 9) — TTS_PROVIDER=elevenlabs 일 때만 활성 빈으로 등록된다.
+    #    캐릭터 voice 는 voice-id 슬롯에 UUID 로 지정 (이름이 아닌 ID). VoiceSynthesisService 의
+    #    캐릭터 → voice 매핑 테이블이 mood key 를 받아 적절한 UUID 로 변환해 보낸다.
+    #    eleven_multilingual_v2 는 한국어를 자연스럽게 발음하는 모델 — gpt-4o-mini-tts 대비
+    #    캐릭터 연기(설렘/속삭임/장난기)가 풍부하지만 가격이 비싸고 한국어 억양은 모델 운에 가깝다.
+    elevenlabs:
+      api-key: ${ELEVENLABS_API_KEY:}
+      base-url: https://api.elevenlabs.io
+      tts:
+        options:
+          model-id: ${ELEVENLABS_TTS_MODEL:eleven_multilingual_v2}
+          # default voice (Rachel) — 매핑 테이블 누락 시 폴백
+          voice-id: ${ELEVENLABS_DEFAULT_VOICE_ID:21m00Tcm4TlvDq8ikWAM}
+          output-format: mp3_44100_128
+
 # SQL 로그는 JPA가 아닌 P6Spy로만 출력 (바인드 파라미터 치환된 형태)
 
 # =========================================================
@@ -198,8 +230,15 @@ spring:
       on-profile: gemini
 
   ai:
+    # 채팅(Gemini hijack) + 음성(정식 OpenAI 엔드포인트) 동시 활성. Day 9 부터는 gemini 프로파일이
+    # voice 까지 함께 켠다 — 학생이 .env 에 GEMINI_API_KEY + OPENAI_API_KEY 두 키만 박으면 게임이
+    # 바로 *목소리 있는* 상태로 떠야 하기 때문. ollama / compare / groq 프로파일은 voice 미활성.
+    # TTS 만 .env 의 TTS_PROVIDER 로 OpenAI ↔ ElevenLabs swap 가능.
     model:
       chat: openai
+      audio:
+        speech: ${TTS_PROVIDER:openai}
+        transcription: openai
 
 ---
 # =========================================================

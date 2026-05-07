@@ -41,7 +41,13 @@ dependencies {
 
     // 🤖 Spring AI 모델 스타터 (Day 1 Step 3 에서 추가)
     implementation 'org.springframework.ai:spring-ai-starter-model-ollama'   // 로컬 Ollama (무료)
-    implementation 'org.springframework.ai:spring-ai-starter-model-openai'   // OpenAI 호환 (Gemini 도 이 스타터로 호출)
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'   // OpenAI 호환 (Gemini 도 이 스타터로 호출 + Day 9 STT/TTS 도 동일 스타터)
+
+    // 🎙️ Spring AI TTS 보조 스타터 (Day 9) — TTS_PROVIDER=elevenlabs 일 때만 활성 빈으로 등록.
+    //    OpenAI 디폴트로 두고 .env 한 줄(TTS_PROVIDER=elevenlabs) 만 바꾸면 ElevenLabs 라인업으로 swap.
+    //    spring.ai.model.audio.speech selector 가 두 starter 중 한쪽 빈만 등록 → 충돌 없음.
+    //    학습 의도: TextToSpeechModel 인터페이스만 보고 코딩하면 프로바이더 swap 비용이 0 임을 체감.
+    implementation 'org.springframework.ai:spring-ai-starter-model-elevenlabs'
 
     // 🧠 Spring AI ChatMemory — JDBC 기반 영속화 (Day 5 Step 3 에서 추가)
     implementation 'org.springframework.ai:spring-ai-starter-model-chat-memory-repository-jdbc'

@@ -35,7 +35,8 @@ class VoiceSynthesisServiceTest {
     TextToSpeechModel textToSpeechModel;
 
     private VoiceSynthesisService sut() {
-        return new VoiceSynthesisService(textToSpeechModel);
+        // 단위 테스트는 mood key → voice id 매핑이 OpenAI 표를 타도록 'openai' 로 고정.
+        return new VoiceSynthesisService(textToSpeechModel, "openai");
     }
 
     @Test
