@@ -35,8 +35,11 @@ import java.util.stream.Stream;
 
 /**
  * 구글 Gemini API와의 실제 통신 및 프롬프트 조합, 응답 파싱을 담당하는 외부 인프라스트럭처 서비스입니다.
- * Spring AI 라이브러리 등 추상화 레이어를 쓰지 않고, RestClient를 사용하여 날것(Raw)의 HTTP 요청/응답을 직접 핸들링합니다.
- * 이를 통해 LLM 통신의 밑바닥 동작 원리와 파싱 로직을 명확히 이해할 수 있습니다.
+ * HTTP 호출 자체는 RestClient 로 날것(Raw) 의 요청/응답을 직접 핸들링하여 LLM 통신의 밑바닥 동작 원리와 파싱 로직을 학습할 수 있게 한다.
+ *
+ * <p>다만 시스템 프롬프트 조립 영역은 Day 3 에서 Spring AI 의 {@link org.springframework.ai.chat.prompt.PromptTemplate}
+ * 로 격상되었다 — RCTFE 5축 구조의 시스템 프롬프트와 Few-shot 예시는 classpath 의 외부 파일로 분리되고,
+ * PromptTemplate 이 {gender}/{characterName} 같은 슬롯을 렌더링한다. RestClient 호출 자체와 응답 파싱은 여전히 raw 한 자리.</p>
  *
  * <p>Gemini API 사용 가이드 (공식 문서)</p>
  * <ul>
