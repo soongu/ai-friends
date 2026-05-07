@@ -2,10 +2,12 @@ package kr.spartaclub.aifriends.hello;
 
 import java.util.Map;
 
+import kr.spartaclub.aifriends.common.response.ApiResponse;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -84,9 +86,11 @@ public class HelloAiController {
      * <p>유저 질문 자체는 매번 바뀌지만 튜터 페르소나·답변 규칙·예시는 고정이라
      * 시스템 프롬프트 영역에 몰아넣었다. 익명 ID 는 실서비스에서는 세션/유저 엔티티의
      * 익명화 컬럼에서 읽어오지만, 과제 범위에서는 고정 문자열로 충분하다.</p>
+     *
+     * <p>응답은 {@link TutorReply} record 를 {@code ApiResponse<T>} 로 감싸 CLAUDE.md 4-1 게이트와 정합.</p>
      */
     @GetMapping("/api/hello-ai/v3")
-    public String helloV3(
+    public ResponseEntity<ApiResponse<TutorReply>> helloV3(
             @RequestParam(defaultValue = "의존성 주입이 뭔가요?") String message,
             @RequestParam(defaultValue = "Spring AI") String topicTag
     ) {
@@ -97,11 +101,13 @@ public class HelloAiController {
                 "topicTag", topicTag
         ));
 
-        return chatClient.prompt()
+        String reply = chatClient.prompt()
                 .system(renderedSystemPrompt)
                 .user(message)
                 .call()
                 .content();
+
+        return ResponseEntity.ok(ApiResponse.success(new TutorReply(topicTag, reply)));
     }
 
     /**
@@ -112,7 +118,7 @@ public class HelloAiController {
      * 같은 userId 로 재호출 시 항상 같은 version 으로 분기되므로 sticky assignment 가 보장된다.</p>
      */
     @GetMapping("/api/hello-ai/v3-ab")
-    public HelloAbResponse helloV3Ab(
+    public ResponseEntity<ApiResponse<HelloAbResponse>> helloV3Ab(
             @RequestParam Long userId,
             @RequestParam(defaultValue = "의존성 주입이 뭔가요?") String message,
             @RequestParam(defaultValue = "Spring AI") String topicTag
@@ -134,6 +140,7 @@ public class HelloAiController {
                 .call()
                 .content();
 
-        return new HelloAbResponse(promptVersion, anonymizedUserName, topicTag, reply);
+        HelloAbResponse body = new HelloAbResponse(promptVersion, anonymizedUserName, topicTag, reply);
+        return ResponseEntity.ok(ApiResponse.success(body));
     }
 }

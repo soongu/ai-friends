@@ -115,7 +115,10 @@ class HelloAiControllerTest {
                         .param("message", "의존성 주입이 뭔가요?")
                         .param("topicTag", "Java"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("좋은 질문이야! 의존성 주입은 ... 그럼 다음 질문?"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.topicTag").value("Java"))
+                .andExpect(jsonPath("$.data.reply")
+                        .value("좋은 질문이야! 의존성 주입은 ... 그럼 다음 질문?"));
 
         ArgumentCaptor<String> systemCaptor = ArgumentCaptor.forClass(String.class);
         then(chatClient.prompt()).should().system(systemCaptor.capture());
@@ -140,7 +143,9 @@ class HelloAiControllerTest {
 
         mockMvc.perform(get("/api/hello-ai/v3"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("default-v3-ok"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.topicTag").value("Spring AI"))
+                .andExpect(jsonPath("$.data.reply").value("default-v3-ok"));
 
         ArgumentCaptor<String> systemCaptor = ArgumentCaptor.forClass(String.class);
         then(chatClient.prompt()).should().system(systemCaptor.capture());
@@ -162,10 +167,11 @@ class HelloAiControllerTest {
                         .param("message", "REST와 GraphQL 의 차이?")
                         .param("topicTag", "Spring AI"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.promptVersion").value("v1"))
-                .andExpect(jsonPath("$.userName").value("tutor-student-1"))
-                .andExpect(jsonPath("$.topicTag").value("Spring AI"))
-                .andExpect(jsonPath("$.reply").value("v1-차분한-응답"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.promptVersion").value("v1"))
+                .andExpect(jsonPath("$.data.userName").value("tutor-student-1"))
+                .andExpect(jsonPath("$.data.topicTag").value("Spring AI"))
+                .andExpect(jsonPath("$.data.reply").value("v1-차분한-응답"));
 
         ArgumentCaptor<String> systemCaptor = ArgumentCaptor.forClass(String.class);
         then(chatClient.prompt()).should().system(systemCaptor.capture());
@@ -185,10 +191,11 @@ class HelloAiControllerTest {
                         .param("userId", "11")
                         .param("message", "REST와 GraphQL 의 차이?"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.promptVersion").value("v2"))
-                .andExpect(jsonPath("$.userName").value("tutor-student-1"))
-                .andExpect(jsonPath("$.topicTag").value("Spring AI"))
-                .andExpect(jsonPath("$.reply").value("v2-쾌활한-응답 🚀"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.promptVersion").value("v2"))
+                .andExpect(jsonPath("$.data.userName").value("tutor-student-1"))
+                .andExpect(jsonPath("$.data.topicTag").value("Spring AI"))
+                .andExpect(jsonPath("$.data.reply").value("v2-쾌활한-응답 🚀"));
 
         ArgumentCaptor<String> systemCaptor = ArgumentCaptor.forClass(String.class);
         then(chatClient.prompt()).should().system(systemCaptor.capture());
@@ -208,7 +215,7 @@ class HelloAiControllerTest {
         for (int i = 0; i < 3; i++) {
             mockMvc.perform(get("/api/hello-ai/v3-ab").param("userId", "42"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.promptVersion").value("v1"));
+                    .andExpect(jsonPath("$.data.promptVersion").value("v1"));
         }
     }
 
