@@ -6,7 +6,15 @@
  *  - 음성 입력은 default OFF — VOICE 토글 ON 시 첫 1회 마이크 권한 모달.
  *    실제 STT/TTS 활성화는 Day 9 에서 (이 파일은 hooks only).
  */
-import { getSoulmate, postChat, getChatLogs } from '../../api.js';
+import { getSoulmate, postChat, getChatLogs, transcribeAudio, synthesizeSpeech } from '../../api.js';
+import { pickVoice } from '../../config.js';
+import {
+  initBgm,
+  setTtsActive,
+  pauseBgmForRecording,
+  resumeBgmAfterRecording,
+  playStartChime,
+} from './bgm.js';
 
 // ============================================================
 // 캐릭터 메타 매핑 (characterImageId → 디자인 토큰 + 텍스트)
@@ -86,6 +94,17 @@ let currentMeta = DEFAULT_META;
 let previousAffectionScore = 0;
 let previousLevel = 1;
 let voiceMode = false; // VOICE 토글 상태 (default OFF)
+
+// 음성 입출력 — MediaRecorder + 재생 큐
+let mediaStream = null;       // getUserMedia 로 받은 마이크 스트림 (한 번 받아두고 재사용)
+let mediaRecorder = null;     // 녹음 인스턴스 (stop 시 새로 생성)
+let recordedChunks = [];      // dataavailable 누적 버퍼
+let isRecording = false;      // 녹음 중 토글
+let recordCanceled = false;   // 취소 버튼 → onstop 콜백이 STT 호출하지 않게 가드
+let recordStartedAt = 0;      // 녹음 시간 카운터용 timestamp
+let recordTimerId = null;     // 1초 간격 mm:ss 갱신
+let recordStartTimer = null;  // BGM fade + chime → 녹음 시작 사이의 지연 타이머
+let currentReplyAudio = null; // 마지막 재생 중인 <audio>; 새 응답 오면 정지
 
 // 페이지네이션 (LOG 모달)
 let historyNextPage = 0;
@@ -195,16 +214,119 @@ function showAffectionDelta(delta, newLevel) {
 }
 
 // ============================================================
-// 단일 화자 다이얼로그 (마지막 한 마디만 표시)
+// 단일 화자 다이얼로그 + 타자기 스트리밍
+//   - showDialogLoading()         : 응답 대기 중 typing-indicator 표시
+//   - setDialogPlain(text)        : 즉시 텍스트 세팅 (init 복원/에러 회복용)
+//   - setDialogMessage(text, cb)  : 타자기로 글자 차오르듯 표시. 끝나면 cb 호출
+//   - skipTypewriter()            : 진행 중인 타자기를 즉시 완료
 // ============================================================
-function setDialogMessage(aiMessage) {
+const TYPE_BASE_SPEED_MS = 28;     // 글자당 기본 속도
+const TYPE_MIN_SPEED_MS  = 14;     // 너무 긴 메시지는 살짝 빠르게
+const TYPE_LONG_THRESHOLD = 80;    // 이 길이 넘으면 속도 보정
+
+let typewriterState = {
+  el: null,
+  fullText: '',
+  index: 0,
+  timerId: null,
+  onComplete: null,
+};
+
+function setDialogPlain(text) {
+  cancelTypewriter();
+  const container = $(SELECTORS.messages);
+  if (!container) return;
+  container.innerHTML = `<span data-chat-current-message style="opacity: 0; animation: word-fade 360ms var(--ease-soft) forwards;"></span>`;
+  const slot = $(SELECTORS.currentMessage);
+  if (slot) slot.textContent = text || '대화를 시작해 보세요.';
+}
+
+function showDialogLoading(label = '음… 잠깐만요') {
+  cancelTypewriter();
+  const container = $(SELECTORS.messages);
+  if (!container) return;
+  container.innerHTML = `
+    <span class="dialog__thinking" aria-live="polite">
+      <span class="typing-indicator"><span></span><span></span><span></span></span>
+      <span class="dialog__thinking__label">${escapeHtml(label)}</span>
+    </span>`;
+}
+
+function setDialogMessage(aiMessage, onComplete) {
+  cancelTypewriter();
   const container = $(SELECTORS.messages);
   if (!container) return;
   const text = aiMessage || '대화를 시작해 보세요.';
-  // 노드 교체 → animations.css 의 word-fade 재실행
-  container.innerHTML = `<span data-chat-current-message style="opacity: 0; animation: word-fade 360ms var(--ease-soft) forwards;"></span>`;
+
+  // 글자가 차오를 빈 슬롯으로 시작
+  container.innerHTML = `<span data-chat-current-message class="dialog__current-message dialog__current-message--typing" style="opacity: 0; animation: word-fade 240ms var(--ease-soft) forwards;"></span>`;
   const slot = $(SELECTORS.currentMessage);
-  if (slot) slot.textContent = text;
+  if (!slot) return;
+
+  // 길이별 속도 — 짧으면 또박또박, 길면 살짝 빠르게
+  const speed = text.length > TYPE_LONG_THRESHOLD
+    ? Math.max(TYPE_MIN_SPEED_MS, Math.round(TYPE_BASE_SPEED_MS * (TYPE_LONG_THRESHOLD / text.length)))
+    : TYPE_BASE_SPEED_MS;
+
+  typewriterState.el = slot;
+  typewriterState.fullText = text;
+  typewriterState.index = 0;
+  typewriterState.onComplete = typeof onComplete === 'function' ? onComplete : null;
+
+  setSkipAvailable(true);
+
+  typewriterState.timerId = setInterval(() => {
+    typewriterState.index += 1;
+    typewriterState.el.textContent = typewriterState.fullText.slice(0, typewriterState.index);
+    if (typewriterState.index >= typewriterState.fullText.length) {
+      finishTypewriter();
+    }
+  }, speed);
+}
+
+function skipTypewriter() {
+  if (!typewriterState.timerId) return;
+  if (typewriterState.el) {
+    typewriterState.el.textContent = typewriterState.fullText;
+  }
+  finishTypewriter();
+}
+
+function finishTypewriter() {
+  if (typewriterState.timerId) {
+    clearInterval(typewriterState.timerId);
+    typewriterState.timerId = null;
+  }
+  if (typewriterState.el) {
+    typewriterState.el.classList.remove('dialog__current-message--typing');
+  }
+  setSkipAvailable(false);
+  const cb = typewriterState.onComplete;
+  typewriterState.onComplete = null;
+  if (cb) cb();
+}
+
+function cancelTypewriter() {
+  if (typewriterState.timerId) {
+    clearInterval(typewriterState.timerId);
+    typewriterState.timerId = null;
+  }
+  if (typewriterState.el) {
+    typewriterState.el.classList.remove('dialog__current-message--typing');
+  }
+  setSkipAvailable(false);
+  typewriterState.el = null;
+  typewriterState.onComplete = null;
+}
+
+function isTyping() {
+  return typewriterState.timerId !== null;
+}
+
+function setSkipAvailable(active) {
+  const skipBtn = rootEl?.querySelector('[data-chat-toggle-skip]');
+  if (!skipBtn) return;
+  skipBtn.classList.toggle('dialog__toggle--skip-active', !!active);
 }
 
 // ============================================================
@@ -285,6 +407,8 @@ async function sendMessage(text) {
   setLoading(true);
   setInputEnabled(false);
   hideChoiceModal();
+  // 응답 대기 폴백 — 다이얼로그 본문에 thinking 인디케이터 (이전 메시지는 가려짐)
+  showDialogLoading('음… 잠깐만요');
   try {
     const res = await postChat(soulmateId, text);
     const delta =
@@ -302,23 +426,33 @@ async function sendMessage(text) {
     if (delta > 0) setStageBg('happy');
     else if (delta < 0) setStageBg('sad');
     else setStageBg('neutral');
-    setDialogMessage(res.aiMessage);
+
     showAffectionDelta(delta, levelUp);
 
-    if (res.choices && res.choices.length > 0) {
-      showChoiceModal(res.aiMessage, res.choices);
-    } else {
-      setInputEnabled(true);
+    const hasChoices = !!(res.choices && res.choices.length > 0);
+
+    // 타자기로 텍스트가 차오른 뒤 → 완료 콜백에서 choice 모달 솟아오름 / 입력 재활성
+    setLoading(false);
+    setDialogMessage(res.aiMessage, () => {
+      if (hasChoices) {
+        showChoiceModal(res.aiMessage, res.choices);
+      } else {
+        setInputEnabled(true);
+      }
+    });
+
+    // VOICE 토글 ON 이면 AI 메시지를 TTS 로 합성해 재생 (타자기와 병렬 진행)
+    if (voiceMode && res.aiMessage) {
+      playReplyAudio(res.aiMessage, pickVoice(currentImageId)).catch((e) => {
+        console.warn('[voice] TTS playback skipped:', e?.message || e);
+      });
     }
   } catch (err) {
-    alert(err.message || '전송에 실패했어요');
-    setInputEnabled(true);
-  } finally {
+    cancelTypewriter();
+    setDialogPlain('전송이 실패했어요. 다시 시도해 보세요.');
     setLoading(false);
-    const modal = $(SELECTORS.choiceModal);
-    if (modal && !modal.hidden) {
-      setInputEnabled(false);
-    }
+    setInputEnabled(true);
+    alert(err.message || '전송에 실패했어요');
   }
 }
 
@@ -508,11 +642,21 @@ function toggleVoiceMode() {
   }
 }
 
-function onMicPermAllow() {
-  setMicPermission('granted');
+async function onMicPermAllow() {
   hideMicPermModal();
-  setVoiceMode(true);
-  // Day 9 에서 실제 navigator.mediaDevices.getUserMedia({ audio: true }) 호출 예정
+  // 실제 OS 권한 다이얼로그 — 사용자가 거부하면 catch
+  try {
+    if (!mediaStream) {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+    setMicPermission('granted');
+    setVoiceMode(true);
+  } catch (e) {
+    console.warn('[voice] getUserMedia denied:', e?.message || e);
+    setMicPermission('deferred');
+    setVoiceMode(false);
+    alert('마이크 권한이 거부되어 음성 모드를 켤 수 없어요. 브라우저 설정에서 허용을 다시 체크해 주세요.');
+  }
 }
 
 function onMicPermDefer() {
@@ -521,10 +665,343 @@ function onMicPermDefer() {
   setVoiceMode(false);
 }
 
-function onMicRecord() {
-  if (!voiceMode) return;
-  // Day 9 에서 MediaRecorder + STT 활성화 — 일단 placeholder
-  console.info('[voice] mic record placeholder — Day 9 에서 활성화 예정');
+function setVoiceTranscript(text) {
+  const el = $(SELECTORS.voiceTranscript);
+  if (!el) return;
+  if (text) {
+    el.textContent = text;
+    el.hidden = false;
+  } else {
+    el.textContent = '';
+    el.hidden = true;
+  }
+}
+
+async function onMicRecord() {
+  // 토글: 녹음 중이면 stop (이후 onstop 콜백이 STT 호출까지 처리)
+  if (isRecording) {
+    stopRecording();
+    return;
+  }
+
+  // 시작 시퀀스가 이미 진행 중이면 중복 트리거 방지
+  if (recordStartTimer) return;
+
+  // 권한 보유 — 없으면 즉시 요청 (브라우저 OS 다이얼로그 노출). 마이크 버튼 클릭 자체가
+  // user gesture 라 getUserMedia 를 직접 불러도 자동재생 정책 위반이 아니다.
+  if (!mediaStream) {
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMicPermission('granted');
+    } catch (e) {
+      console.warn('[voice] getUserMedia denied:', e?.message || e);
+      setMicPermission('deferred');
+      alert('마이크 권한이 거부됐어요. 브라우저 주소창 옆 자물쇠 → 마이크 허용으로 켜 주세요.');
+      return;
+    }
+  }
+
+  // 음성으로 시작했으니 응답도 음성으로 들려준다 — VOICE 토글도 함께 ON.
+  if (!voiceMode) setVoiceMode(true);
+
+  // STT 시작 시퀀스 — BGM 페이드아웃 + 띠링 효과음 → 약 380ms 후 녹음 시작
+  pauseBgmForRecording();
+  const chimeMs = playStartChime();
+  recordStartTimer = setTimeout(() => {
+    recordStartTimer = null;
+    startRecording();
+  }, Math.max(380, chimeMs - 20));
+}
+
+// ----- 녹음 시 input-row 변형: input + send 숨김, voice-time + voice-wave + cancel 표시 -----
+function enterVoiceInputMode() {
+  const row = $(SELECTORS.inputRow);
+  if (!row) return;
+  row.classList.add('dialog__input-row--voice');
+
+  // 기존 input + send 숨김
+  const input = $(SELECTORS.input);
+  const sendBtn = $(SELECTORS.sendBtn);
+  if (input) input.hidden = true;
+  if (sendBtn) sendBtn.hidden = true;
+
+  // voice 변형 요소 — 한 번만 만들어서 재사용. 마이크 버튼 앞에 삽입.
+  const mic = $(SELECTORS.voiceRecord);
+  if (!mic) return;
+
+  if (!row.querySelector('[data-chat-voice-time]')) {
+    const time = document.createElement('span');
+    time.className = 'voice-time';
+    time.setAttribute('data-chat-voice-time', '');
+    time.innerHTML = '<span class="voice-time__dot" aria-hidden="true"></span><span data-chat-voice-time-text>00:00</span>';
+    row.insertBefore(time, mic);
+  }
+  if (!row.querySelector('.voice-wave')) {
+    const wave = document.createElement('div');
+    wave.className = 'voice-wave';
+    wave.setAttribute('aria-label', '녹음 중');
+    // 12개 막대 — wave-bounce 애니메이션
+    wave.innerHTML = Array.from({ length: 12 }).map(() => '<span></span>').join('');
+    row.insertBefore(wave, mic);
+  }
+  if (!row.querySelector(SELECTORS.voiceCancel)) {
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'dialog__cancel';
+    cancel.setAttribute('aria-label', '녹음 취소');
+    cancel.setAttribute('data-chat-voice-cancel', '');
+    cancel.innerHTML = '<svg viewBox="0 0 14 14" width="11" height="11" fill="none"><path d="M3 3l8 8M11 3L3 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>';
+    cancel.addEventListener('click', cancelRecording);
+    row.insertBefore(cancel, mic);
+  }
+}
+
+function exitVoiceInputMode() {
+  const row = $(SELECTORS.inputRow);
+  if (!row) return;
+  row.classList.remove('dialog__input-row--voice');
+
+  // voice 요소 제거
+  row.querySelectorAll('[data-chat-voice-time], .voice-wave, [data-chat-voice-cancel]').forEach((el) => el.remove());
+
+  // input + send 복원
+  const input = $(SELECTORS.input);
+  const sendBtn = $(SELECTORS.sendBtn);
+  if (input) input.hidden = false;
+  if (sendBtn) sendBtn.hidden = false;
+}
+
+function startRecordTimer() {
+  recordStartedAt = Date.now();
+  const tick = () => {
+    const elapsed = Math.floor((Date.now() - recordStartedAt) / 1000);
+    const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const ss = String(elapsed % 60).padStart(2, '0');
+    const el = rootEl.querySelector('[data-chat-voice-time-text]');
+    if (el) el.textContent = `${mm}:${ss}`;
+  };
+  tick();
+  recordTimerId = setInterval(tick, 250);
+}
+function stopRecordTimer() {
+  if (recordTimerId) {
+    clearInterval(recordTimerId);
+    recordTimerId = null;
+  }
+}
+
+function startRecording() {
+  // MediaRecorder 의 webm/opus 컨테이너 — Whisper 가 받아들이는 화이트리스트의 webm.
+  let mr;
+  try {
+    mr = new MediaRecorder(mediaStream, { mimeType: 'audio/webm' });
+  } catch (e) {
+    // 일부 브라우저(Safari 일부)는 webm 미지원 — mime 미지정으로 폴백
+    mr = new MediaRecorder(mediaStream);
+  }
+  recordedChunks = [];
+  recordCanceled = false;
+  mr.addEventListener('dataavailable', (ev) => {
+    if (ev.data && ev.data.size > 0) recordedChunks.push(ev.data);
+  });
+  mr.addEventListener('stop', onRecordingStop);
+  mr.start();
+  mediaRecorder = mr;
+  isRecording = true;
+  updateRecordButton();
+  enterVoiceInputMode();
+  startRecordTimer();
+  setVoiceTranscript('');
+}
+
+function stopRecording() {
+  if (!mediaRecorder || !isRecording) return;
+  isRecording = false;
+  updateRecordButton();
+  stopRecordTimer();
+  exitVoiceInputMode();
+  // BGM 재개 — STT/AI 응답 동안 자연스럽게 깔리고, TTS 가 오면 ducking 으로 다시 줄어든다
+  resumeBgmAfterRecording();
+  showTranscriptHint('🎧 음성 인식 중…');
+  try {
+    mediaRecorder.stop(); // → onstop → onRecordingStop
+  } catch (e) {
+    console.warn('[voice] stop failed:', e);
+    setVoiceTranscript('');
+  }
+}
+
+function cancelRecording() {
+  if (!mediaRecorder || !isRecording) return;
+  recordCanceled = true;
+  isRecording = false;
+  updateRecordButton();
+  stopRecordTimer();
+  exitVoiceInputMode();
+  resumeBgmAfterRecording();
+  setVoiceTranscript('');
+  try { mediaRecorder.stop(); } catch (_) { /* noop */ }
+}
+
+async function onRecordingStop() {
+  const chunks = recordedChunks;
+  recordedChunks = [];
+
+  if (recordCanceled) {
+    recordCanceled = false;
+    return;
+  }
+  if (!chunks.length) {
+    setVoiceTranscript('');
+    return;
+  }
+  const blob = new Blob(chunks, { type: mediaRecorder?.mimeType || 'audio/webm' });
+
+  // 짧은 발화는 Whisper 가 hallucinate 하는 경향 → 4KB 미만(약 0.5s) 은 컷
+  if (blob.size < 4000) {
+    showTranscriptHint('🎙 너무 짧게 녹음됐어요. 한 문장 이상 말해 주세요.');
+    setTimeout(() => setVoiceTranscript(''), 1800);
+    return;
+  }
+
+  try {
+    const text = await transcribeAudio(blob, 'recording.webm');
+    if (!text || !text.trim()) {
+      showTranscriptHint('🎙 인식된 말이 없어요. 다시 한 번 말해 주세요.');
+      setTimeout(() => setVoiceTranscript(''), 1800);
+      return;
+    }
+    // 디자인 명세 — partial transcript 우상단에 단어별 .word fade-in
+    showTranscriptWords(text);
+    await sendMessage(text);
+  } catch (e) {
+    setVoiceTranscript('');
+    alert(e?.message || '음성 인식에 실패했어요');
+  }
+}
+
+function updateRecordButton() {
+  const btn = $(SELECTORS.voiceRecord);
+  if (!btn) return;
+  btn.classList.toggle('dialog__mic--rec', isRecording);
+  btn.setAttribute('aria-pressed', isRecording ? 'true' : 'false');
+  btn.setAttribute('aria-label', isRecording ? '녹음 종료' : '음성 입력');
+}
+
+// ----- partial transcript: 단어별 .word span + word-fade 애니메이션 (디자인 명세 2-2) -----
+function showTranscriptWords(text) {
+  const el = $(SELECTORS.voiceTranscript);
+  if (!el) return;
+  const words = (text || '').split(/\s+/).filter(Boolean);
+  el.classList.add('dialog__transcript--final');
+  el.innerHTML = words
+    .map((w, i) => `<span class="word" style="animation-delay: ${i * 90}ms">${escapeHtml(w)} </span>`)
+    .join('');
+  el.hidden = false;
+  // 메시지가 화면에 박히고 잠시 뒤 자연스럽게 페이드아웃 (디자인의 "transcript-rise" 흐름)
+  clearTimeout(showTranscriptWords._t);
+  showTranscriptWords._t = setTimeout(() => setVoiceTranscript(''), 3200);
+}
+
+function showTranscriptHint(text) {
+  const el = $(SELECTORS.voiceTranscript);
+  if (!el) return;
+  el.classList.remove('dialog__transcript--final');
+  el.textContent = text;
+  el.hidden = false;
+}
+
+// ----- TTS 생성 대기 — 본문 blur + tts-pending 표시 (디자인 명세 2-4) -----
+function setTtsAwaiting(on) {
+  const body = $(SELECTORS.messages);
+  const frame = $(SELECTORS.dialogFrame);
+  if (!body || !frame) return;
+
+  body.classList.toggle('dialog__body--awaiting', !!on);
+
+  let pending = frame.querySelector('[data-tts-pending]');
+  if (on) {
+    if (!pending) {
+      pending = document.createElement('div');
+      pending.className = 'tts-pending';
+      pending.setAttribute('data-tts-pending', '');
+      pending.innerHTML = '<span class="typing-indicator"><span></span><span></span><span></span></span>음성 생성 중';
+      // 본문 바로 아래에 박는다
+      body.insertAdjacentElement('afterend', pending);
+    }
+  } else if (pending) {
+    pending.remove();
+  }
+}
+
+// ----- AI 음성 재생 중 — voice-ring + voice-notes + dialog__body--vplay (디자인 명세 2-3) -----
+function setTtsPlaying(on) {
+  const frame = $(SELECTORS.dialogFrame);
+  const body = $(SELECTORS.messages);
+  const portrait = $(SELECTORS.portrait);
+  if (!frame || !body || !portrait) return;
+
+  // BGM ducking — TTS 재생 중에는 BGM 볼륨을 줄여 캐릭터 음성을 부각
+  setTtsActive(!!on);
+
+  body.classList.toggle('dialog__body--vplay', !!on);
+  portrait.classList.toggle('dialog__portrait--playing', !!on);
+
+  let ring = frame.querySelector('.voice-ring');
+  let notes = frame.querySelector('.voice-notes');
+  if (on) {
+    if (!ring) {
+      ring = document.createElement('div');
+      ring.className = 'voice-ring';
+      ring.setAttribute('aria-hidden', 'true');
+      ring.innerHTML = '<div class="voice-ring__inner"></div>';
+      portrait.insertAdjacentElement('afterend', ring);
+    }
+    if (!notes) {
+      notes = document.createElement('div');
+      notes.className = 'voice-notes';
+      notes.setAttribute('aria-hidden', 'true');
+      notes.innerHTML = '<span>♪</span><span>♫</span><span>♪</span><span>♬</span>';
+      portrait.insertAdjacentElement('afterend', notes);
+    }
+  } else {
+    if (ring) ring.remove();
+    if (notes) notes.remove();
+  }
+}
+
+async function playReplyAudio(text, voice) {
+  // 이미 재생 중인 응답이 있으면 멈추고 교체
+  if (currentReplyAudio) {
+    try { currentReplyAudio.pause(); } catch (_) { /* noop */ }
+    currentReplyAudio = null;
+    setTtsPlaying(false);
+  }
+
+  // TTS 생성 대기 — blur placeholder
+  setTtsAwaiting(true);
+  let result;
+  try {
+    result = await synthesizeSpeech(text, voice);
+  } finally {
+    setTtsAwaiting(false);
+  }
+
+  const url = URL.createObjectURL(result.blob);
+  const audio = new Audio(url);
+  const cleanup = () => {
+    URL.revokeObjectURL(url);
+    if (currentReplyAudio === audio) {
+      currentReplyAudio = null;
+      setTtsPlaying(false);
+    }
+  };
+  audio.addEventListener('ended', cleanup);
+  audio.addEventListener('error', cleanup);
+  currentReplyAudio = audio;
+  setTtsPlaying(true);
+  // play() 는 user-gesture chain 안에서 호출되어야 reject 안 됨 — onMicRecord 핸들러에서 이어진 호출이라 통과
+  await audio.play();
 }
 
 // ============================================================
@@ -543,6 +1020,27 @@ function setupDialogStackObserver() {
     }
   });
   ro.observe(dialogFrame);
+}
+
+// ============================================================
+// 페이지 진입 시 — 가장 최근 AI 발화를 다이얼로그에 복원
+//   getChatLogs 의 page 0 은 DESC(최신 먼저). USER 가 아닌 첫 항목이 마지막 AI 발화.
+//   기록이 없거나 모두 USER 발화뿐이면 기본 안내 문구를 그대로 둔다.
+// ============================================================
+async function restoreLastAssistantMessage() {
+  if (!soulmateId) return;
+  try {
+    const { content } = await getChatLogs(soulmateId, 0, 10);
+    if (!content || !content.length) return;
+    const lastAi = content.find((log) => log.speaker !== 'USER');
+    if (lastAi && lastAi.message) {
+      // 진입 복원은 즉시 표시 — 타자기는 신규 AI 응답에서만 의미 있다
+      setDialogPlain(lastAi.message);
+    }
+  } catch (e) {
+    // 복원 실패는 critical 하지 않다 — 기본 문구로 남겨둔다
+    console.warn('[chat] failed to restore last message:', e?.message || e);
+  }
 }
 
 // ============================================================
@@ -566,6 +1064,8 @@ function init() {
       applyCharacterTheme(profile);
       updateStatusBar(previousAffectionScore, previousLevel);
       requestAnimationFrame(() => rootEl.classList.add('chat-entered'));
+      // 직전 대화의 마지막 AI 발화 복원 — 진입 시 흐름이 끊기지 않도록
+      restoreLastAssistantMessage();
     })
     .catch(() => {
       window.location.replace(HOME_URL);
@@ -627,8 +1127,19 @@ function init() {
   if (micPermAllow) micPermAllow.addEventListener('click', onMicPermAllow);
   if (micPermDefer) micPermDefer.addEventListener('click', onMicPermDefer);
 
+  // SKIP 토글 — 진행 중인 타자기를 즉시 완료 (이후 onComplete 가 choice 노출/입력 활성)
+  const skipBtn = rootEl.querySelector('[data-chat-toggle-skip]');
+  if (skipBtn) {
+    skipBtn.addEventListener('click', () => {
+      if (isTyping()) skipTypewriter();
+    });
+  }
+
   // 보정⑥
   setupDialogStackObserver();
+
+  // BGM — 자동 재생 시도 + mute 토글 + TTS ducking 훅 연결
+  initBgm();
 }
 
 if (document.readyState === 'loading') {

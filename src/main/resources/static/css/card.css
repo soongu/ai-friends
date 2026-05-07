@@ -316,3 +316,50 @@
   background: linear-gradient(90deg, var(--theme-primary, var(--theme-bright-primary)), var(--theme-accent, var(--theme-bright-accent)));
   box-shadow: 0 0 10px var(--theme-mist, var(--theme-bright-mist));
 }
+
+/* 삭제 ✕ — 카드 우측 상단. 평소엔 옅게 묻혀 있다가 hover/카드 호버에서 또렷해진다 */
+.smcard__delete {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 7;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.55);
+  background: rgba(20,12,40,0.45);
+  color: rgba(255,255,255,0.85);
+  display: grid; place-items: center;
+  cursor: pointer;
+  opacity: 0;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition:
+    opacity var(--dur-base) var(--ease-soft),
+    transform var(--dur-fast) var(--ease-snap),
+    background var(--dur-fast) var(--ease-glide),
+    border-color var(--dur-fast) var(--ease-glide),
+    box-shadow var(--dur-base) var(--ease-soft);
+}
+.smcard__delete svg { width: 14px; height: 14px; }
+.smcard:hover .smcard__delete,
+.smcard:focus-within .smcard__delete { opacity: 1; }
+.smcard__delete:hover {
+  transform: scale(1.08);
+  background: linear-gradient(135deg, #ff4d6d, #c9184a);
+  color: #fff;
+  border-color: rgba(255,255,255,0.95);
+  box-shadow: 0 8px 22px rgba(201,24,74,0.5), 0 0 0 5px rgba(255,77,109,0.18);
+}
+.smcard__delete:disabled { cursor: wait; opacity: 0.7; }
+
+/* 삭제 진행 중 — 카드 전체를 살짝 지운 느낌으로 페이드아웃 */
+.smcard--deleting {
+  pointer-events: none;
+  transform: scale(0.96);
+  opacity: 0;
+  filter: grayscale(40%);
+  transition:
+    opacity var(--dur-base) var(--ease-soft),
+    transform var(--dur-base) var(--ease-soft),
+    filter var(--dur-base) var(--ease-soft);
+}

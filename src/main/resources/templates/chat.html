@@ -59,6 +59,12 @@
             </div>
           </div>
         </div>
+        <button type="button" class="bgm-toggle" data-bgm-toggle aria-label="배경음 끄기" aria-pressed="false">
+          <span class="bgm-toggle__bars" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+          </span>
+          <span class="bgm-toggle__slash" aria-hidden="true"></span>
+        </button>
         <div class="chat-status__menu-wrap">
           <button type="button" class="affection-mini__menu" data-chat-hamburger aria-label="메뉴 열기" aria-expanded="false">
             <span class="bar"></span><span class="bar"></span><span class="bar"></span>
@@ -231,6 +237,15 @@
 
     </main>
   </div>
+
+  <!-- ============================================================
+       BGM — 채팅 진입 시 자동 재생, TTS 동안 볼륨 ducking
+       ============================================================ -->
+  <audio data-bgm preload="auto" loop>
+    <source th:src="@{/audios/bgm.mp3}" type="audio/mpeg" />
+    <source th:src="@{/audios/bgm.ogg}" type="audio/ogg" />
+    <source th:src="@{/audios/bgm.m4a}" type="audio/mp4" />
+  </audio>
 
   <script type="module" th:src="@{/js/pages/chat/index.js}"></script>
 </body>

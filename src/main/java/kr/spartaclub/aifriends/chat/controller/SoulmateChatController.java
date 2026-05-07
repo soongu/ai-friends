@@ -29,8 +29,8 @@ public class SoulmateChatController {
 
     @GetMapping("/api/chat/soulmate")
     public ResponseEntity<ApiResponse<SoulmateChatResponse>> soulmate(
-            @RequestParam Long userId,
-            @RequestParam String mood,
+            @RequestParam(defaultValue = "1") Long userId,
+            @RequestParam(defaultValue = "SAD") String mood,
             @RequestParam String message
     ) {
         String anonymizedName = userAnonymizer.anonymize(userId);

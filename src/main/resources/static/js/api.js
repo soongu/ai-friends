@@ -98,6 +98,17 @@ export async function getSoulmate(id) {
   return res.data;
 }
 
+/**
+ * 소울메이트 삭제 — 연관 대화/뱃지까지 캐스케이드 삭제 (서버 측 처리).
+ * 응답 본문은 비어 있으며 성공 여부는 ApiResponse.success 로만 판단한다.
+ * @param {number} id
+ * @returns {Promise<void>}
+ */
+export async function deleteSoulmate(id) {
+  const res = await request(`/api/soulmates/${id}`, { method: 'DELETE' });
+  if (!res.success) throw new Error(res?.error?.message || '삭제에 실패했어요');
+}
+
 /** 채팅 API 응답 (AiChatResponse) */
 /**
  * @typedef {Object} AiChatResponse
@@ -123,6 +134,65 @@ export async function postChat(soulmateId, userMessage) {
   });
   if (!res.success || res.data == null) throw new Error(res?.error?.message || '전송에 실패했어요');
   return res.data;
+}
+
+/**
+ * STT — 마이크 녹음 Blob 을 보내 인식된 텍스트를 받는다.
+ * multipart/form-data 의 audio 파트로 전송 (Content-Type 헤더는 브라우저가 자동 설정).
+ * @param {Blob} audioBlob — MediaRecorder 의 녹음 결과 (audio/webm 권장)
+ * @param {string} [filename='recording.webm']
+ * @returns {Promise<string>} 인식된 텍스트 (빈 문자열 가능)
+ */
+export async function transcribeAudio(audioBlob, filename = 'recording.webm') {
+  const form = new FormData();
+  form.append('audio', audioBlob, filename);
+  const res = await fetch(`${BASE}/api/voice/transcribe`, { method: 'POST', body: form });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.success || body.data == null) {
+    const msg = body?.error?.message || body?.message || res.statusText;
+    throw new Error(msg || '음성 인식에 실패했어요');
+  }
+  return body.data.text || '';
+}
+
+/**
+ * TTS — 텍스트를 받아 합성된 audio/mpeg Blob + 메타데이터를 돌려준다.
+ * 응답이 binary 라 request() 헬퍼가 아니라 fetch 직접 사용.
+ * 백엔드가 X-TTS-Provider / X-TTS-Voice 헤더를 박아 주니 어떤 프로바이더로 swap 됐는지
+ * 한 사이클 호출만으로도 확인 가능 — DevTools Network 탭과 콘솔 로그 양쪽에서.
+ *
+ * @param {string} text
+ * @param {string} [voice] — 추상 mood key (bright/warm/calm/cheerful) 또는 raw voice id.
+ *                          null/undefined 면 모델 기본값.
+ * @returns {Promise<{blob: Blob, provider: string, voice: string}>}
+ */
+export async function synthesizeSpeech(text, voice) {
+  const body = voice ? { text, voice } : { text };
+  const res = await fetch(`${BASE}/api/voice/speak`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    // 에러는 JSON (ApiResponse.fail)
+    const body = await res.json().catch(() => ({}));
+    const msg = body?.error?.message || body?.message || res.statusText;
+    throw new Error(msg || '음성 합성에 실패했어요');
+  }
+  const blob = await res.blob();
+  const provider = res.headers.get('X-TTS-Provider') || '';
+  const resolvedVoice = res.headers.get('X-TTS-Voice') || '';
+  console.info('[TTS]', { provider, voice: resolvedVoice, requestedVoice: voice || null, bytes: blob.size });
+  return { blob, provider, voice: resolvedVoice };
+}
+
+/**
+ * 활성 TTS 프로바이더 조회 — DevTools 헤더만으로 부족할 때 단독 확인용.
+ * @returns {Promise<string>} provider 식별자 (예: "openai", "elevenlabs")
+ */
+export async function getVoiceInfo() {
+  const res = await request('/api/voice/info');
+  return res?.data?.provider || '';
 }
 
 /**

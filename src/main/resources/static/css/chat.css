@@ -468,3 +468,171 @@
   border-radius: inherit;
   animation: edge-glow-pulse 1.6s var(--ease-glide);
 }
+
+/* ============================================================
+   BGM Mute Toggle — 햄버거 버튼 왼쪽
+     - 4-bar equalizer + 글로우 펄스 (재생 중)
+     - 슬래시 오버레이 + 색조 다운 (음소거)
+   ============================================================ */
+.bgm-toggle {
+  position: relative;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.35);
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition:
+    background var(--dur-fast) var(--ease-glide),
+    box-shadow var(--dur-base) var(--ease-glide),
+    transform var(--dur-fast) var(--ease-snap);
+}
+.bgm-toggle:hover {
+  background: rgba(255,255,255,0.28);
+  transform: scale(1.06);
+}
+.bgm-toggle:active {
+  transform: scale(0.94);
+}
+
+/* 재생 중 — 글로우 링 펄스 */
+.bgm-toggle--playing {
+  box-shadow:
+    0 0 0 0 var(--color-affection-glow),
+    0 0 12px var(--theme-glow, var(--theme-bright-glow));
+  animation: bgm-pulse 2.4s var(--ease-glide) infinite;
+}
+@keyframes bgm-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 rgba(255,255,255,0.0),
+      0 0 8px var(--theme-glow, var(--theme-bright-glow));
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(255,255,255,0.10),
+      0 0 18px var(--theme-glow, var(--theme-bright-glow));
+  }
+}
+
+/* 4-bar 이퀄라이저 */
+.bgm-toggle__bars {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  width: 16px;
+  height: 14px;
+}
+.bgm-toggle__bars span {
+  display: block;
+  width: 2.5px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fff, rgba(255,255,255,0.7));
+  box-shadow: 0 0 4px rgba(255,255,255,0.6);
+  transform-origin: bottom center;
+}
+.bgm-toggle__bars span:nth-child(1) { height: 40%; }
+.bgm-toggle__bars span:nth-child(2) { height: 75%; }
+.bgm-toggle__bars span:nth-child(3) { height: 55%; }
+.bgm-toggle__bars span:nth-child(4) { height: 90%; }
+
+/* 재생 중에만 막대가 살아있다 */
+.bgm-toggle--playing .bgm-toggle__bars span {
+  animation: bgm-bar 900ms var(--ease-glide) infinite;
+}
+.bgm-toggle--playing .bgm-toggle__bars span:nth-child(1) { animation-delay: 0ms;   }
+.bgm-toggle--playing .bgm-toggle__bars span:nth-child(2) { animation-delay: 120ms; }
+.bgm-toggle--playing .bgm-toggle__bars span:nth-child(3) { animation-delay: 240ms; }
+.bgm-toggle--playing .bgm-toggle__bars span:nth-child(4) { animation-delay: 360ms; }
+@keyframes bgm-bar {
+  0%, 100% { transform: scaleY(0.45); opacity: 0.65; }
+  50%      { transform: scaleY(1);    opacity: 1;    }
+}
+
+/* 음소거 상태 — 막대 회색조 + 슬래시 오버레이 */
+.bgm-toggle--muted {
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.22);
+}
+.bgm-toggle--muted .bgm-toggle__bars span {
+  background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.25));
+  box-shadow: none;
+  animation: none;
+  transform: scaleY(0.55);
+}
+.bgm-toggle__slash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition:
+    opacity var(--dur-fast) var(--ease-glide),
+    transform var(--dur-base) var(--ease-snap);
+}
+.bgm-toggle__slash::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  right: 4px;
+  height: 1.6px;
+  background: linear-gradient(90deg, #ff7da6, #ff5a8a);
+  box-shadow: 0 0 6px var(--color-affection-glow);
+  transform: translateY(-50%) rotate(-32deg);
+  border-radius: 2px;
+}
+.bgm-toggle--muted .bgm-toggle__slash {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+/* ============================================================
+   다이얼로그 로딩 & 타자기 스트리밍
+   ============================================================ */
+
+/* 응답 대기 — 다이얼로그 본문 자리에 표시되는 thinking 인디케이터 */
+.dialog__thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.78);
+  font-style: italic;
+  letter-spacing: 0.02em;
+  animation: word-fade 240ms var(--ease-soft) forwards;
+}
+.dialog__thinking .typing-indicator span {
+  background: var(--theme-primary, var(--theme-bright-primary));
+  filter: drop-shadow(0 0 4px var(--theme-glow, var(--theme-bright-glow)));
+}
+.dialog__thinking__label {
+  opacity: 0.85;
+}
+
+/* 타자기 — 글자가 차오르는 동안 끝에 깜빡이는 caret 보여주기 */
+.dialog__current-message--typing::after {
+  content: '▍';
+  display: inline-block;
+  margin-left: 1px;
+  color: var(--theme-primary, var(--theme-bright-primary));
+  animation: typing-caret 800ms steps(2, end) infinite;
+  vertical-align: -1px;
+}
+@keyframes typing-caret {
+  0%, 49%   { opacity: 1;   }
+  50%, 100% { opacity: 0;   }
+}
+
+/* SKIP 토글이 활성화 가능한 동안 — 클릭 가능 단서로 살짝 강조 */
+.dialog__toggle--skip-active {
+  background: rgba(255,255,255,0.22);
+  border-color: rgba(255,255,255,0.45);
+}
