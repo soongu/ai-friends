@@ -108,7 +108,7 @@ public class HelloAiController {
      * Day 3 과제 2 — userId 해시로 v1/v2 프롬프트 A/B 분기.
      *
      * <p>분기 규칙: userId % 2 == 0 → v1 (차분한 톤), 홀수 → v2 (쾌활·이모지 톤).
-     * 로깅/집계는 Day 16 LLM Ops 의 몫이므로 이 단계에서는 응답 DTO 에 promptVersion 을 담아 "보이기" 만 한다.
+     * 로깅/집계는 Day 20 LLM Ops 의 몫이므로 이 단계에서는 응답 DTO 에 promptVersion 을 담아 "보이기" 만 한다.
      * 같은 userId 로 재호출 시 항상 같은 version 으로 분기되므로 sticky assignment 가 보장된다.</p>
      */
     @GetMapping("/api/hello-ai/v3-ab")
