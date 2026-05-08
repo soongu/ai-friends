@@ -44,13 +44,24 @@ class SelcaServiceTest {
     private SelcaService selcaService;
 
     @Test
-    @DisplayName("isSelcaRequest — *셀카* / *selfie* / *사진* 키워드 매칭")
-    void isSelcaRequest_matchesKeywords() {
+    @DisplayName("isSelcaRequest — 키워드 + 명령형 동사 결합 시 true (요청)")
+    void isSelcaRequest_matchesCommandPatterns() {
         assertThat(selcaService.isSelcaRequest("셀카 보내줘")).isTrue();
-        assertThat(selcaService.isSelcaRequest("오늘 카페에서 책 읽는 셀카")).isTrue();
-        assertThat(selcaService.isSelcaRequest("Send me a selfie")).isTrue();
-        assertThat(selcaService.isSelcaRequest("사진 한 장")).isTrue();
-        assertThat(selcaService.isSelcaRequest("셀피 좀 줘")).isTrue();
+        assertThat(selcaService.isSelcaRequest("오늘 카페에서 책 읽는 셀카 보내줘")).isTrue();
+        assertThat(selcaService.isSelcaRequest("사진 한 장 더 줘")).isTrue();
+        assertThat(selcaService.isSelcaRequest("셀피 찍어줘")).isTrue();
+        assertThat(selcaService.isSelcaRequest("이쁜 셀카 보여줘")).isTrue();
+    }
+
+    @Test
+    @DisplayName("isSelcaRequest — 감상/평가 응답은 false (무한 셀카 루프 차단)")
+    void isSelcaRequest_doesNotMatchAdmiration() {
+        // LLM choices 가 만드는 흔한 감상 응답들 — 새 셀카 요청으로 오인되지 않아야 한다
+        assertThat(selcaService.isSelcaRequest("셀카 이쁘다")).isFalse();
+        assertThat(selcaService.isSelcaRequest("셀카 잘 나왔다")).isFalse();
+        assertThat(selcaService.isSelcaRequest("사진 너무 좋아")).isFalse();
+        assertThat(selcaService.isSelcaRequest("셀피 진짜 멋지다")).isFalse();
+        assertThat(selcaService.isSelcaRequest("오늘 사진 너무 예뻐")).isFalse();
     }
 
     @Test

@@ -34,9 +34,25 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class SelcaService {
 
-    /** 셀카 요청을 가리키는 키워드 — case-insensitive. */
+    /**
+     * 셀카 요청 *명령형* 만 매칭 — 단일 키워드 매칭은 LLM choices 의 감상 응답까지 잡아
+     * 무한 셀카 루프를 만든다. 키워드(셀카·셀피·사진 등)와 *요청 동사*(보내·찍어·찍자·보여·줘·줄래·찍·보낼래)
+     * 가 12자 이내에 결합된 경우만 진짜 요청으로 간주한다.
+     *
+     * <p>오감지 차단 사례:
+     * <ul>
+     *   <li>"셀카 이쁘다" — 동사 없음 ⇒ 매칭 안 됨</li>
+     *   <li>"사진 잘 나왔어" — 동사 없음 ⇒ 매칭 안 됨</li>
+     *   <li>"오늘 사진 너무 좋아" — 동사 없음 ⇒ 매칭 안 됨</li>
+     * </ul>
+     * 진짜 요청 매칭 사례: "셀카 보내줘", "오늘 카페에서 책 읽는 셀카 보내줘", "사진 한 장 더 줘",
+     * "셀피 찍어줘", "이쁜 셀카 보여줘".
+     *
+     * <p>키워드 매칭의 한계 자체는 그대로 — *"이 사진 한번 봐줘"* 같은 *동사 보유 감상* 은
+     * 여전히 오감지 가능하나 빈도 낮음. 진짜 정확도는 Day 11 Tool Calling 의 의도 분류 자리.</p>
+     */
     private static final Pattern SELCA_PATTERN = Pattern.compile(
-            "(?i)(셀카|셀피|사진|selfie|selca)");
+            "(?i)(셀카|셀피|사진|selfie|selca).{0,12}(보내|찍어|찍자|찍|보여|줄래|보낼래|줘\\b|줘$|줘\\s)");
 
     private static final String QUOTA_EXCEEDED_FALLBACK =
             "오늘 셀카 너무 많이 찍었나봐 ㅠㅠ 카메라 배터리 다 됐어... 내일 또 찍어줄게!";

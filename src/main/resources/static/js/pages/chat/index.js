@@ -136,10 +136,16 @@ function getCharacterMeta(characterImageId) {
   return CHARACTER_META[characterImageId] || DEFAULT_META;
 }
 
+// Day 7 — 커스텀 트랙(`characterImageId="custom"`)일 때 썸네일/배경에 사용할 동적 URL.
+// applyCharacterTheme 시점에 profile.characterImageUrl 을 보관해 setStageBg 가 무드 분기 무시하고 같은 URL 사용.
+let currentCustomImageUrl = null;
+
 function applyCharacterTheme(profile) {
   currentImageId = profile.characterImageId;
   currentMeta = getCharacterMeta(currentImageId);
   const theme = currentMeta.theme;
+  // Day 7 — 커스텀 트랙은 *생성된 1장* 만 있으므로 여기에 보관해 portrait/배경에 모두 사용
+  currentCustomImageUrl = (currentImageId === 'custom' && profile.characterImageUrl) ? profile.characterImageUrl : null;
 
   // 테마 6변수 — 모든 .smcard, .dialog, .choice-card, .summary-card 등이 자동 적용
   rootEl.style.setProperty('--theme-primary',   `var(--theme-${theme}-primary)`);
@@ -149,7 +155,10 @@ function applyCharacterTheme(profile) {
   rootEl.style.setProperty('--theme-mist',      `var(--theme-${theme}-mist)`);
   rootEl.style.setProperty('--theme-glow',      `var(--theme-${theme}-glow)`);
 
-  if (currentImageId) {
+  // 프로필 portrait — 커스텀이면 생성된 URL, 프리셋이면 정적 face.jpg
+  if (currentCustomImageUrl) {
+    rootEl.style.setProperty('--portrait-image', `url('${currentCustomImageUrl}')`);
+  } else if (currentImageId) {
     rootEl.style.setProperty('--portrait-image', `url('/images/characters/${currentImageId}-face.jpg')`);
   }
   setStageBg('neutral');
@@ -168,6 +177,12 @@ function applyCharacterTheme(profile) {
 
 function setStageBg(mood) {
   if (!currentImageId) return;
+  // Day 7 — 커스텀 트랙은 *생성된 portrait 1장* 으로 무드 분기 없이 통일.
+  // 프리셋 트랙은 기존처럼 무드별 chat-bg 정적 리소스 사용.
+  if (currentCustomImageUrl) {
+    rootEl.style.setProperty('--bg-image', `url('${currentCustomImageUrl}')`);
+    return;
+  }
   const base = currentImageId.replace(/^character-/, '');
   const url = `/images/chat-bg/chat-bg-${base}-${mood}.jpg`;
   rootEl.style.setProperty('--bg-image', `url('${url}')`);
@@ -412,7 +427,9 @@ async function sendMessage(text) {
 
   // Day 7 Step 9 — 셀카 요청 키워드 감지 시 *셀카 로딩 풍선* 을 다이얼로그 위쪽에 즉시 마운트.
   // 백엔드가 imageUrl null/non-null 로 분기해주므로 응답 도착 후 final 처리.
-  const isSelcaReq = /셀카|셀피|사진|selfie|selca/i.test(text);
+  // 정규식은 백엔드 SelcaService.SELCA_PATTERN 과 동일하게 *키워드 + 명령형 동사* 결합으로 정밀화.
+  // 이렇게 하지 않으면 LLM 의 감상 choices ("셀카 이쁘다" 등) 가 셀카 풍선을 깜빡이게 한다.
+  const isSelcaReq = /(셀카|셀피|사진|selfie|selca).{0,12}(보내|찍어|찍자|찍|보여|줄래|보낼래|줘\b|줘$|줘\s)/i.test(text);
   if (isSelcaReq) mountSelfie({ loading: true });
 
   try {
@@ -1207,20 +1224,11 @@ function bindSelfieFeatures() {
 
   // 빠른 버튼 — 클릭 시 입력란에 자동 채움 + 전송
   const quickSelfie = root.querySelector('[data-quick-selfie]');
-  const quickMood = root.querySelector('[data-quick-mood]');
   const chatInput = root.querySelector('[data-chat-input]');
 
   if (quickSelfie && chatInput) {
     quickSelfie.addEventListener('click', () => {
       chatInput.value = '셀카 보내줘';
-      chatInput.focus();
-      sendMessage(chatInput.value);
-      chatInput.value = '';
-    });
-  }
-  if (quickMood && chatInput) {
-    quickMood.addEventListener('click', () => {
-      chatInput.value = '오늘 어땠어?';
       chatInput.focus();
       sendMessage(chatInput.value);
       chatInput.value = '';
