@@ -51,6 +51,14 @@ services:
       # Gemini API (OpenAI 호환 엔드포인트로 호출)
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      # Day 7 — OpenAI 진짜 endpoint (이미지 생성 전용). chat 의 GEMINI_API_KEY 와 별개.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_IMAGE_MODEL: ${OPENAI_IMAGE_MODEL:-dall-e-3}
+      OPENAI_IMAGE_SIZE: ${OPENAI_IMAGE_SIZE:-1024x1024}
+      OPENAI_IMAGE_QUALITY: ${OPENAI_IMAGE_QUALITY:-hd}
+      OPENAI_IMAGE_STYLE: ${OPENAI_IMAGE_STYLE:-vivid}
+      AIFRIENDS_IMAGE_PROVIDER: ${AIFRIENDS_IMAGE_PROVIDER:-openai}
+      AIFRIENDS_IMAGE_MODEL_NAME: ${AIFRIENDS_IMAGE_MODEL_NAME:-openai-dall-e-3-hd}
       # Groq API (Day 1 과제 2 — SPRING_PROFILES_ACTIVE=docker,groq 일 때 사용)
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
@@ -60,6 +68,10 @@ services:
       TZ: Asia/Seoul
     ports:
       - "8080:8080"
+    # Day 7 — 생성된 portrait/selca 이미지를 호스트 ./uploads 에 영속화.
+    # 마운트 없으면 컨테이너 재시작 시 휘발 + 호스트에서 파일 못 봄.
+    volumes:
+      - ./uploads:/app/uploads
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ >/dev/null || exit 1"]
       interval: 10s

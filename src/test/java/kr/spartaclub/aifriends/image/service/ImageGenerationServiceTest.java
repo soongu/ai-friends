@@ -38,7 +38,9 @@ class ImageGenerationServiceTest {
     @Mock ImageFileStorageService storageService;
 
     private ImageGenerationService sut() {
-        return new ImageGenerationService(imageModel, imageDownloader, quotaGuard, costEstimator, storageService);
+        return new ImageGenerationService(
+                imageModel, imageDownloader, quotaGuard, costEstimator, storageService,
+                "pollinations-flux", "pollinations");
     }
 
     @Test
@@ -63,7 +65,10 @@ class ImageGenerationServiceTest {
         assertThat(result.externalUrl()).isEqualTo(externalUrl);
         assertThat(result.modelName()).isEqualTo("pollinations-flux");
         assertThat(result.estimatedCostUsd()).isEqualTo(0.0);
-        assertThat(result.prompt()).isEqualTo("a cat");
+        // Day 7 — ensureAnimeStyle 가 미연시 정체성을 위해 anime suffix 자동 박는 결.
+        assertThat(result.prompt())
+                .startsWith("a cat")
+                .contains("anime portrait illustration");
     }
 
     @Test

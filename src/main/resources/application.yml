@@ -37,6 +37,9 @@ spring:
     model:
       chat: none
       embedding: none
+      # Day 7 — 자동 설정 끔. 빈 등록은 PollinationsImageModelConfig / OpenAiImageModelConfig 가
+      # aifriends.image.provider 토글에 따라 직접 수행한다 (자동 설정이 끼면 chat 의 Gemini 키를
+      # image 에도 써서 401 이 나는 자리).
       image: none
       moderation: none
       audio:
@@ -76,6 +79,24 @@ spring:
         completions-path: /chat/completions
         options:
           model: ${GEMINI_MODEL:gemini-2.5-flash-lite}
+      # Day 7 — 이미지 모달리티는 *진짜 OpenAI* 엔드포인트로 호출 (Gemini 호환 X).
+      #   image.api-key / image.base-url 가 chat 의 전역 설정을 override.
+      #   ${OPENAI_API_KEY} 가 비어 있을 때는 Spring AI 자동설정이 OpenAiImageModel 빈을
+      #   생성하려다 IllegalArgumentException 으로 즉시 실패하므로 .env 에 키를 박아야 한다.
+      image:
+        api-key: ${OPENAI_API_KEY:}
+        base-url: https://api.openai.com
+        options:
+          # gpt-image-1 (2025 GA) — 가장 가성비. 또는 dall-e-3 / dall-e-2
+          model: ${OPENAI_IMAGE_MODEL:dall-e-3}
+          # 1024x1024 / 1024x1792 / 1792x1024 (dall-e-3) · 256/512/1024 정사각 (dall-e-2)
+          size: ${OPENAI_IMAGE_SIZE:1024x1024}
+          # standard / hd (dall-e-3 만 지원)
+          quality: ${OPENAI_IMAGE_QUALITY:hd}
+          # vivid / natural (dall-e-3)
+          style: ${OPENAI_IMAGE_STYLE:vivid}
+          # url (디폴트) — 응답에 publicly accessible URL 박힘. ImageDownloader 가 그걸로 byte[] 받아옴
+          response-format: url
 
 # SQL 로그는 JPA가 아닌 P6Spy로만 출력 (바인드 파라미터 치환된 형태)
 
@@ -87,6 +108,14 @@ spring:
 # 이 섹션 + ImageModel 빈만 교체하면 된다 (§4 프로바이더 추상화).
 aifriends:
   image:
+    # Day 7 — 이미지 프로바이더 토글.
+    #   pollinations(기본): 무료, 학습용. PollinationsImageModelConfig 가 직접 빈 등록.
+    #   openai: 유료, 품질 우선. spring-ai-starter-model-openai 의 ImageAutoConfiguration 이 빈 자동 등록.
+    # OPENAI_API_KEY 미설정 상태에서 openai 로 두면 부팅 실패 — .env 에 키 박은 뒤 변경할 것.
+    provider: ${AIFRIENDS_IMAGE_PROVIDER:openai}
+    # MODEL_NAME 키 — ImageCostEstimator 의 비용 매핑 키와 일치해야 USD 추정이 정확.
+    #   pollinations-flux | openai-dall-e-3-standard | openai-dall-e-3-hd | google-imagen-3
+    model-name: ${AIFRIENDS_IMAGE_MODEL_NAME:openai-dall-e-3-hd}
     pollinations:
       base-url: https://image.pollinations.ai
     quota:
