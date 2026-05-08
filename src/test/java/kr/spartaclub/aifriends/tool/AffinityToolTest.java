@@ -42,7 +42,7 @@ class AffinityToolTest {
     void getAffinity_existingSoulmate_returnsScoreAndLevel() {
         Soulmate soulmate = new Soulmate(
                 7L, "FEMALE", "char-01", null, "지유",
-                "다정함", "독서", "반말", 60, 3, null);
+                "다정함", "독서", "반말", 60, 3, null, null);
         given(soulmateRepository.findById(7L)).willReturn(Optional.of(soulmate));
 
         AffinityInfo info = affinityTool.getAffinity(7L);
