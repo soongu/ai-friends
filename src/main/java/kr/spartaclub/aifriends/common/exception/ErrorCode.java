@@ -16,6 +16,8 @@ public enum ErrorCode {
 
     // Soulmate
     SOULMATE_NOT_FOUND(HttpStatus.NOT_FOUND, "S001", "이성친구를 찾을 수 없습니다."),
+    SOULMATE_INVALID_PRESET(HttpStatus.BAD_REQUEST, "S002", "선택할 수 있는 캐릭터 프리셋이 아닙니다."),
+    SOULMATE_CUSTOM_PROMPT_REQUIRED(HttpStatus.BAD_REQUEST, "S003", "커스텀 외모를 선택했다면 외모 prompt 를 입력해야 합니다."),
 
     // Chat / Gemini
     MESSAGE_REQUIRED(HttpStatus.BAD_REQUEST, "G001", "메시지를 입력해 주세요."),

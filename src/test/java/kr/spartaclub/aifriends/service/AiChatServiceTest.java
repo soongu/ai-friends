@@ -59,7 +59,7 @@ class AiChatServiceTest {
     void processChat_success_noBadge() {
         // given
         AiChatRequest request = new AiChatRequest(1L, "안녕");
-        Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, "Bob", "keyword", "hobby", "style", 0, 1, null);
+        Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, "Bob", "keyword", "hobby", "style", 0, 1, null, null);
 
         given(soulmateRepository.findById(1L)).willReturn(Optional.of(soulmate));
 
@@ -85,7 +85,7 @@ class AiChatServiceTest {
     void processChat_success_withBadge() {
         // given
         AiChatRequest request = new AiChatRequest(1L, "선물이야");
-        Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, "Bob", "keyword", "hobby", "style", 8, 1, null);
+        Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, "Bob", "keyword", "hobby", "style", 8, 1, null, null);
 
         given(soulmateRepository.findById(1L)).willReturn(Optional.of(soulmate));
 

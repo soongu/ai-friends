@@ -24,6 +24,7 @@ class SoulmateTest {
                 "다정함",
                 0,
                 1,
+                null,
                 null
         );
 
@@ -39,7 +40,7 @@ class SoulmateTest {
     @DisplayName("호감도를 추가하면 기존 호감도에 더해진다")
     void addAffection_increasesScore() {
         // given
-        Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, null, "x", "y", "z", 10, 1, null);
+        Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, null, "x", "y", "z", 10, 1, null, null);
 
         // when
         soulmate.addAffection(5);
@@ -52,7 +53,7 @@ class SoulmateTest {
     @DisplayName("호감도를 감소시켜도 0 미만으로 떨어지지 않는다")
     void addAffection_doesNotDropBelowZero() {
         // given
-        Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, null, "x", "y", "z", 3, 1, null);
+        Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, null, "x", "y", "z", 3, 1, null, null);
 
         // when
         soulmate.addAffection(-5);
@@ -65,7 +66,7 @@ class SoulmateTest {
     @DisplayName("레벨을 설정하면 정상 반영되며, 상한(10)과 하한(1)을 준수해야 한다")
     void setLevel_boundaries() {
         // given
-        Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, null, "x", "y", "z", 0, 1, null);
+        Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, null, "x", "y", "z", 0, 1, null, null);
 
         // when & then: 정상 레벨
         soulmate.setLevel(5);
