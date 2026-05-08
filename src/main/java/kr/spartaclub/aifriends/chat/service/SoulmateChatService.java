@@ -100,7 +100,11 @@ public class SoulmateChatService {
         Soulmate soulmate = soulmateRepository.findById(soulmateId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SOULMATE_NOT_FOUND));
         String conversationId = String.valueOf(soulmateId);
-        String systemText = readResource(systemV1Resource) + "\n\n" + readResource(fewshotV1Resource);
+        // fewshot-v1.st 의 JSON 예시는 { "aiMessage": ... } 처럼 중괄호를 들고 있어 그대로 system 텍스트에 이어붙이면
+        // Spring AI 의 StTemplateRenderer 가 {aiMessage} · {choices} · {affectionDelta} 를 *변수 슬롯* 으로 잘못 해석해 컴파일 실패한다.
+        // ST 의 escape 표기('\{'·'\}')로 치환해 literal brace 로 인식시킨다 — JSON 예시는 *변수가 아닌 응답 형태 시연* 이므로 의도와도 정합.
+        String fewshotText = escapeStBraces(readResource(fewshotV1Resource));
+        String systemText = readResource(systemV1Resource) + "\n\n" + fewshotText;
 
         return soulmateChatClient.prompt()
                 .system(system -> system
@@ -122,5 +126,9 @@ public class SoulmateChatService {
         } catch (IOException e) {
             throw new UncheckedIOException("프롬프트 리소스 로딩 실패: " + resource, e);
         }
+    }
+
+    private String escapeStBraces(String text) {
+        return text.replace("{", "\\{").replace("}", "\\}");
     }
 }
