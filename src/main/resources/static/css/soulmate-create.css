@@ -956,3 +956,106 @@
   0%, 100% { transform: rotate(0deg) scale(1); }
   50%      { transform: rotate(180deg) scale(1.15); }
 }
+
+
+/* ============================================================
+   Day 7 Step 8 — 성별 매칭 카드 hidden + 커스텀 미리보기 + 컨펌
+   ============================================================ */
+
+/* Step 1 의 성별 선택과 일치하지 않는 카드는 .app-card--hidden 으로 토글 (display:none) */
+.app-card--hidden {
+  display: none !important;
+}
+
+/* 커스텀 트랙의 미리보기 영역 — 이미지 생성 응답 도착 후 노출 */
+.app-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 14px;
+  border-radius: 18px 18px 18px 6px;
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, var(--theme-bright-secondary) 20%, rgba(255, 255, 255, 0.06)),
+      rgba(255, 255, 255, 0.03));
+  border: 1.5px solid rgba(255, 213, 122, 0.45);
+  box-shadow: 0 0 16px var(--theme-bright-mist);
+  animation: selfie-drop 480ms var(--ease-snap) both;
+}
+
+.app-preview[hidden] {
+  display: none;
+}
+
+.app-preview__photo {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-height: 260px;
+  background-image: var(--preview-image);
+  background-size: cover;
+  background-position: center;
+  background-color: #1a1626;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 24px rgba(20, 12, 40, 0.45);
+}
+
+.app-preview__hint {
+  text-align: center;
+  font-family: var(--font-accent);
+  font-size: 14px;
+  color: rgba(255, 245, 225, 0.92);
+  letter-spacing: 0.01em;
+}
+
+.app-preview__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.app-preview__btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 12px 12px 12px 4px;
+  font-family: var(--font-base);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition:
+    transform var(--dur-fast) var(--ease-snap),
+    box-shadow var(--dur-base) var(--ease-soft),
+    border-color var(--dur-base) var(--ease-soft);
+}
+
+.app-preview__btn--retry {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 235, 210, 0.85);
+  border-color: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.app-preview__btn--retry:hover {
+  border-color: rgba(255, 235, 210, 0.55);
+  transform: translateY(-1px);
+}
+
+.app-preview__btn--confirm {
+  background: linear-gradient(135deg, var(--theme-bright-primary), var(--theme-bright-accent));
+  color: #fff;
+  border-color: var(--theme-bright-primary);
+  box-shadow: 0 4px 12px var(--theme-bright-mist), 0 0 0 1px rgba(255, 255, 255, 0.45) inset;
+}
+.app-preview__btn--confirm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px var(--theme-bright-mist), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+}
+.app-preview__btn:active {
+  transform: translateY(0) scale(0.97);
+}

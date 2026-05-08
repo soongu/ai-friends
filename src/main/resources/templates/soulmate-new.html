@@ -114,6 +114,7 @@
                       data-image-url="/images/characters/character-male-cheerful-face.jpg"
                       data-name="활기찬 남성"
                       data-theme="cheerful"
+                      data-gender="MALE"
                       role="radio"
                       aria-checked="false">
                 <div class="app-card__thumb"
@@ -139,6 +140,7 @@
                       data-image-url="/images/characters/character-male-calm-face.jpg"
                       data-name="차분한 남성"
                       data-theme="calm"
+                      data-gender="MALE"
                       role="radio"
                       aria-checked="false">
                 <div class="app-card__thumb"
@@ -164,6 +166,7 @@
                       data-image-url="/images/characters/character-female-warm-face.jpg"
                       data-name="따뜻한 여성"
                       data-theme="warm"
+                      data-gender="FEMALE"
                       role="radio"
                       aria-checked="false">
                 <div class="app-card__thumb"
@@ -189,6 +192,7 @@
                       data-image-url="/images/characters/character-female-bright-face.jpg"
                       data-name="발랄한 여성"
                       data-theme="bright"
+                      data-gender="FEMALE"
                       role="radio"
                       aria-checked="false">
                 <div class="app-card__thumb"
@@ -281,6 +285,22 @@
                         캐릭터 얼굴을 빚고 있어요…
                         <span style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; opacity: 0.7;">~30s</span>
                       </span>
+                    </div>
+
+                    <!-- Day 7 Step 8 — 미리보기 + 컨펌 영역. 이미지 생성 응답 후 펼침. -->
+                    <div class="app-preview" data-app-preview hidden>
+                      <div class="app-preview__photo" data-app-preview-photo></div>
+                      <div class="app-preview__hint">이 모습이 마음에 드시나요?</div>
+                      <div class="app-preview__actions">
+                        <button type="button" class="app-preview__btn app-preview__btn--retry" data-app-preview-retry>
+                          <span aria-hidden="true">↻</span>
+                          <span>다른 모습으로</span>
+                        </button>
+                        <button type="button" class="app-preview__btn app-preview__btn--confirm" data-app-preview-confirm>
+                          <span aria-hidden="true">✓</span>
+                          <span>이 모습으로</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -77,6 +77,23 @@ export async function createSoulmate(body) {
 }
 
 /**
+ * Day 7 Step 8 — 캐릭터 만들기 *커스텀 트랙* 의 미리보기/컨펌 흐름.
+ * Step 6 에서 깔아둔 학습용 lab 컨트롤러 (POST /api/images/portraits) 를 prod 의 *외모 미리보기* 자리에서 재활용한다.
+ * 응답의 localPath 를 SoulmateCreateRequest.characterImageUrl 에 박아 createSoulmate 호출하면 백엔드는 ImageGenerationService 를 재호출하지 않는다.
+ *
+ * @param {string} prompt — 사용자 입력 외모 묘사
+ * @returns {Promise<{localPath: string, externalUrl: string, prompt: string, modelName: string, estimatedCostUsd: number}>}
+ */
+export async function generatePortrait(prompt) {
+  const res = await request('/api/images/portraits', {
+    method: 'POST',
+    body: JSON.stringify({ prompt, stylePreset: null, seed: null }),
+  });
+  if (!res.success || res.data == null) throw new Error(res?.error?.message || '이미지 생성에 실패했어요');
+  return res.data;
+}
+
+/**
  * 전체 소울메이트 목록 조회
  * @returns {Promise<SoulmateResponse[]>}
  */

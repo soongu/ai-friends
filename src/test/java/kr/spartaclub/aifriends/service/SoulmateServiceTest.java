@@ -161,6 +161,34 @@ class SoulmateServiceTest {
     }
 
     @Test
+    @DisplayName("커스텀 트랙 — 프론트 미리보기/컨펌으로 characterImageUrl 이 *이미 박혀* 들어오면 ImageGenerationService 재호출 없이 그 URL 을 그대로 저장")
+    void createSoulmate_custom_with_preGeneratedUrl_skips_image_generation() {
+        // given
+        String customPrompt = "20대 초반 한국인 여성, 안경 쓴 차분한 인상";
+        String preGeneratedUrl = "/uploads/portraits/soulmate-portrait-pre-abc.jpg";
+        SoulmateCreateRequest request = new SoulmateCreateRequest(
+                "FEMALE", CharacterPreset.CUSTOM_IMAGE_ID, preGeneratedUrl, "Mia",
+                List.of("kind"), List.of("reading"), List.of("gentle"),
+                customPrompt
+        );
+
+        Soulmate savedMock = new Soulmate(
+                4L, "FEMALE", CharacterPreset.CUSTOM_IMAGE_ID, preGeneratedUrl,
+                "Mia", "kind", "reading", "gentle", 0, 1, null, customPrompt
+        );
+        given(soulmateRepository.save(any(Soulmate.class))).willReturn(savedMock);
+
+        // when
+        SoulmateResponse response = soulmateService.createSoulmate(request);
+
+        // then — ImageGenerationService 가 *호출되지 않아야* 함 (미리보기 흐름에서 이미 생성됨)
+        verify(imageGenerationService, never())
+                .generate(anyString(), anyString(), any(), anyString());
+        assertThat(response.characterImageUrl()).isEqualTo(preGeneratedUrl);
+        assertThat(response.appearancePrompt()).isEqualTo(customPrompt);
+    }
+
+    @Test
     @DisplayName("커스텀 트랙 — customAppearancePrompt 가 null 이면 SOULMATE_CUSTOM_PROMPT_REQUIRED 예외")
     void createSoulmate_custom_without_prompt_throws() {
         // given

@@ -6,7 +6,7 @@
  *  Step 3: 성격 · 취미 · 말투 (.chip-section, 각 최대 3개)
  *  Step 4: SUMMARY 카드 (보정② 나이 카피 제거 + 보정⑤ 라벨 ' · ' 으로 연결)
  */
-import { createSoulmate } from '../../api.js';
+import { createSoulmate, generatePortrait as __generatePortrait } from '../../api.js';
 import { CONFIG } from '../../config.js';
 import {
   CHARACTER_IMAGES_BY_GENDER,
@@ -119,6 +119,10 @@ function showStep(step) {
   state.step = step;
   if (createEl) createEl.setAttribute('data-step', String(step));
 
+  // Day 7 Step 8 — Step 2 진입 시 Step 1 의 성별 선택과 일치하지 않는 카드 hidden 처리.
+  // 커스텀 카드 (data-image-id="custom") 는 성별 무관 — 항상 보임.
+  if (step === 2) applyGenderFilter();
+
   stepSections.forEach((el) => {
     const n = parseInt(el.getAttribute('data-step'), 10);
     if (!Number.isNaN(n)) el.hidden = n !== step;
@@ -219,17 +223,20 @@ function bindStep2Handlers() {
     const id = card.getAttribute('data-image-id');
     state.characterImageId = id;
     if (id === 'custom') {
+      // 커스텀 트랙 — characterImageUrl 은 미리보기 컨펌 후에야 박힘
       state.characterImageUrl = '';
-      // 커스텀일 땐 *bright* 테마를 임시로 (스파클/노란 결) 적용
       applyTheme('bright');
-      // textarea 포커스
       setTimeout(() => {
         const ta = grid.querySelector('[data-custom-prompt]');
         if (ta) ta.focus({ preventScroll: true });
       }, 280);
     } else {
       state.characterImageUrl = card.getAttribute('data-image-url') || '';
-      // 카드 자신의 data-theme 으로 테마 갱신 (cheerful/calm/warm/bright)
+      // 프리셋 트랙 — 이전 커스텀 prompt + 미리보기 모두 비우기
+      state.customAppearancePrompt = '';
+      const ta = grid.querySelector('[data-custom-prompt]');
+      if (ta) ta.value = '';
+      hideCustomPreview();
       const theme = card.getAttribute('data-theme');
       if (theme) applyTheme(theme);
     }
@@ -237,11 +244,16 @@ function bindStep2Handlers() {
     syncNextBtn();
   });
 
-  // 커스텀 prompt 입력 → state 갱신
+  // 커스텀 prompt 입력 → state 갱신 + 미리보기가 떠있으면 새 prompt 입력 시 *컨펌 무효화*
   const promptTextarea = grid.querySelector('[data-custom-prompt]');
   if (promptTextarea) {
     promptTextarea.addEventListener('input', () => {
       state.customAppearancePrompt = promptTextarea.value;
+      // 사용자가 prompt 를 새로 입력하면 — 이전 미리보기 컨펌 무효화 (다시 생성 받게)
+      if (state.characterImageUrl) {
+        state.characterImageUrl = '';
+        hideCustomPreview();
+      }
       const promptCount = grid.querySelector('[data-prompt-count]');
       if (promptCount) {
         const len = state.customAppearancePrompt.length;
@@ -251,6 +263,16 @@ function bindStep2Handlers() {
       syncNextBtn();
     });
   }
+
+  // Day 7 Step 8 — 미리보기 컨펌/재시도 버튼
+  const confirmBtn = grid.querySelector('[data-app-preview-confirm]');
+  const retryBtn = grid.querySelector('[data-app-preview-retry]');
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', () => confirmCustomPortrait());
+  }
+  if (retryBtn) {
+    retryBtn.addEventListener('click', () => retryCustomPortrait());
+  }
 }
 
 /** 현재 step 의 다음 버튼 disabled 동기화 — bindStep2Handlers 의 textarea 입력 등에서 호출. */
@@ -259,6 +281,116 @@ function syncNextBtn() {
   if (nextBtn) nextBtn.disabled = !canProceed(state.step);
   const submitBtn = $(SELECTORS.submitBtn, rootEl);
   if (submitBtn && state.step === 4) submitBtn.disabled = !canProceed(4);
+}
+
+/**
+ * Day 7 Step 8 — Step 2 진입 시 Step 1 의 state.gender 와 일치하지 않는 카드 hidden 처리.
+ * 커스텀 카드는 성별 무관 — 항상 보임.
+ *
+ * 또한 *현재 선택된 카드가 hidden 으로 갈리는* 경우 (예: Step 1 에서 성별 변경) 선택 해제.
+ */
+function applyGenderFilter() {
+  const grid = $(SELECTORS.imageGrid, rootEl);
+  if (!grid || !state.gender) return;
+  const cards = grid.querySelectorAll('[data-app-card]');
+  cards.forEach((card) => {
+    const cardGender = card.getAttribute('data-gender');
+    const id = card.getAttribute('data-image-id');
+    // 커스텀 카드 (data-gender 없음) 는 항상 보임
+    const shouldHide = cardGender && cardGender !== state.gender;
+    card.classList.toggle('app-card--hidden', shouldHide);
+    // 현재 선택된 카드가 숨겨지면 선택 해제
+    if (shouldHide && state.characterImageId === id) {
+      state.characterImageId = '';
+      state.characterImageUrl = '';
+      state.customAppearancePrompt = '';
+      hideCustomPreview();
+    }
+  });
+  renderStep2();
+}
+
+/**
+ * Day 7 Step 8 — 커스텀 트랙의 *미리보기 + 컨펌* 흐름 핸들러.
+ *
+ * 흐름:
+ *   1. Step 2 다음 버튼 클릭 (커스텀 트랙) → POST /api/images/portraits 호출 + spinner 노출
+ *   2. 응답 도착 → spinner 숨김, .app-preview 펼침 (생성 이미지 + OK/다시 시도)
+ *   3. *이 모습으로* 클릭 → state.characterImageUrl 박힘, Step 3 진입
+ *   4. *다른 모습으로* 클릭 → 미리보기 숨김, textarea 활성화, 새 prompt 입력 가능
+ *
+ * 미리보기가 *이미 떠 있는 상태* 에서 다음 버튼이 다시 클릭되면 — 이미 컨펌 흐름이라 *그대로 Step 3 진입*.
+ */
+async function triggerCustomPortraitGeneration() {
+  const promptBox = rootEl.querySelector('[data-app-prompt]');
+  const previewBox = rootEl.querySelector('[data-app-preview]');
+  if (!promptBox || !previewBox) return false;
+
+  // 이미 컨펌된 상태 (characterImageUrl 박힘) — 그대로 다음 진입
+  if (state.characterImageUrl) return true;
+
+  const prompt = state.customAppearancePrompt.trim();
+  if (prompt.length < 4) return false;
+
+  // 1. spinner 활성화 + 다음 버튼 비활성화
+  promptBox.dataset.loading = 'true';
+  const nextBtn = $(SELECTORS.nextBtn, rootEl);
+  if (nextBtn) {
+    nextBtn.disabled = true;
+    const span = nextBtn.querySelector('span');
+    if (span) span.textContent = '얼굴 빚는 중…';
+  }
+
+  try {
+    // generatePortrait API import 는 module 상단에서 추가됨
+    const result = await __generatePortrait(prompt);
+
+    // 2. 미리보기 표시
+    state.characterImageUrl = result.localPath;
+    promptBox.dataset.loading = 'false';
+    const photo = previewBox.querySelector('[data-app-preview-photo]');
+    if (photo) photo.style.setProperty('--preview-image', `url('${result.localPath}')`);
+    previewBox.hidden = false;
+
+    // 다음 버튼 텍스트 복원 (다음 클릭 시 Step 3 진입)
+    if (nextBtn) {
+      const span = nextBtn.querySelector('span');
+      if (span) span.textContent = '다음';
+      nextBtn.disabled = false;
+    }
+    return false; // 미리보기 노출 — 컨펌 후에 Step 3
+  } catch (err) {
+    promptBox.dataset.loading = 'false';
+    if (nextBtn) {
+      const span = nextBtn.querySelector('span');
+      if (span) span.textContent = '다음';
+      nextBtn.disabled = !canProceed(2);
+    }
+    alert(err.message || '이미지 생성에 실패했어요. 다시 시도해주세요.');
+    return false;
+  }
+}
+
+function hideCustomPreview() {
+  const previewBox = rootEl ? rootEl.querySelector('[data-app-preview]') : null;
+  if (previewBox) previewBox.hidden = true;
+}
+
+/** 미리보기 이후 *이 모습으로* 컨펌 — Step 3 으로 직접 진입한다 (showNextStep 의 기존 로직 재사용). */
+function confirmCustomPortrait() {
+  hideCustomPreview();
+  // 다음 버튼의 click 이벤트가 *이미 컨펌된 상태* 임을 확인하고 Step 3 으로 진입
+  const nextBtn = $(SELECTORS.nextBtn, rootEl);
+  if (nextBtn) nextBtn.click();
+}
+
+/** 미리보기 이후 *다른 모습으로* — 다시 prompt 입력 받음. characterImageUrl 비우기 + 미리보기 숨김. */
+function retryCustomPortrait() {
+  state.characterImageUrl = '';
+  hideCustomPreview();
+  const promptTextarea = rootEl.querySelector('[data-custom-prompt]');
+  if (promptTextarea) promptTextarea.focus({ preventScroll: true });
+  syncNextBtn();
 }
 
 // ============================================================
@@ -496,11 +628,17 @@ function init() {
   // 다음
   const nextBtn = $(SELECTORS.nextBtn, rootEl);
   if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
+    nextBtn.addEventListener('click', async () => {
       if (state.step === 1) {
         showStep(2);
         renderStep2();
       } else if (state.step === 2) {
+        // Day 7 Step 8 — 커스텀 트랙이고 *아직 미리보기 컨펌 전* 이면 이미지 생성 trigger.
+        // 미리보기 노출 후 사용자가 *이 모습으로* 컨펌해야 비로소 Step 3 진입.
+        if (state.characterImageId === 'custom' && !state.characterImageUrl) {
+          await triggerCustomPortraitGeneration();
+          return;
+        }
         showStep(3);
         renderChips($(SELECTORS.personality, rootEl), PERSONALITY_OPTIONS, 'personalityKeywords', $(SELECTORS.personalityCounter, rootEl));
         renderChips($(SELECTORS.hobbies,     rootEl), HOBBIES_OPTIONS,     'hobbies',             $(SELECTORS.hobbiesCounter,     rootEl));
