@@ -69,8 +69,7 @@ class CharacterVoiceServiceTest {
         Soulmate soulmate = new Soulmate(
                 1L, "FEMALE", "img1", "https://image/portrait.png", "Alice",
                 "차분함, 다정함", "독서, 산책", "존댓말",
-                0, 1, LocalDateTime.now()
-        );
+                0, 1, LocalDateTime.now(), null);
         when(soulmateRepository.findById(1L)).thenReturn(Optional.of(soulmate));
         when(voiceTranscriptionService.transcribe(audio)).thenReturn("오늘 뭐했어?");
 
@@ -128,8 +127,7 @@ class CharacterVoiceServiceTest {
         Soulmate soulmate = new Soulmate(
                 1L, "FEMALE", "img1", "https://image/portrait.png", "Alice",
                 "차분함", "독서", "존댓말",
-                0, 1, LocalDateTime.now()
-        );
+                0, 1, LocalDateTime.now(), null);
         when(soulmateRepository.findById(1L)).thenReturn(Optional.of(soulmate));
         when(voiceTranscriptionService.transcribe(audio)).thenReturn("");
 
