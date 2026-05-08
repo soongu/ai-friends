@@ -409,6 +409,12 @@ async function sendMessage(text) {
   hideChoiceModal();
   // 응답 대기 폴백 — 다이얼로그 본문에 thinking 인디케이터 (이전 메시지는 가려짐)
   showDialogLoading('음… 잠깐만요');
+
+  // Day 7 Step 9 — 셀카 요청 키워드 감지 시 *셀카 로딩 풍선* 을 다이얼로그 위쪽에 즉시 마운트.
+  // 백엔드가 imageUrl null/non-null 로 분기해주므로 응답 도착 후 final 처리.
+  const isSelcaReq = /셀카|셀피|사진|selfie|selca/i.test(text);
+  if (isSelcaReq) mountSelfie({ loading: true });
+
   try {
     const res = await postChat(soulmateId, text);
     const delta =
@@ -428,6 +434,15 @@ async function sendMessage(text) {
     else setStageBg('neutral');
 
     showAffectionDelta(delta, levelUp);
+
+    // Day 7 Step 9 — 셀카 응답 imageUrl 분기. 도착했으면 폴라로이드, 아니면 풍선 제거.
+    // (가드 한도 초과로 fallback 텍스트만 도착한 경우 imageUrl 이 null 이라 자연스럽게 풍선이 사라짐.)
+    if (res.imageUrl) {
+      mountSelfie({ loading: false, imageUrl: res.imageUrl });
+    } else if (isSelcaReq) {
+      // 셀카 요청이었는데 imageUrl 이 null 인 경우 (가드 우회) — 로딩 풍선 제거.
+      removeSelfie();
+    }
 
     const hasChoices = !!(res.choices && res.choices.length > 0);
 
@@ -1140,6 +1155,109 @@ function init() {
 
   // BGM — 자동 재생 시도 + mute 토글 + TTS ducking 훅 연결
   initBgm();
+
+  // Day 7 Step 9 — 셀카 빠른 버튼 + 라이트박스 핸들러 박기
+  bindSelfieFeatures();
+}
+
+// ============================================================
+// Day 7 Step 9 — 셀카 응답 풍선 + 빠른 버튼 + 라이트박스
+// (Claude Design handoff 통합)
+// ============================================================
+
+/**
+ * 셀카 풍선 마운트. imageUrl 이 있으면 폴라로이드, 없으면 로딩 스켈레톤.
+ * .dialog 컨테이너 안 .dialog__frame 형제 자리의 [data-selfie] 를 갱신한다.
+ */
+function mountSelfie({ loading = false, imageUrl = null, caption = '' }) {
+  const root = rootEl || document.querySelector('[data-app-root]');
+  if (!root) return;
+  const wrap = root.querySelector('[data-selfie]');
+  if (!wrap) return;
+
+  wrap.hidden = false;
+  wrap.classList.toggle('selfie--loading', !!loading);
+  if (imageUrl) {
+    wrap.style.setProperty('--selfie-image', `url('${imageUrl}')`);
+  } else if (loading) {
+    wrap.style.removeProperty('--selfie-image');
+  }
+  const captionEl = wrap.querySelector('[data-selfie-caption]');
+  if (captionEl) {
+    captionEl.innerHTML = loading
+      ? '<span class="blink">📸 캐릭터가 셀카를 찍는 중…</span>'
+      : (caption || '');
+  }
+}
+
+function removeSelfie() {
+  const root = rootEl || document.querySelector('[data-app-root]');
+  if (!root) return;
+  const wrap = root.querySelector('[data-selfie]');
+  if (!wrap) return;
+  wrap.hidden = true;
+  wrap.classList.remove('selfie--loading');
+  wrap.style.removeProperty('--selfie-image');
+}
+
+/** 셀카 빠른 버튼 + 라이트박스 핸들러를 *한 번만* 바인드. */
+function bindSelfieFeatures() {
+  const root = rootEl || document.querySelector('[data-app-root]');
+  if (!root) return;
+
+  // 빠른 버튼 — 클릭 시 입력란에 자동 채움 + 전송
+  const quickSelfie = root.querySelector('[data-quick-selfie]');
+  const quickMood = root.querySelector('[data-quick-mood]');
+  const chatInput = root.querySelector('[data-chat-input]');
+
+  if (quickSelfie && chatInput) {
+    quickSelfie.addEventListener('click', () => {
+      chatInput.value = '셀카 보내줘';
+      chatInput.focus();
+      sendMessage(chatInput.value);
+      chatInput.value = '';
+    });
+  }
+  if (quickMood && chatInput) {
+    quickMood.addEventListener('click', () => {
+      chatInput.value = '오늘 어땠어?';
+      chatInput.focus();
+      sendMessage(chatInput.value);
+      chatInput.value = '';
+    });
+  }
+
+  // 라이트박스 — 사진 클릭 시 풀스크린, ESC/배경/X 버튼으로 닫힘
+  const selfieFrame = root.querySelector('[data-selfie-frame]');
+  const lightbox = root.querySelector('[data-lightbox]');
+  const lightboxImg = root.querySelector('[data-lightbox-img]');
+  const lightboxClose = root.querySelector('[data-lightbox-close]');
+
+  if (selfieFrame && lightbox && lightboxImg) {
+    selfieFrame.addEventListener('click', () => {
+      const wrap = root.querySelector('[data-selfie]');
+      if (!wrap || wrap.classList.contains('selfie--loading')) return;
+      const url = wrap.style.getPropertyValue('--selfie-image');
+      if (!url) return;
+      lightboxImg.style.backgroundImage = url;
+      lightbox.dataset.open = 'true';
+    });
+  }
+  if (lightboxClose && lightbox) {
+    lightboxClose.addEventListener('click', () => {
+      lightbox.dataset.open = 'false';
+    });
+  }
+  if (lightbox) {
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox) lightbox.dataset.open = 'false';
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && lightbox && lightbox.dataset.open === 'true') {
+      lightbox.dataset.open = 'false';
+    }
+  });
 }
 
 if (document.readyState === 'loading') {

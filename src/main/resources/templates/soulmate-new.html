@@ -92,14 +92,200 @@
             </div>
           </section>
 
-          <!-- Step 2: 캐릭터 카드 그리드 (1열, .smcard 동적 렌더) -->
+          <!-- Step 2: 캐릭터 카드 그리드 (5트랙: 4 프리셋 + 1 커스텀) -->
           <section class="create-step" data-step="2" hidden>
             <p class="create__hint" data-create-image-hint>
               마음에 드는 친구를 골라주세요.<br/>
-              ▶ 버튼을 누르면 짧게 인사해줘요.
+              직접 빚고 싶다면 마지막 카드에서 외모를 묘사할 수 있어요.
             </p>
-            <div class="create__image-grid" data-create-image-grid aria-label="캐릭터 선택">
-              <!-- js/pages/soulmate-create/index.js 가 .smcard 들 성별별 렌더 -->
+            <p class="create__hint--small">— 4 PRESETS · 1 CUSTOM —</p>
+
+            <div class="appearance-grid create__image-grid"
+                 data-create-image-grid
+                 data-appearance-grid
+                 role="radiogroup"
+                 aria-label="외모 선택">
+
+              <!-- 트랙 ①: male-cheerful -->
+              <button type="button"
+                      class="app-card"
+                      data-app-card
+                      data-image-id="character-male-cheerful"
+                      data-image-url="/images/characters/character-male-cheerful-face.jpg"
+                      data-name="활기찬 남성"
+                      data-theme="cheerful"
+                      role="radio"
+                      aria-checked="false">
+                <div class="app-card__thumb"
+                     th:style="'--thumb: url(' + @{/images/characters/character-male-cheerful-thumb.jpg} + ');'"></div>
+                <span class="app-card__cut" aria-hidden="true"></span>
+                <span class="app-card__chip">CHEERFUL</span>
+                <div class="app-card__label">
+                  <span class="app-card__name">활기찬 남성</span>
+                  <span class="app-card__id">노을 농구장</span>
+                </div>
+                <span class="app-card__check" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 7L6 10L11 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+              </button>
+
+              <!-- 트랙 ②: male-calm -->
+              <button type="button"
+                      class="app-card"
+                      data-app-card
+                      data-image-id="character-male-calm"
+                      data-image-url="/images/characters/character-male-calm-face.jpg"
+                      data-name="차분한 남성"
+                      data-theme="calm"
+                      role="radio"
+                      aria-checked="false">
+                <div class="app-card__thumb"
+                     th:style="'--thumb: url(' + @{/images/characters/character-male-calm-thumb.jpg} + ');'"></div>
+                <span class="app-card__cut" aria-hidden="true"></span>
+                <span class="app-card__chip">CALM</span>
+                <div class="app-card__label">
+                  <span class="app-card__name">차분한 남성</span>
+                  <span class="app-card__id">비 오는 도서관</span>
+                </div>
+                <span class="app-card__check" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 7L6 10L11 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+              </button>
+
+              <!-- 트랙 ③: female-warm -->
+              <button type="button"
+                      class="app-card"
+                      data-app-card
+                      data-image-id="character-female-warm"
+                      data-image-url="/images/characters/character-female-warm-face.jpg"
+                      data-name="따뜻한 여성"
+                      data-theme="warm"
+                      role="radio"
+                      aria-checked="false">
+                <div class="app-card__thumb"
+                     th:style="'--thumb: url(' + @{/images/characters/character-female-warm-thumb.jpg} + ');'"></div>
+                <span class="app-card__cut" aria-hidden="true"></span>
+                <span class="app-card__chip">WARM</span>
+                <div class="app-card__label">
+                  <span class="app-card__name">따뜻한 여성</span>
+                  <span class="app-card__id">가을 베이커리</span>
+                </div>
+                <span class="app-card__check" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 7L6 10L11 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+              </button>
+
+              <!-- 트랙 ④: female-bright -->
+              <button type="button"
+                      class="app-card"
+                      data-app-card
+                      data-image-id="character-female-bright"
+                      data-image-url="/images/characters/character-female-bright-face.jpg"
+                      data-name="발랄한 여성"
+                      data-theme="bright"
+                      role="radio"
+                      aria-checked="false">
+                <div class="app-card__thumb"
+                     th:style="'--thumb: url(' + @{/images/characters/character-female-bright-thumb.jpg} + ');'"></div>
+                <span class="app-card__cut" aria-hidden="true"></span>
+                <span class="app-card__chip">BRIGHT</span>
+                <div class="app-card__label">
+                  <span class="app-card__name">발랄한 여성</span>
+                  <span class="app-card__id">한낮 옥상 카페</span>
+                </div>
+                <span class="app-card__check" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 7L6 10L11 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+              </button>
+
+              <!-- 트랙 ⑤: 커스텀 -->
+              <button type="button"
+                      class="app-card app-card--custom"
+                      data-app-card
+                      data-image-id="custom"
+                      role="radio"
+                      aria-checked="false">
+                <div>
+                  <div class="app-card__custom-icons" aria-hidden="true">
+                    <span class="app-card__custom-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="6" width="18" height="14" rx="2.5" stroke="currentColor" stroke-width="1.8" />
+                        <circle cx="12" cy="13" r="3.6" stroke="currentColor" stroke-width="1.8" />
+                        <path d="M8 6l1.5-2.2h5L16 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                    <span class="app-card__custom-icon app-card__custom-icon--alt">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 3a9 9 0 100 18c1.5 0 2.5-1 2.5-2.4 0-1.6-1.5-1.6-1.5-2.6s.7-1.5 1.7-1.5H17a4 4 0 004-4 9 9 0 00-9-7.5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                        <circle cx="7"  cy="11" r="1.4" fill="currentColor" />
+                        <circle cx="9.5" cy="7" r="1.4" fill="currentColor" />
+                        <circle cx="14.5" cy="6.5" r="1.4" fill="currentColor" />
+                        <circle cx="17.5" cy="10" r="1.4" fill="currentColor" />
+                      </svg>
+                    </span>
+                  </div>
+                  <div class="app-card__custom-title">
+                    내가 직접 빚기<span class="sparkle" aria-hidden="true">✨</span>
+                  </div>
+                  <div class="app-card__custom-sub">CUSTOM PORTRAIT</div>
+                </div>
+                <span class="app-card__check" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 7L6 10L11 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+              </button>
+
+              <!-- 커스텀 prompt 펼침 영역 -->
+              <div class="app-prompt"
+                   data-app-prompt
+                   data-open="false"
+                   data-loading="false">
+                <div class="app-prompt__inner">
+                  <div class="app-prompt__inner-pad">
+                    <div class="app-prompt__notice">
+                      <span class="app-prompt__notice-icon" aria-hidden="true">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 7v6M12 17.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
+                        </svg>
+                      </span>
+                      <div>
+                        <strong>1회 이미지 생성</strong>
+                        이 옵션은 이미지 생성 1회 호출이 발생해요 — 약 30초 정도 걸려요.
+                      </div>
+                    </div>
+
+                    <textarea
+                      class="app-prompt__textarea"
+                      data-custom-prompt
+                      placeholder="예시: 단발머리에 안경 쓴 차분한 인상의 여성. 베이지 니트, 따뜻한 미소."
+                      maxlength="200"></textarea>
+
+                    <div class="app-prompt__meta">
+                      <span>FREEFORM · KOREAN OK</span>
+                      <span class="app-prompt__count" data-prompt-count>0 / 200</span>
+                    </div>
+
+                    <div class="app-prompt__spinner" data-app-spinner>
+                      <span class="shutter" aria-hidden="true"></span>
+                      <span>
+                        캐릭터 얼굴을 빚고 있어요…
+                        <span style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; opacity: 0.7;">~30s</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </section>
 

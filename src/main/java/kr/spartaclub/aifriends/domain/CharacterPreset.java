@@ -82,10 +82,20 @@ public enum CharacterPreset {
      * 프리셋 ID 로 enum 을 조회한다. 4 프리셋 중 어느 것도 매칭되지 않으면
      * {@link BusinessException} 으로 래핑한다 (커스텀 트랙은 호출 전에 분기되어
      * 이 메서드까지 오지 않는다).
+     *
+     * <p>입력 ID 는 두 결을 모두 받는다 — 프론트엔드 기존 옵션 데이터는 {@code character-male-cheerful}
+     * 처럼 *{@code character-} 접두사* 가 박힌 결이고, Day 7 신설 5트랙 시안 마크업은 *접두사 없는*
+     * {@code male-cheerful} 결이다. 두 결을 모두 매칭시켜 마이그레이션 부담을 0 으로 둔다.</p>
      */
     public static CharacterPreset fromImageId(String characterImageId) {
+        if (characterImageId == null) {
+            throw new BusinessException(ErrorCode.SOULMATE_INVALID_PRESET);
+        }
+        String normalized = characterImageId.startsWith("character-")
+                ? characterImageId.substring("character-".length())
+                : characterImageId;
         for (CharacterPreset preset : values()) {
-            if (preset.characterImageId.equals(characterImageId)) {
+            if (preset.characterImageId.equals(normalized)) {
                 return preset;
             }
         }

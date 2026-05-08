@@ -527,3 +527,432 @@
   transition: opacity var(--dur-base) var(--ease-soft);
 }
 .create__submit:hover::after { opacity: 1; }
+
+
+/* ============================================================
+   Day 7 retrofit — 5트랙 외모 그리드 + 커스텀 prompt 펼침
+   (Claude Design handoff 통합본, 기존 variables.css 토큰만 사용)
+   ============================================================ */
+
+/* ============================================================
+   ① 캐릭터 만들기 — 5트랙 외모 그리드
+   기존 .create__image-grid (flex column) 를 5-track grid 로 교체
+   ============================================================ */
+.appearance-grid {
+  display: grid;
+  /* 모바일: 2열 — 4 프리셋이 2×2, 커스텀 카드는 5번째 자리에 grid-column: 1/-1 로 풀폭 */
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 6px;
+}
+@media (min-width: 720px) {
+  /* 데스크톱: 4+1 — 프리셋 4개 한 줄 + 커스텀 카드 다음 줄 풀폭 */
+  .appearance-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+}
+
+/* ---------- 프리셋 카드 (1~4 트랙) ---------- */
+.app-card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 22px 22px 22px 6px;          /* 비대칭 컷 — 다이얼로그와 동일 톤 */
+  overflow: hidden;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  isolation: isolate;
+  transition:
+    transform var(--dur-fast) var(--ease-snap),
+    border-color var(--dur-base) var(--ease-soft),
+    box-shadow var(--dur-base) var(--ease-soft);
+}
+.app-card:hover { transform: translateY(-2px); }
+
+/* 카드별 테마 변수 — 각 카드가 자기 캐릭터 글로우를 입는다 */
+.app-card[data-theme="cheerful"] {
+  --c-primary: var(--theme-cheerful-primary);
+  --c-secondary: var(--theme-cheerful-secondary);
+  --c-accent: var(--theme-cheerful-accent);
+  --c-deep: var(--theme-cheerful-deep);
+  --c-mist: var(--theme-cheerful-mist);
+  --c-glow: var(--theme-cheerful-glow);
+}
+.app-card[data-theme="calm"] {
+  --c-primary: var(--theme-calm-primary);
+  --c-secondary: var(--theme-calm-secondary);
+  --c-accent: var(--theme-calm-accent);
+  --c-deep: var(--theme-calm-deep);
+  --c-mist: var(--theme-calm-mist);
+  --c-glow: var(--theme-calm-glow);
+}
+.app-card[data-theme="warm"] {
+  --c-primary: var(--theme-warm-primary);
+  --c-secondary: var(--theme-warm-secondary);
+  --c-accent: var(--theme-warm-accent);
+  --c-deep: var(--theme-warm-deep);
+  --c-mist: var(--theme-warm-mist);
+  --c-glow: var(--theme-warm-glow);
+}
+.app-card[data-theme="bright"] {
+  --c-primary: var(--theme-bright-primary);
+  --c-secondary: var(--theme-bright-secondary);
+  --c-accent: var(--theme-bright-accent);
+  --c-deep: var(--theme-bright-deep);
+  --c-mist: var(--theme-bright-mist);
+  --c-glow: var(--theme-bright-glow);
+}
+
+/* 썸네일 이미지 풀블리드 */
+.app-card__thumb {
+  position: absolute;
+  inset: 0;
+  background-image: var(--thumb);
+  background-size: cover;
+  background-position: center 18%;
+  z-index: 1;
+  transition: transform 800ms var(--ease-glide);
+}
+.app-card:hover .app-card__thumb { transform: scale(1.04); }
+
+/* 상단 그라데이션 (네임태그 가독성) + 하단 그라데이션 (라벨 가독성) */
+.app-card__thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(15, 10, 24, 0.55) 0%, transparent 24%, transparent 56%, rgba(15, 10, 24, 0.78) 100%);
+}
+
+/* 좌상단 컷 액센트 — 다이얼로그 __cut 과 동일 패턴 */
+.app-card__cut {
+  position: absolute;
+  top: 0; left: 0;
+  width: 56px; height: 20px;
+  background: linear-gradient(135deg, var(--c-primary), var(--c-accent));
+  clip-path: polygon(0 0, 100% 0, 70% 100%, 0 100%);
+  z-index: 3;
+}
+
+/* 캐릭터 명 + 한 줄 설명 — 카드 하단 */
+.app-card__label {
+  position: absolute;
+  left: 12px; right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.app-card__name {
+  font-family: var(--font-accent);
+  font-weight: 600;
+  font-size: 15px;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+  letter-spacing: 0.01em;
+}
+.app-card__id {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--c-secondary);
+  text-transform: uppercase;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* 우상단 작은 ID 칩 */
+.app-card__chip {
+  position: absolute;
+  top: 8px; right: 8px;
+  z-index: 4;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(15, 10, 24, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* 선택 상태 — 글로우 링 + 보더 강조 + 우하단 체크 */
+.app-card--selected {
+  border-color: var(--c-primary);
+  box-shadow:
+    var(--c-glow),
+    0 12px 30px rgba(20, 12, 40, 0.45),
+    0 0 0 3px color-mix(in oklab, var(--c-primary) 50%, transparent);
+}
+.app-card__check {
+  position: absolute;
+  bottom: 10px; right: 10px;
+  z-index: 5;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--c-primary, #fff), var(--c-accent, #fff));
+  border: 2px solid #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: scale(0.6) rotate(-30deg);
+  transition: all var(--dur-base) var(--ease-snap);
+  color: #fff;
+}
+.app-card--selected .app-card__check {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+/* ---------- 5번째 — 커스텀 카드 (플레이스홀더) ---------- */
+.app-card--custom {
+  grid-column: 1 / -1;          /* 모바일/데스크톱 모두 풀폭 */
+  aspect-ratio: auto;
+  min-height: 132px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.03) 0 12px,
+      rgba(255, 255, 255, 0.06) 12px 24px
+    );
+  border: 2px dashed rgba(255, 235, 210, 0.45);
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 22px 18px;
+}
+.app-card--custom:hover {
+  border-color: rgba(255, 235, 210, 0.75);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.05) 0 12px,
+      rgba(255, 255, 255, 0.10) 12px 24px
+    );
+}
+
+/* 커스텀 카드 — 떠다니는 별 입자 */
+.app-card--custom::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 220, 180, 0.55) 0 1.4px, transparent 1.6px),
+    radial-gradient(circle at 80% 22%, rgba(255, 235, 200, 0.50) 0 1.6px, transparent 1.8px),
+    radial-gradient(circle at 60% 78%, rgba(255, 213, 122, 0.45) 0 1.2px, transparent 1.4px),
+    radial-gradient(circle at 30% 70%, rgba(255, 200, 150, 0.45) 0 1.4px, transparent 1.6px);
+  opacity: 0.7;
+  pointer-events: none;
+  animation: float-mote 14s var(--ease-glide) infinite alternate;
+}
+
+.app-card__custom-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.app-card__custom-icon {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, var(--theme-bright-primary) 65%, transparent),
+      color-mix(in oklab, var(--theme-cheerful-primary) 65%, transparent));
+  color: #fff;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 4px 12px rgba(255, 160, 100, 0.35);
+}
+.app-card__custom-icon--alt {
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, var(--theme-warm-primary) 65%, transparent),
+      color-mix(in oklab, var(--theme-calm-primary) 65%, transparent));
+}
+
+.app-card__custom-title {
+  font-family: var(--font-accent);
+  font-weight: 600;
+  font-size: 16px;
+  color: #fff;
+  letter-spacing: 0.01em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+.app-card__custom-title .sparkle {
+  display: inline-block;
+  font-size: 14px;
+  margin-left: 4px;
+  filter: drop-shadow(0 0 6px rgba(255, 213, 122, 0.7));
+  animation: sparkle-spin 3s var(--ease-glide) infinite;
+}
+.app-card__custom-sub {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: rgba(255, 235, 210, 0.6);
+  text-transform: uppercase;
+}
+
+.app-card--custom.app-card--selected {
+  border-style: solid;
+  border-color: var(--theme-bright-primary);
+  box-shadow:
+    var(--theme-bright-glow),
+    0 12px 30px rgba(20, 12, 40, 0.45),
+    0 0 0 3px color-mix(in oklab, var(--theme-bright-primary) 45%, transparent);
+}
+
+/* ---------- 커스텀 prompt 펼침 영역 (5번째 카드 아래로 펼쳐짐) ---------- */
+.app-prompt {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-base) var(--ease-soft);
+}
+.app-prompt[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.app-prompt__inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.app-prompt__inner-pad {
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.app-prompt__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px 10px 14px;
+  border-radius: 14px 14px 14px 4px;
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, var(--theme-bright-secondary) 25%, rgba(255, 255, 255, 0.08)),
+      rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 213, 122, 0.35);
+  color: rgba(255, 245, 225, 0.92);
+  font-family: var(--font-base);
+  font-size: 11.5px;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+}
+.app-prompt__notice-icon {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--theme-bright-primary), var(--theme-bright-accent));
+  color: #fff;
+  font-size: 12px;
+  box-shadow: 0 0 10px var(--theme-bright-mist);
+}
+.app-prompt__notice strong {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--theme-bright-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.app-prompt__textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 14px 16px;
+  border-radius: 18px 18px 18px 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.32);
+  font-family: var(--font-base);
+  font-size: 13px;
+  line-height: 1.6;
+  color: #fff;
+  outline: none;
+  resize: vertical;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: border-color var(--dur-base) var(--ease-soft), box-shadow var(--dur-base) var(--ease-soft);
+}
+.app-prompt__textarea::placeholder {
+  color: rgba(255, 235, 210, 0.4);
+  font-style: italic;
+}
+.app-prompt__textarea:focus {
+  border-color: var(--theme-bright-primary);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--theme-bright-primary) 30%, transparent),
+              0 0 18px var(--theme-bright-mist);
+}
+
+.app-prompt__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  color: rgba(255, 235, 210, 0.6);
+  text-transform: uppercase;
+}
+.app-prompt__count[data-near-limit="true"] { color: var(--theme-bright-accent); }
+
+/* 생성 중 spinner — 카메라 셔터 + 반짝이 */
+.app-prompt__spinner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(255, 200, 150, 0.10), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 213, 122, 0.45);
+  color: #fff;
+  font-family: var(--font-accent);
+  font-size: 13px;
+}
+.app-prompt[data-loading="true"] .app-prompt__spinner { display: inline-flex; }
+.app-prompt[data-loading="true"] .app-prompt__textarea,
+.app-prompt[data-loading="true"] .app-prompt__notice {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.shutter {
+  position: relative;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--theme-bright-primary);
+  flex-shrink: 0;
+}
+.shutter::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--theme-bright-accent) 0%, var(--theme-bright-primary) 70%);
+  animation: shutter-pulse 1.4s var(--ease-glide) infinite;
+}
+@keyframes shutter-pulse {
+  0%, 100% { transform: scale(0.7); opacity: 0.55; }
+  50%      { transform: scale(1);   opacity: 1;    }
+}
+@keyframes sparkle-spin {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50%      { transform: rotate(180deg) scale(1.15); }
+}

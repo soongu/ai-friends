@@ -68,6 +68,8 @@ const state = {
   gender: '',
   characterImageId: '',
   characterImageUrl: '',
+  /** Day 7 Step 8 — 5트랙 외모 선택 ⑤ 커스텀 트랙 전용. 프리셋 트랙일 땐 빈 문자열. */
+  customAppearancePrompt: '',
   personalityKeywords: [],
   hobbies: [],
   speechStyles: [],
@@ -146,7 +148,14 @@ function showStep(step) {
 
 function canProceed(step) {
   if (step === 1) return !!state.gender && !!state.name.trim();
-  if (step === 2) return !!state.characterImageId;
+  if (step === 2) {
+    if (!state.characterImageId) return false;
+    // Day 7 Step 8 — 커스텀 트랙은 외모 prompt 4자 이상 필수
+    if (state.characterImageId === 'custom') {
+      return state.customAppearancePrompt.trim().length >= 4;
+    }
+    return true;
+  }
   if (step === 3) {
     return (
       state.personalityKeywords.length >= 1 &&
@@ -159,85 +168,97 @@ function canProceed(step) {
 }
 
 // ============================================================
-// Step 2 — 캐릭터 카드 (.smcard 풀 마크업)
+// Step 2 — 5트랙 외모 선택 (Day 7 retrofit, Claude Design handoff 통합)
+//   ① ~ ④ 프리셋 (정적 마크업, .app-card)
+//   ⑤ 커스텀 (.app-card--custom + .app-prompt 펼침 textarea)
 // ============================================================
 function renderStep2() {
   const grid = $(SELECTORS.imageGrid, rootEl);
-  if (!grid || !state.gender) return;
-  const list = CHARACTER_IMAGES_BY_GENDER[state.gender] || [];
-  // Step 1 에서 사용자가 정한 이름을 모든 카드에 일관되게 표시한다.
-  // (디자이너 sample 이름 '지유'/'하린' 이 각자 다르게 보이면 별개의 캐릭터처럼 느껴져 이질적이다.)
-  // 무드는 캐릭터별 분위기라 그대로 유지.
-  const displayName = state.name.trim();
+  if (!grid) return;
 
-  grid.innerHTML = list
-    .map((img) => {
-      const def = getCharacterDef(img.id);
-      const themeKey = def.themeKey;
-      const isSelected = state.characterImageId === img.id;
-      const themeStyle = THEME_VARS
-        .map((v) => `--theme-${v}: var(--theme-${themeKey}-${v});`)
-        .join(' ');
-      const inlineStyle = `${themeStyle} --thumb-image: url('${escapeAttr(img.url)}');`;
-      const cardName = displayName || def.name;
-      return `
-        <div class="smcard ${isSelected ? 'smcard--selected' : ''}"
-             data-soulmate-voice-id="${escapeAttr(img.id)}"
-             data-image-id="${escapeAttr(img.id)}"
-             data-image-url="${escapeAttr(img.url || '')}"
-             style="${inlineStyle}">
-          <div class="smcard__thumb" aria-hidden="true"></div>
-          <div class="smcard__cut" aria-hidden="true"></div>
-          <div class="smcard__motes" aria-hidden="true">
-            <span></span><span></span><span></span><span></span>
-          </div>
-          ${isSelected ? `
-          <div class="smcard__check" aria-hidden="true">
-            <svg viewBox="0 0 16 16" width="16" height="16" fill="none">
-              <path d="M3 8.5L6.5 12L13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </div>` : ''}
-          <button type="button" class="smcard__voice"
-                  data-soulmate-voice-preview
-                  data-soulmate-voice-id="${escapeAttr(img.id)}"
-                  aria-label="캐릭터 보이스 미리듣기">
-            <svg viewBox="0 0 14 14" fill="currentColor"><path d="M3.5 2.5L11.5 7L3.5 11.5V2.5Z"/></svg>
-          </button>
-          <div class="smcard__info">
-            <div class="smcard__info-text">
-              <div class="smcard__name">
-                <span class="smcard__name-dot" aria-hidden="true"></span>
-                ${escapeHtml(cardName)}
-              </div>
-              <div class="smcard__mood">${escapeHtml(def.mood)}</div>
-            </div>
-            <div class="smcard__new-badge">NEW</div>
-          </div>
-        </div>
-      `;
-    })
-    .join('');
+  // 정적 마크업이라 *innerHTML 재작성* 안 함. 카드 선택 상태만 동기화.
+  const cards = grid.querySelectorAll('[data-app-card]');
+  cards.forEach((card) => {
+    const id = card.getAttribute('data-image-id');
+    const isSelected = state.characterImageId === id;
+    card.classList.toggle('app-card--selected', isSelected);
+    card.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+  });
 
-  grid.querySelectorAll('.smcard').forEach((card) => {
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('.smcard__voice')) return; // voice preview 클릭은 별도
-      const id = card.getAttribute('data-image-id');
-      state.characterImageId = id;
+  // 커스텀 prompt 펼침 영역 — 커스텀 카드 선택 시 펼침
+  const promptBox = grid.querySelector('[data-app-prompt]');
+  if (promptBox) {
+    promptBox.dataset.open = state.characterImageId === 'custom' ? 'true' : 'false';
+  }
+
+  // 텍스트영역 / 카운터 / 다음 버튼 동기화
+  const promptTextarea = grid.querySelector('[data-custom-prompt]');
+  const promptCount = grid.querySelector('[data-prompt-count]');
+  if (promptTextarea && promptTextarea.value !== state.customAppearancePrompt) {
+    promptTextarea.value = state.customAppearancePrompt;
+  }
+  if (promptCount) {
+    const len = state.customAppearancePrompt.length;
+    promptCount.textContent = `${len} / 200`;
+    promptCount.dataset.nearLimit = len > 160 ? 'true' : 'false';
+  }
+}
+
+/**
+ * Step 2 의 5트랙 그리드 클릭 + 커스텀 prompt 입력 핸들러를 *한 번만* 바인드.
+ * 정적 마크업이라 init() 시점에 한 번만 박으면 됨.
+ */
+function bindStep2Handlers() {
+  const grid = $(SELECTORS.imageGrid, rootEl);
+  if (!grid) return;
+
+  // 카드 클릭 → state 갱신 + 테마 적용 + 동기화
+  grid.addEventListener('click', (e) => {
+    const card = e.target.closest('[data-app-card]');
+    if (!card) return;
+    const id = card.getAttribute('data-image-id');
+    state.characterImageId = id;
+    if (id === 'custom') {
+      state.characterImageUrl = '';
+      // 커스텀일 땐 *bright* 테마를 임시로 (스파클/노란 결) 적용
+      applyTheme('bright');
+      // textarea 포커스
+      setTimeout(() => {
+        const ta = grid.querySelector('[data-custom-prompt]');
+        if (ta) ta.focus({ preventScroll: true });
+      }, 280);
+    } else {
       state.characterImageUrl = card.getAttribute('data-image-url') || '';
-      applyTheme(getCharacterDef(id).themeKey);
-      renderStep2();
-      const nextBtn = $(SELECTORS.nextBtn, rootEl);
-      if (nextBtn) nextBtn.disabled = false;
-    });
+      // 카드 자신의 data-theme 으로 테마 갱신 (cheerful/calm/warm/bright)
+      const theme = card.getAttribute('data-theme');
+      if (theme) applyTheme(theme);
+    }
+    renderStep2();
+    syncNextBtn();
   });
 
-  // 보이스 미리듣기 placeholder — Day 9 에서 활성화 예정
-  grid.querySelectorAll('[data-soulmate-voice-preview]').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      console.info('[voice] character preview placeholder — Day 9 에서 활성화 예정');
+  // 커스텀 prompt 입력 → state 갱신
+  const promptTextarea = grid.querySelector('[data-custom-prompt]');
+  if (promptTextarea) {
+    promptTextarea.addEventListener('input', () => {
+      state.customAppearancePrompt = promptTextarea.value;
+      const promptCount = grid.querySelector('[data-prompt-count]');
+      if (promptCount) {
+        const len = state.customAppearancePrompt.length;
+        promptCount.textContent = `${len} / 200`;
+        promptCount.dataset.nearLimit = len > 160 ? 'true' : 'false';
+      }
+      syncNextBtn();
     });
-  });
+  }
+}
+
+/** 현재 step 의 다음 버튼 disabled 동기화 — bindStep2Handlers 의 textarea 입력 등에서 호출. */
+function syncNextBtn() {
+  const nextBtn = $(SELECTORS.nextBtn, rootEl);
+  if (nextBtn) nextBtn.disabled = !canProceed(state.step);
+  const submitBtn = $(SELECTORS.submitBtn, rootEl);
+  if (submitBtn && state.step === 4) submitBtn.disabled = !canProceed(4);
 }
 
 // ============================================================
@@ -411,6 +432,10 @@ function buildPayload() {
     personalityKeywords: personality,
     hobbies,
     speechStyles: speech,
+    // Day 7 Step 8 — 5트랙 외모 선택의 ⑤ 커스텀 트랙 전용. 프리셋 트랙일 땐 null 로 흘려 백엔드가 분기.
+    customAppearancePrompt: state.characterImageId === 'custom'
+      ? (state.customAppearancePrompt.trim() || null)
+      : null,
   };
 }
 
@@ -494,15 +519,27 @@ function init() {
     submitBtn.addEventListener('click', async () => {
       const payload = buildPayload();
       submitBtn.disabled = true;
+      // Day 7 Step 8 — 커스텀 트랙은 백엔드에서 ImageGenerationService 가 1회 호출되므로 약 30초 대기.
+      // 사용자 경험: 만들기 버튼 텍스트를 *얼굴 빚는 중* 으로 갈아 미연시 톤 유지.
+      const isCustom = payload.characterImageId === 'custom';
+      const submitText = submitBtn.querySelector('span:nth-of-type(2)');
+      const originalText = submitText ? submitText.textContent : '';
+      if (isCustom && submitText) {
+        submitText.textContent = '얼굴 빚는 중…';
+      }
       try {
         const res = await createSoulmate(payload);
         window.location.href = CONFIG.routes.chat(res.id);
       } catch (err) {
         alert(err.message || '생성에 실패했어요');
+        if (isCustom && submitText) submitText.textContent = originalText;
         submitBtn.disabled = false;
       }
     });
   }
+
+  // Day 7 Step 8 — 5트랙 외모 그리드 클릭 / 커스텀 prompt 입력 핸들러를 *한 번만* 바인드
+  bindStep2Handlers();
 
   // Step 4 커스텀 추가/제거 핸들러
   bindCustomAdd('customPersonality', SELECTORS.customPersonality, SELECTORS.addPersonality, SELECTORS.customPersonalityChips);
