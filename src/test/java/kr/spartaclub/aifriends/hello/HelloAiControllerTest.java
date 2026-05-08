@@ -1,5 +1,7 @@
 package kr.spartaclub.aifriends.hello;
 
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
@@ -16,6 +18,7 @@ import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.clearInvocations;
@@ -102,11 +105,19 @@ class HelloAiControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/hello-ai/v3 - tutor-v1.st 의 {userName}·{topicTag} 슬롯이 치환되어 .system() 에 주입된다")
-    void helloV3_bindsTopicTagAndAnonymizedIdIntoSystemPrompt() throws Exception {
+    @DisplayName("GET /api/hello-ai/v3 - tutor-v3-structured.st 의 슬롯이 치환되어 .system() 에 주입되고, .entity(TutorReply.class) 가 돌려준 record 가 ApiResponse.data 로 응답된다")
+    void helloV3_bindsTopicTagAndReturnsTutorReplyEntity() throws Exception {
         reset(chatClient);
-        given(chatClient.prompt().system(anyString()).user(anyString()).call().content())
-                .willReturn("좋은 질문이야! 의존성 주입은 ... 그럼 다음 질문?");
+        TutorReply stub = new TutorReply(
+                "좋은 질문이야! 의존성 주입은 외부에서 부품을 받아오는 패턴이야...",
+                List.of("DI 안 쓰면 뭐가 안 좋아?", "스프링은 어떻게 주입해줘?", "생성자 주입이 더 좋다는 이유?")
+        );
+        given(chatClient.prompt()
+                .system(anyString())
+                .user(anyString())
+                .call()
+                .entity(eq(TutorReply.class)))
+                .willReturn(stub);
         // 스터빙 체인이 .system(anyString()) 을 한 번 호출하므로 실제 요청 전에 invocation 을 초기화해
         // then().should() 가 "진짜 호출" 만 붙잡도록 한다.
         clearInvocations(chatClient.prompt());
@@ -116,9 +127,11 @@ class HelloAiControllerTest {
                         .param("topicTag", "Java"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.topicTag").value("Java"))
-                .andExpect(jsonPath("$.data.reply")
-                        .value("좋은 질문이야! 의존성 주입은 ... 그럼 다음 질문?"));
+                .andExpect(jsonPath("$.data.answer")
+                        .value("좋은 질문이야! 의존성 주입은 외부에서 부품을 받아오는 패턴이야..."))
+                .andExpect(jsonPath("$.data.suggestedQuestions").isArray())
+                .andExpect(jsonPath("$.data.suggestedQuestions.length()").value(3))
+                .andExpect(jsonPath("$.data.suggestedQuestions[0]").value("DI 안 쓰면 뭐가 안 좋아?"));
 
         ArgumentCaptor<String> systemCaptor = ArgumentCaptor.forClass(String.class);
         then(chatClient.prompt()).should().system(systemCaptor.capture());
@@ -128,6 +141,7 @@ class HelloAiControllerTest {
                 .contains("# Task")
                 .contains("Java")                      // topicTag 치환 확인
                 .contains("tutor-student-1")           // 익명 ID 치환 확인 (시스템 프롬프트 내부)
+                .contains("suggestedQuestions")        // 새 격리 프롬프트 고유 표지
                 .doesNotContain("{userName}", "{topicTag}");   // 플레이스홀더 잔재 없음
 
         then(chatClient.prompt().system(anyString())).should().user("의존성 주입이 뭔가요?");
@@ -137,15 +151,20 @@ class HelloAiControllerTest {
     @DisplayName("GET /api/hello-ai/v3 - message·topicTag 기본값(의존성 주입/Spring AI)으로 200 응답한다")
     void helloV3_usesDefaultParams() throws Exception {
         reset(chatClient);
-        given(chatClient.prompt().system(anyString()).user(anyString()).call().content())
-                .willReturn("default-v3-ok");
+        TutorReply stub = new TutorReply("default-v3-answer", List.of("Q1", "Q2"));
+        given(chatClient.prompt()
+                .system(anyString())
+                .user(anyString())
+                .call()
+                .entity(eq(TutorReply.class)))
+                .willReturn(stub);
         clearInvocations(chatClient.prompt());
 
         mockMvc.perform(get("/api/hello-ai/v3"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.topicTag").value("Spring AI"))
-                .andExpect(jsonPath("$.data.reply").value("default-v3-ok"));
+                .andExpect(jsonPath("$.data.answer").value("default-v3-answer"))
+                .andExpect(jsonPath("$.data.suggestedQuestions.length()").value(2));
 
         ArgumentCaptor<String> systemCaptor = ArgumentCaptor.forClass(String.class);
         then(chatClient.prompt()).should().system(systemCaptor.capture());
