@@ -187,7 +187,7 @@ class ApiIntegrationTest {
 
     @Test
     @Order(20)
-    @DisplayName("POST /api/chat - AI 채팅 (Gemini API 호출, GEMINI_API_KEY 필요)")
+    @DisplayName("POST /api/chat - AI 채팅 (Spring AI ChatClient 경유, 외부 키 없어도 컨트롤러 경로는 살아있어야 함)")
     void chatPost() throws Exception {
         Assumptions.assumeTrue(createdSoulmateId != null, "soulmateCreate()가 먼저 실행되어야 합니다.");
         Map<String, Object> req = Map.of(
@@ -200,7 +200,9 @@ class ApiIntegrationTest {
                         .content(objectMapper.writeValueAsString(req))
         );
         int status = actions.andReturn().getResponse().getStatus();
-        assertThat(status).isIn(200, 400, 401, 429, 502);
+        // Day 5 Step 6 — Spring AI ChatClient 경유로 갈아끼워지면서 더미 키 사용 시
+        // OpenAI 가 401 을 반환하고 Spring AI 의 RuntimeException 이 GlobalExceptionHandler 를 거쳐 500 으로 떨어진다.
+        assertThat(status).isIn(200, 400, 401, 429, 500, 502);
         Map<String, Object> body = parseApiResponse(actions);
         assertThat(body).isNotNull();
         if (status == 200) {

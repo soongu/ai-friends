@@ -1,12 +1,13 @@
 package kr.spartaclub.aifriends.service;
 
+import kr.spartaclub.aifriends.chat.dto.AiReply;
+import kr.spartaclub.aifriends.chat.service.SoulmateChatService;
 import kr.spartaclub.aifriends.common.exception.BusinessException;
 import kr.spartaclub.aifriends.common.exception.ErrorCode;
 import kr.spartaclub.aifriends.domain.ChatLog;
 import kr.spartaclub.aifriends.domain.Soulmate;
 import kr.spartaclub.aifriends.dto.AiChatRequest;
 import kr.spartaclub.aifriends.dto.AiChatResponse;
-import kr.spartaclub.aifriends.dto.GeminiParsedResponse;
 import kr.spartaclub.aifriends.repository.ChatLogRepository;
 import kr.spartaclub.aifriends.repository.SoulmateAchievementRepository;
 import kr.spartaclub.aifriends.repository.SoulmateRepository;
@@ -16,8 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.SliceImpl;
 
 import java.util.Collections;
 import java.util.List;
@@ -26,13 +25,17 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.times;
 
+/**
+ * Day 5 Step 6 — LLM 호출 위임이 {@link SoulmateChatService} 로 갈아끼워졌으므로
+ * {@code GeminiService} mock 을 {@code SoulmateChatService} mock 으로 교체하고,
+ * 호감도 미제공·연속 선택지 차단 보정 카운터 검증 케이스를 들어냈다.
+ * 검증 초점은 *Soulmate 호감도/레벨/뱃지 갱신 + ChatLog 저장* 비즈니스 흐름.
+ */
 @ExtendWith(MockitoExtension.class)
 class AiChatServiceTest {
 
@@ -46,7 +49,7 @@ class AiChatServiceTest {
     private SoulmateAchievementRepository achievementRepository;
 
     @Mock
-    private GeminiService geminiService;
+    private SoulmateChatService soulmateChatService;
 
     @InjectMocks
     private AiChatService aiChatService;
@@ -59,11 +62,9 @@ class AiChatServiceTest {
         Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, "Bob", "keyword", "hobby", "style", 0, 1, null);
 
         given(soulmateRepository.findById(1L)).willReturn(Optional.of(soulmate));
-        given(chatLogRepository.findBySoulmateIdOrderByCreatedAtDesc(eq(1L), any(PageRequest.class)))
-                .willReturn(new SliceImpl<>(Collections.emptyList()));
 
-        GeminiParsedResponse geminiResponse = new GeminiParsedResponse("반가워!", List.of("응", "아니"), 5);
-        given(geminiService.generateReply(eq(soulmate), anyList(), eq("안녕"), anyBoolean(), anyBoolean())).willReturn(geminiResponse);
+        AiReply reply = new AiReply("반가워!", List.of("응", "아니"), 5);
+        given(soulmateChatService.chat(eq(1L), eq("안녕"))).willReturn(reply);
 
         // when
         AiChatResponse response = aiChatService.processChat(request);
@@ -75,8 +76,8 @@ class AiChatServiceTest {
         assertThat(response.level()).isEqualTo(1);
         assertThat(response.newBadges()).isEmpty();
 
-        // verify DB saves
-        then(chatLogRepository).should(times(2)).save(any(ChatLog.class)); // user log, ai log
+        // verify DB saves: user log + ai log
+        then(chatLogRepository).should(times(2)).save(any(ChatLog.class));
     }
 
     @Test
@@ -87,12 +88,10 @@ class AiChatServiceTest {
         Soulmate soulmate = new Soulmate(1L, "MALE", "img", null, "Bob", "keyword", "hobby", "style", 8, 1, null);
 
         given(soulmateRepository.findById(1L)).willReturn(Optional.of(soulmate));
-        given(chatLogRepository.findBySoulmateIdOrderByCreatedAtDesc(eq(1L), any(PageRequest.class)))
-                .willReturn(new SliceImpl<>(Collections.emptyList()));
 
         // affection adds 4 -> total 12 (> 10)
-        GeminiParsedResponse geminiResponse = new GeminiParsedResponse("고마워!", Collections.emptyList(), 4);
-        given(geminiService.generateReply(eq(soulmate), anyList(), eq("선물이야"), anyBoolean(), anyBoolean())).willReturn(geminiResponse);
+        AiReply reply = new AiReply("고마워!", Collections.emptyList(), 4);
+        given(soulmateChatService.chat(eq(1L), eq("선물이야"))).willReturn(reply);
 
         given(achievementRepository.existsBySoulmateIdAndBadgeCode(1L, "AFFECTION_10")).willReturn(false);
 

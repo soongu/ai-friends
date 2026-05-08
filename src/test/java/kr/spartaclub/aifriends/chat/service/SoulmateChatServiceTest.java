@@ -1,12 +1,14 @@
 package kr.spartaclub.aifriends.chat.service;
 
 import kr.spartaclub.aifriends.chat.dto.AiReply;
+import kr.spartaclub.aifriends.repository.SoulmateRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.core.io.Resource;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -21,8 +23,8 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 
 /**
- * Day 3 Step 3 — PromptTemplate 람다 문법으로 시스템 프롬프트를 조립하는 서비스 단위 테스트.
- * Day 4 Step 5 — 응답 타입을 String 에서 {@link AiReply} record 로 교체한 뒤 어설션도 record 형태로 갱신.
+ * Day 3 Step 3 ~ Day 5 Step 5 의 학습용 PoC 시그니처({@code chat(convId, name, mood, msg)})에 대한 단위 테스트.
+ * Day 5 Step 6 (수렴) 이후에도 학습용 lab 으로 보존된 {@code @Deprecated} 메서드를 그대로 검증한다.
  *
  * <p>검증 포인트는 두 축이다.
  * <ol>
@@ -31,6 +33,7 @@ import static org.mockito.Mockito.mock;
  *       템플릿을 넘기고, .param() 에 익명 ID 와 mood 를 각각 바인딩한다.</li>
  * </ol></p>
  */
+@SuppressWarnings("deprecation")
 class SoulmateChatServiceTest {
 
     private ChatClient chatClient;
@@ -39,7 +42,10 @@ class SoulmateChatServiceTest {
     @BeforeEach
     void setUp() {
         chatClient = mock(ChatClient.class, Answers.RETURNS_DEEP_STUBS);
-        service = new SoulmateChatService(chatClient);
+        SoulmateRepository soulmateRepository = mock(SoulmateRepository.class);
+        Resource systemV1Resource = mock(Resource.class);
+        Resource fewshotV1Resource = mock(Resource.class);
+        service = new SoulmateChatService(chatClient, soulmateRepository, systemV1Resource, fewshotV1Resource);
     }
 
     @Test
