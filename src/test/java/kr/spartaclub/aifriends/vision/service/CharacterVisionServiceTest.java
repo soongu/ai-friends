@@ -54,8 +54,7 @@ class CharacterVisionServiceTest {
         Soulmate soulmate = new Soulmate(
                 1L, "FEMALE", "img1", portraitUrl, "Alice",
                 "차분함, 다정함", "독서, 산책", "존댓말",
-                0, 1, LocalDateTime.now()
-        );
+                0, 1, LocalDateTime.now(), null);
         when(soulmateRepository.findById(1L)).thenReturn(Optional.of(soulmate));
         when(visionChatService.describe(eq(portraitUrl), org.mockito.ArgumentMatchers.anyString()))
                 .thenReturn("안녕하세요, 저는 Alice 예요. 책 한 권을 들고 있는 모습이 차분해 보이네요.");
@@ -89,8 +88,7 @@ class CharacterVisionServiceTest {
         Soulmate soulmate = new Soulmate(
                 1L, "FEMALE", "img1", null, "Alice",
                 "차분함", "독서", "존댓말",
-                0, 1, LocalDateTime.now()
-        );
+                0, 1, LocalDateTime.now(), null);
         when(soulmateRepository.findById(1L)).thenReturn(Optional.of(soulmate));
 
         assertThatThrownBy(() -> characterVisionService.introduce(1L))
@@ -105,8 +103,7 @@ class CharacterVisionServiceTest {
         Soulmate soulmate = new Soulmate(
                 1L, "FEMALE", "img1", "", "Alice",
                 "차분함", "독서", "존댓말",
-                0, 1, LocalDateTime.now()
-        );
+                0, 1, LocalDateTime.now(), null);
         when(soulmateRepository.findById(1L)).thenReturn(Optional.of(soulmate));
 
         assertThatThrownBy(() -> characterVisionService.introduce(1L))
