@@ -28,7 +28,7 @@ public class ChatClientConfig {
      * <p>{@link ChatMemoryRepository} 는 Day 5 Step 3 에서 등록한
      * {@code JdbcChatMemoryRepository} 가 자동 주입된다 (MySQL/H2 영속화).
      * maxMessages = 20 은 sliding window 의 상한 — 가장 최근 20 개 메시지만 LLM 컨텍스트로 흘러간다.
-     * Step 6 에서 토큰 비용·기억 길이 트레이드오프를 따라 이 값을 조정한다.</p>
+     * Step 7 에서 토큰 비용·기억 길이 트레이드오프를 따라 이 값을 조정한다.</p>
      */
     @Bean
     public ChatMemory chatMemory(ChatMemoryRepository chatMemoryRepository) {
