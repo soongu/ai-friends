@@ -245,4 +245,151 @@ public class StructuredOutputDemoController {
         sb.append("length: ").append(bytes).append(" bytes  ≈  ")
                 .append(approxTokens).append(" tokens (estimated, English-heavy heuristic)\n\n");
     }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Day 4 과제 2 — schema 비대화의 손익분기점을 5 단계로 측정
+    //
+    // Step 7 의 schemaSize() 가 3 단계(Mini/Standard/Big) 만 비교했다면, 본 과제는
+    // 2/4/8/16/32 필드 5 단계 + List·Map·nested record·enum 까지 골고루 섞어
+    // *"schema 가 어떤 종류의 필드에 가장 비싸게 반응하는지"* 를 직접 측정해보는 학습용 자리.
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** Day 4 과제 2 — 2 필드 baseline. */
+    public record SchemaStep1(String text, String author) { }
+
+    /** Day 4 과제 2 — 4 필드 (String 추가 + int 추가). */
+    public record SchemaStep2(
+            String text,
+            String author,
+            String category,
+            int year
+    ) { }
+
+    /** Day 4 과제 2 — 8 필드 (String 5 + int 2 + boolean 1). */
+    public record SchemaStep3(
+            String text,
+            String author,
+            String category,
+            String language,
+            String source,
+            int year,
+            int wordCount,
+            boolean isClassic
+    ) { }
+
+    /** Day 4 과제 2 — 16 필드 (위 + List 2 + nested record 2 + 추가 String/int/boolean). */
+    public record SchemaStep4(
+            String text,
+            String author,
+            String category,
+            String language,
+            String source,
+            int year,
+            int wordCount,
+            boolean isClassic,
+            List<String> tags,
+            List<String> relatedAuthors,
+            AuthorInfo authorInfo,
+            SourceInfo sourceInfo,
+            String mood,
+            String era,
+            int sentimentScore,
+            boolean recommendedForBeginners
+    ) { }
+
+    /** Day 4 과제 2 — nested record 비용 측정용 (Step 4 의 authorInfo). */
+    public record AuthorInfo(String fullName, String nationality, int birthYear) { }
+
+    /** Day 4 과제 2 — nested record 비용 측정용 (Step 4 의 sourceInfo). */
+    public record SourceInfo(String bookTitle, String publisher, int pageNumber) { }
+
+    /** Day 4 과제 2 — 32 필드 (위 + Map 2 + enum 2 + 추가 필드들). */
+    public record SchemaStep5(
+            String text,
+            String author,
+            String category,
+            String language,
+            String source,
+            int year,
+            int wordCount,
+            boolean isClassic,
+            List<String> tags,
+            List<String> relatedAuthors,
+            AuthorInfo authorInfo,
+            SourceInfo sourceInfo,
+            String mood,
+            String era,
+            int sentimentScore,
+            boolean recommendedForBeginners,
+            Map<String, Integer> readerScores,
+            Map<String, String> translations,
+            Genre primaryGenre,
+            DifficultyLevel difficulty,
+            String summary,
+            String contextNote,
+            int linesCount,
+            boolean hasMetaphor,
+            boolean hasAlliteration,
+            String themeColor,
+            int popularityRank,
+            List<String> themes,
+            String recommendedAge,
+            boolean isQuotable,
+            int characterCount,
+            String culturalOrigin
+    ) { }
+
+    /** Day 4 과제 2 — enum 의 schema 비용 측정용. BeanOutputConverter 가 enum 키워드로 변환. */
+    public enum Genre { POETRY, PROSE, APHORISM, DIALOGUE }
+
+    /** Day 4 과제 2 — enum 의 schema 비용 측정용. */
+    public enum DifficultyLevel { BEGINNER, INTERMEDIATE, ADVANCED }
+
+    /**
+     * Day 4 과제 2 — 5 단계 record 의 schema 크기를 한 화면에 비교 출력.
+     *
+     * <p>학습용 디버그 평문 출력 (text/plain). LLM 호출 없음.
+     * 본인 환경에서 직접 호출해 표를 채우는 게 과제의 핵심이다.</p>
+     */
+    @GetMapping(value = "/api/structured/schema-size-extended", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String schemaSizeExtended() {
+        StringBuilder sb = new StringBuilder();
+        appendSchemaInfo(sb, "Step 1 (2 fields)",  SchemaStep1.class);
+        appendSchemaInfo(sb, "Step 2 (4 fields)",  SchemaStep2.class);
+        appendSchemaInfo(sb, "Step 3 (8 fields)",  SchemaStep3.class);
+        appendSchemaInfo(sb, "Step 4 (16 fields)", SchemaStep4.class);
+        appendSchemaInfo(sb, "Step 5 (32 fields)", SchemaStep5.class);
+        return sb.toString();
+    }
+
+    /**
+     * Day 4 과제 2 (선택) — 5 단계 record 각각으로 동일한 사용자 메시지를 LLM 한테 보내고 응답 시간 측정.
+     *
+     * <p><b>주의:</b> 실제 LLM 호출이 발생한다 — Gemini Flash 무료 티어 사용 권장 (CLAUDE.md 비용 정책).
+     * 각 단계당 3 회 평균을 측정한다. 본인 도메인의 손익분기점 표 작성에 활용.</p>
+     */
+    @GetMapping(value = "/api/structured/schema-latency", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String schemaLatency() {
+        StringBuilder sb = new StringBuilder();
+        measureOne(sb, "Step 1 (2 fields)",  SchemaStep1.class);
+        measureOne(sb, "Step 2 (4 fields)",  SchemaStep2.class);
+        measureOne(sb, "Step 3 (8 fields)",  SchemaStep3.class);
+        measureOne(sb, "Step 4 (16 fields)", SchemaStep4.class);
+        measureOne(sb, "Step 5 (32 fields)", SchemaStep5.class);
+        return sb.toString();
+    }
+
+    private <T> void measureOne(StringBuilder sb, String label, Class<T> clazz) {
+        int trials = 3;
+        long total = 0;
+        for (int i = 0; i < trials; i++) {
+            long start = System.currentTimeMillis();
+            chatClient.prompt()
+                    .user("'용기' 에 관한 명언을 한 줄 알려줘.")
+                    .call()
+                    .entity(clazz);
+            total += (System.currentTimeMillis() - start);
+        }
+        sb.append(label).append(" avg latency: ").append(total / trials).append("ms\n");
+    }
 }
