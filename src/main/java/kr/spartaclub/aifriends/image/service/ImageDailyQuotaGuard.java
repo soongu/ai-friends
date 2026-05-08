@@ -2,6 +2,7 @@ package kr.spartaclub.aifriends.image.service;
 
 import kr.spartaclub.aifriends.common.exception.ErrorCode;
 import kr.spartaclub.aifriends.image.exception.ImageException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +29,7 @@ public class ImageDailyQuotaGuard {
     private LocalDate currentDate;
     private int counter;
 
+    @Autowired
     public ImageDailyQuotaGuard(@Value("${aifriends.image.quota.daily-limit:30}") int dailyLimit) {
         this(dailyLimit, Clock.systemDefaultZone());
     }
