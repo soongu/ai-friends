@@ -41,7 +41,7 @@ class AiChatControllerTest {
         // given
         AiChatRequest request = new AiChatRequest(1L, "안녕");
         AiChatResponse response = new AiChatResponse(
-                "안녕", "반가워!", Collections.emptyList(), 1L, 5, 1, Collections.emptyList()
+                "안녕", "반가워!", Collections.emptyList(), 1L, 5, 1, Collections.emptyList(), null
         );
 
         given(aiChatService.processChat(any())).willReturn(response);
