@@ -111,4 +111,10 @@
   --color-pink-50: #0e0a18;               /* 메인 컨테이너 베이스 (각 화면이 inset:0 으로 덮음) */
   --font-family-base: var(--font-base);
   --color-text: var(--base-ink-900);
+
+  /* ---------- Day 8 — 채팅 이미지 첨부 (Vision) 신규 토큰 ---------- */
+  --color-user-bubble: #2b2740;           /* 사용자 사진 풍선 배경 (다크 잉크) */
+  --color-user-bubble-deep: #1a1626;      /* 사용자 풍선 그라데이션 하단 */
+  --color-vision-success: #3aab7a;        /* 업로드 OK 라벨 */
+  --color-vision-danger: #c9444a;         /* MIME 거절 · 5MB 초과 등 에러 상태 */
 }

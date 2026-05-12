@@ -6,7 +6,7 @@
  *  - 음성 입력은 default OFF — VOICE 토글 ON 시 첫 1회 마이크 권한 모달.
  *    실제 STT/TTS 활성화는 Day 9 에서 (이 파일은 hooks only).
  */
-import { getSoulmate, postChat, getChatLogs, transcribeAudio, synthesizeSpeech } from '../../api.js';
+import { getSoulmate, postChat, postVisionUpload, getChatLogs, transcribeAudio, synthesizeSpeech } from '../../api.js';
 import { pickVoice } from '../../config.js';
 import {
   initBgm,
@@ -110,6 +110,11 @@ let currentReplyAudio = null; // 마지막 재생 중인 <audio>; 새 응답 오
 let historyNextPage = 0;
 let historyHasMore = true;
 let historyLoading = false;
+
+// Day 8 — Vision 첨부 상태. 업로드 직후 받은 publicPath 만 들고 다닌다. 전송 시 imageUrl 로 동봉.
+let attachedImage = null; // { publicPath, contentType, sizeBytes, name, previewUrl }
+const ATTACH_ACCEPTED_MIMES = new Set(['image/png','image/jpeg','image/gif','image/webp']);
+const ATTACH_MAX_BYTES = 5 * 1024 * 1024; // 5MB
 let historyScrollEl = null;
 
 function $(sel, parent = document) {
@@ -418,22 +423,30 @@ function setInputEnabled(enabled) {
 }
 
 async function sendMessage(text) {
-  if (!text || !soulmateId) return;
+  if (!soulmateId) return;
+  // Day 8 — 사진만 보내는 것도 허용 (텍스트가 비어도 첨부가 있으면 진행)
+  const hasImage = !!attachedImage?.publicPath;
+  if (!text && !hasImage) return;
+
   setLoading(true);
   setInputEnabled(false);
   hideChoiceModal();
-  // 응답 대기 폴백 — 다이얼로그 본문에 thinking 인디케이터 (이전 메시지는 가려짐)
-  showDialogLoading('음… 잠깐만요');
 
-  // Day 7 Step 9 — 셀카 요청 키워드 감지 시 *셀카 로딩 풍선* 을 다이얼로그 위쪽에 즉시 마운트.
-  // 백엔드가 imageUrl null/non-null 로 분기해주므로 응답 도착 후 final 처리.
+  // Day 7 Step 9 — 셀카 요청 키워드 감지 (텍스트 채팅 결로만 동작 — 사용자 사진 첨부 시 우회).
   // 정규식은 백엔드 SelcaService.SELCA_PATTERN 과 동일하게 *키워드 + 명령형 동사* 결합으로 정밀화.
-  // 이렇게 하지 않으면 LLM 의 감상 choices ("셀카 이쁘다" 등) 가 셀카 풍선을 깜빡이게 한다.
-  const isSelcaReq = /(셀카|셀피|사진|selfie|selca).{0,12}(보내|찍어|찍자|찍|보여|줄래|보낼래|줘\b|줘$|줘\s)/i.test(text);
-  if (isSelcaReq) mountSelfie({ loading: true });
+  const isSelcaReq = !hasImage
+    && /(셀카|셀피|사진|selfie|selca).{0,12}(보내|찍어|찍자|찍|보여|줄래|보낼래|줘\b|줘$|줘\s)/i.test(text || '');
+
+  // 응답 대기 폴백 — vision 첨부면 "사진 보내는 중…" 인디케이터, 일반 채팅이면 thinking 인디케이터.
+  if (hasImage) {
+    showVisionPlaceholder();
+  } else {
+    showDialogLoading('음… 잠깐만요');
+    if (isSelcaReq) mountSelfie({ loading: true });
+  }
 
   try {
-    const res = await postChat(soulmateId, text);
+    const res = await postChat(soulmateId, text || '', hasImage ? attachedImage.publicPath : null);
     const delta =
       res.affectionScore != null && previousAffectionScore != null
         ? res.affectionScore - previousAffectionScore
@@ -452,9 +465,19 @@ async function sendMessage(text) {
 
     showAffectionDelta(delta, levelUp);
 
-    // Day 7 Step 9 — 셀카 응답 imageUrl 분기. 도착했으면 폴라로이드, 아니면 풍선 제거.
-    // (가드 한도 초과로 fallback 텍스트만 도착한 경우 imageUrl 이 null 이라 자연스럽게 풍선이 사라짐.)
-    if (res.imageUrl) {
+    // Day 8 vision 분기 우선 — hasImage 였으면 *짝풍선* (vision-pair) 으로 마운트.
+    // (vision 가드 한도 초과 시 backend 가 res.imageUrl 을 echo 안 할 수도 있어 한 번 더 분기 확인.)
+    if (hasImage) {
+      if (res.imageUrl) {
+        mountVisionPair({
+          imageUrl: res.imageUrl,
+          userMessage: res.userMessage,
+          aiMessage: res.aiMessage,
+        });
+      }
+      clearAttach(); // 다음 메시지를 위해 첨부 해제
+    } else if (res.imageUrl) {
+      // Day 7 Step 9 — 셀카 응답 imageUrl 분기. 도착했으면 폴라로이드.
       mountSelfie({ loading: false, imageUrl: res.imageUrl });
     } else if (isSelcaReq) {
       // 셀카 요청이었는데 imageUrl 이 null 인 경우 (가드 우회) — 로딩 풍선 제거.
@@ -1175,6 +1198,162 @@ function init() {
 
   // Day 7 Step 9 — 셀카 빠른 버튼 + 라이트박스 핸들러 박기
   bindSelfieFeatures();
+
+  // Day 8 — 채팅 이미지 첨부 (Vision) 핸들러 박기
+  bindAttachButton();
+}
+
+// ============================================================
+// Day 8 — 채팅 이미지 첨부 (Vision)
+// (Claude Design handoff 통합 — Day 8 retrofit)
+// ============================================================
+
+function bindAttachButton() {
+  const btn = $('[data-chat-attach-btn]');
+  const input = $('[data-chat-attach-input]');
+  if (!btn || !input) return;
+  btn.addEventListener('click', (e) => {
+    // 미리보기가 있을 때 또 클릭하면 → file picker 다시 열림 (교체)
+    if (e.target.tagName !== 'INPUT') input.click();
+  });
+  input.addEventListener('change', onAttachChange);
+}
+
+async function onAttachChange(ev) {
+  const file = ev.target.files?.[0];
+  ev.target.value = ''; // 같은 파일 재선택 가능하게
+  if (!file) return;
+
+  // 클라이언트 검증 — 백엔드 V002 / V001 으로 빠지기 전 먼저 차단
+  if (!ATTACH_ACCEPTED_MIMES.has(file.type)) {
+    return showAttachError(file, 'PNG · JPG · GIF · WebP 만 첨부할 수 있어요.');
+  }
+  if (file.size > ATTACH_MAX_BYTES) {
+    return showAttachError(file, '5MB 이내로 첨부해 주세요.');
+  }
+
+  // 즉시 로컬 미리보기 — fade-in. 업로드 결과는 백그라운드.
+  const previewUrl = URL.createObjectURL(file);
+  mountAttachPreview({ name: file.name, sizeBytes: file.size, previewUrl, uploading: true });
+
+  try {
+    const uploaded = await postVisionUpload(file);
+    attachedImage = { ...uploaded, name: file.name, previewUrl };
+    mountAttachPreview({ name: file.name, sizeBytes: file.size, previewUrl, uploading: false });
+    $('[data-chat-attach-btn]')?.classList.add('attach-btn--has-file');
+  } catch (err) {
+    const hint = err.code === 'V002'
+      ? '서버에서 거절한 형식이에요. (PNG · JPG · GIF · WebP)'
+      : err.message || '업로드에 실패했어요.';
+    showAttachError({ name: file.name, size: file.size }, hint);
+  }
+}
+
+function mountAttachPreview({ name, sizeBytes, previewUrl, uploading }) {
+  const slot = $('[data-chat-attach-slot]');
+  if (!slot) return;
+  const kb = (sizeBytes / 1024).toFixed(0);
+  slot.innerHTML = `
+    <div class="attach-preview" data-chat-attach-card>
+      <div class="attach-preview__thumb"
+           style="--thumb-image: url('${previewUrl}')"></div>
+      <div class="attach-preview__meta">
+        <div class="attach-preview__name">${escapeHtml(name)}</div>
+        <div class="attach-preview__size">${kb} KB ·
+          ${uploading ? '<span>업로드 중…</span>' : '<span class="ok">전송 준비 완료</span>'}
+        </div>
+      </div>
+      <button type="button" class="attach-preview__remove"
+              data-chat-attach-clear aria-label="첨부 해제">
+        <svg viewBox="0 0 14 14" fill="none">
+          <path d="M3 3l8 8M11 3L3 11" stroke="currentColor"
+                stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>`;
+  slot.querySelector('[data-chat-attach-clear]')
+      ?.addEventListener('click', clearAttach);
+}
+
+function showAttachError(file, hint) {
+  const slot = $('[data-chat-attach-slot]');
+  if (!slot) return;
+  slot.innerHTML = `
+    <div class="attach-preview attach-preview--error">
+      <div class="attach-preview__thumb"></div>
+      <div class="attach-preview__meta">
+        <div class="attach-preview__name">${escapeHtml(file.name)}</div>
+        <div class="attach-preview__size">${escapeHtml(hint)}</div>
+      </div>
+      <button type="button" class="attach-preview__remove"
+              data-chat-attach-clear aria-label="첨부 해제">✕</button>
+    </div>`;
+  slot.querySelector('[data-chat-attach-clear]')
+      ?.addEventListener('click', clearAttach);
+  attachedImage = null;
+  $('[data-chat-attach-btn]')?.classList.remove('attach-btn--has-file');
+}
+
+function clearAttach() {
+  const slot = $('[data-chat-attach-slot]');
+  const card = slot?.querySelector('[data-chat-attach-card], .attach-preview');
+  if (card) {
+    card.classList.add('attach-preview--leaving');
+    setTimeout(() => { if (slot) slot.innerHTML = ''; }, 160);
+  } else if (slot) {
+    slot.innerHTML = '';
+  }
+  if (attachedImage?.previewUrl) {
+    try { URL.revokeObjectURL(attachedImage.previewUrl); } catch (_) { /* noop */ }
+  }
+  attachedImage = null;
+  $('[data-chat-attach-btn]')?.classList.remove('attach-btn--has-file');
+}
+
+function showVisionPlaceholder() {
+  const body = $(SELECTORS.messages);
+  if (!body) return;
+  body.innerHTML = `
+    <span class="vision-sending" aria-live="polite">
+      <span class="vision-sending__spinner"></span>
+      사진 보내는 중
+      <span class="vision-sending__dots">
+        <span></span><span></span><span></span>
+      </span>
+    </span>`;
+}
+
+function mountVisionPair({ imageUrl, userMessage, aiMessage }) {
+  const dialog = $(SELECTORS.dialog);
+  if (!dialog) return;
+  dialog.querySelector('.vision-pair')?.remove(); // 이전 페어 제거
+  const el = document.createElement('div');
+  el.className = 'vision-pair';
+  el.innerHTML = `
+    <div class="vision-user">
+      <div class="vision-user__icon">나</div>
+      <div class="vision-user__bubble">
+        <div class="vision-user__photo"
+             style="--user-image:url('${imageUrl}')"></div>
+        ${userMessage ? `<div class="vision-user__caption">${escapeHtml(userMessage)}</div>` : ''}
+      </div>
+    </div>
+    <div class="vision-char">
+      <div class="vision-char__bubble">${escapeHtml(aiMessage || '')}</div>
+      <div class="vision-char__portrait"></div>
+    </div>`;
+  dialog.appendChild(el);
+  // 사진 클릭 → 기존 .selfie-lightbox 재활용
+  el.querySelector('.vision-user__bubble')
+    ?.addEventListener('click', () => openLightbox(imageUrl));
+}
+
+function openLightbox(imageUrl) {
+  const lightbox = rootEl?.querySelector('[data-lightbox]');
+  const lightboxImg = rootEl?.querySelector('[data-lightbox-img]');
+  if (!lightbox || !lightboxImg) return;
+  lightboxImg.style.backgroundImage = `url("${imageUrl}")`;
+  lightbox.dataset.open = 'true';
 }
 
 // ============================================================

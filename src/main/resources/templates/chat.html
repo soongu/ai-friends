@@ -134,8 +134,22 @@
             </button>
           </div>
 
+          <!-- (Day 8) 입력창 위 — 첨부 미리보기 슬롯 (JS 가 동적으로 채움) -->
+          <div class="attach-preview-slot" data-chat-attach-slot></div>
+
           <!-- 입력창 — 마이크 + 전송 동등 비중 (텍스트 우선, 음성 옵션) -->
           <div class="dialog__input-row" data-chat-input-row>
+            <!-- (Day 8) 첨부 버튼 — 클릭 시 숨겨진 file input 위임 -->
+            <button type="button" class="attach-btn" data-chat-attach-btn aria-label="이미지 첨부">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M21 11l-8.5 8.5a5 5 0 11-7-7L13.5 4.5a3.5 3.5 0 114.95 4.95L10 18a2 2 0 11-2.8-2.8l7.6-7.6"
+                      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <!-- 시각적으로 숨겨진 file input. 버튼 클릭 → JS 가 .click() 위임 -->
+              <input type="file" class="attach-btn__input" data-chat-attach-input
+                     accept="image/png,image/jpeg,image/gif,image/webp"
+                     aria-hidden="false" tabindex="-1" />
+            </button>
             <input
               type="text"
               class="dialog__input"

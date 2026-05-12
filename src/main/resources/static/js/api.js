@@ -139,18 +139,45 @@ export async function deleteSoulmate(id) {
  */
 
 /**
- * AI 채팅 전송
+ * AI 채팅 전송 — Day 8 부터 imageUrl 옵션 동봉 가능.
  * @param {number} soulmateId
  * @param {string} userMessage
+ * @param {string} [imageUrl] — POST /api/vision/uploads 응답의 publicPath. 첨부 없으면 omit/null.
  * @returns {Promise<AiChatResponse>}
  */
-export async function postChat(soulmateId, userMessage) {
+export async function postChat(soulmateId, userMessage, imageUrl) {
+  const body = imageUrl
+    ? { soulmateId, userMessage, imageUrl }
+    : { soulmateId, userMessage };
   const res = await request('/api/chat', {
     method: 'POST',
-    body: JSON.stringify({ soulmateId, userMessage }),
+    body: JSON.stringify(body),
   });
   if (!res.success || res.data == null) throw new Error(res?.error?.message || '전송에 실패했어요');
   return res.data;
+}
+
+/**
+ * Day 8 — Vision multipart 업로드.
+ * 1단계: 사용자가 첨부한 이미지를 백엔드에 올려 publicPath 를 받는다.
+ * 2단계 (postChat) 의 imageUrl 인자에 그 publicPath 가 그대로 동봉된다.
+ *
+ * @param {File} file — input[type=file] 의 File 객체
+ * @returns {Promise<{publicPath: string, contentType: string, sizeBytes: number}>}
+ */
+export async function postVisionUpload(file) {
+  const form = new FormData();
+  form.append('image', file);   // 필드명 정확히 "image"
+  const res = await fetch(`${BASE}/api/vision/uploads`, { method: 'POST', body: form });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.success || body.data == null) {
+    const code = body?.error?.code;
+    const msg  = body?.error?.message || res.statusText;
+    const err  = new Error(msg);
+    err.code = code;
+    throw err;
+  }
+  return body.data; // { publicPath, contentType, sizeBytes }
 }
 
 /**
