@@ -2,8 +2,10 @@ package kr.spartaclub.aifriends.service;
 
 import kr.spartaclub.aifriends.chat.dto.AiReply;
 import kr.spartaclub.aifriends.chat.dto.SelcaResult;
+import kr.spartaclub.aifriends.chat.dto.VisionCommentResult;
 import kr.spartaclub.aifriends.chat.service.SelcaService;
 import kr.spartaclub.aifriends.chat.service.SoulmateChatService;
+import kr.spartaclub.aifriends.chat.service.VisionCommentService;
 import kr.spartaclub.aifriends.common.exception.BusinessException;
 import kr.spartaclub.aifriends.common.exception.ErrorCode;
 import kr.spartaclub.aifriends.domain.ChatLog;
@@ -60,6 +62,9 @@ class AiChatServiceTest {
 
     @Mock
     private SelcaService selcaService;
+
+    @Mock
+    private VisionCommentService visionCommentService;
 
     @InjectMocks
     private AiChatService aiChatService;
@@ -187,5 +192,60 @@ class AiChatServiceTest {
         assertThat(response.imageUrl()).isNull();
         assertThat(response.choices()).containsExactly("기대돼");  // choices · affectionDelta 는 살림
         assertThat(response.affectionScore()).isEqualTo(6);
+    }
+
+    @Test
+    @DisplayName("Vision 분기 — 사용자 imageUrl 첨부 시 LLM chat 호출 우회, VisionCommentService 가 응답 본문 책임 + imageUrl echo + 호감도 +1")
+    void processChat_vision_success() {
+        // given
+        AiChatRequest request = new AiChatRequest(1L, "이거 봐, 우리 강아지!", "/uploads/portraits/upload-1.png");
+        Soulmate soulmate = new Soulmate(
+                1L, "MALE", "male-cheerful", "url", "현우",
+                "다정함, 유머러스", "카페 투어, 야구", "친근한 반말", 0, 1, null,
+                "20대 후반 한국인 남성, 짧은 검은 머리, 환한 미소"
+        );
+        given(soulmateRepository.findById(1L)).willReturn(Optional.of(soulmate));
+
+        given(visionCommentService.hasImage("/uploads/portraits/upload-1.png")).willReturn(true);
+        given(visionCommentService.comment(eq(soulmate), eq("/uploads/portraits/upload-1.png"), eq("이거 봐, 우리 강아지!")))
+                .willReturn(VisionCommentResult.success("귀여운 강아지 사진이네! 보고만 있어도 기분이 좋아져."));
+
+        // when
+        AiChatResponse response = aiChatService.processChat(request);
+
+        // then
+        assertThat(response.aiMessage()).isEqualTo("귀여운 강아지 사진이네! 보고만 있어도 기분이 좋아져.");
+        assertThat(response.imageUrl()).isEqualTo("/uploads/portraits/upload-1.png");  // 사용자 업로드 URL 그대로 echo
+        assertThat(response.choices()).isEmpty();
+        assertThat(response.affectionScore()).isEqualTo(1);  // 사진 보내준 친밀감 +1
+        then(soulmateChatService).should(never()).chat(any(), anyString());  // LLM chat 호출 우회
+        then(selcaService).should(never()).isSelcaRequest(anyString());
+    }
+
+    @Test
+    @DisplayName("Vision 분기 — 한도 초과 시 캐릭터 인격 우회 메시지 + 호감도 변화 없음 + imageUrl 은 사용자 업로드 그대로 echo")
+    void processChat_vision_quotaExceeded_fallsBackToCharacterVoice() {
+        // given
+        AiChatRequest request = new AiChatRequest(1L, "이 사진 어때?", "/uploads/portraits/upload-2.jpg");
+        Soulmate soulmate = new Soulmate(
+                1L, "MALE", "male-calm", "url", "지호",
+                "차분함", "독서", "정중한 존댓말", 3, 1, null,
+                "20대 후반 한국인 남성, 안경"
+        );
+        given(soulmateRepository.findById(1L)).willReturn(Optional.of(soulmate));
+
+        given(visionCommentService.hasImage("/uploads/portraits/upload-2.jpg")).willReturn(true);
+        String fallback = "오늘 사진 너무 많이 봤더니 눈이 좀 피곤하네 ㅠㅠ 내일 다시 보여줄래?";
+        given(visionCommentService.comment(eq(soulmate), eq("/uploads/portraits/upload-2.jpg"), eq("이 사진 어때?")))
+                .willReturn(VisionCommentResult.quotaExceeded(fallback));
+
+        // when
+        AiChatResponse response = aiChatService.processChat(request);
+
+        // then
+        assertThat(response.aiMessage()).isEqualTo(fallback);
+        assertThat(response.imageUrl()).isEqualTo("/uploads/portraits/upload-2.jpg");  // 사용자 업로드는 그대로 echo
+        assertThat(response.affectionScore()).isEqualTo(3);  // 한도 초과 시 호감도 변화 없음
+        then(soulmateChatService).should(never()).chat(any(), anyString());
     }
 }
