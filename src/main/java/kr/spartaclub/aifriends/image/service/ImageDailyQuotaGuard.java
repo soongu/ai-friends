@@ -35,7 +35,8 @@ public class ImageDailyQuotaGuard {
     }
 
     /**
-     * 테스트 한정 — Clock 을 외부에서 주입해 자정 경계 시나리오를 검증할 수 있게 한다.
+     * 시간 의존성을 외부에서 주입받는 생성자 — 운영용 ({@code Clock.systemDefaultZone()}) 외에
+     * 자정 경계 시나리오를 재현해야 할 때 임의 {@link Clock} 을 끼워넣을 수 있게 한다.
      */
     ImageDailyQuotaGuard(int dailyLimit, Clock clock) {
         this.dailyLimit = dailyLimit;

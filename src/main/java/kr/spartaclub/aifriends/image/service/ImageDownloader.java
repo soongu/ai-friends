@@ -4,7 +4,7 @@ package kr.spartaclub.aifriends.image.service;
  * Day 7 Step 4 — 외부 이미지 URL 을 바이트 배열로 가져오는 단일 책임 추상.
  *
  * <p>{@link ImageGenerationService} 가 RestClient 를 직접 받지 않고 이 인터페이스에 의존하면,
- * 단위 테스트에서 builder chain 을 mock 할 필요가 사라지고 호출 의도(=다운로드) 가 명확해진다.
+ * 호출 의도(=다운로드) 가 명확해지고, 프록시/캐시/CDN 같은 변형 구현체로 갈아끼우는 비용이 사라진다.
  * §4 추상화 정신 — 프로바이더가 어떻게 가져오느냐는 호출자가 알 필요 없다.</p>
  */
 public interface ImageDownloader {
