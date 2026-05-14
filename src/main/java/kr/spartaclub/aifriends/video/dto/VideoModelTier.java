@@ -9,6 +9,14 @@ package kr.spartaclub.aifriends.video.dto;
  *
  * <p>해상도 가산 계수는 {@link kr.spartaclub.aifriends.video.service.VideoCostCalculator}
  * 에서 곱한다 (480p=1×, 720p=2×, 1080p=4×).</p>
+ *
+ * <p><b>시점 박제 노트</b>: 본 enum 의 단가/이름은 강의 시점(2026-04) 박제다.
+ * 이후 출렁임 — 예: Sora 앱/sora.com 2026-04-26 종료(API 는 2026-09-24 종료 예정) ·
+ * Sora 2 출시(2025-09, Standard $0.10/초 · Pro $0.30~0.50/초) ·
+ * Veo 3.1 라인(2025-10 출시, Fast $0.15/초 · Lite $0.05/초) · Runway Gen-4 Turbo($0.05/초) ·
+ * Hailuo 02 / Pika 2.2 — 은 강의의 *시의성 노트* 박스에서 한 자락 짚는다. 단가 출렁임을
+ * {@link kr.spartaclub.aifriends.video.client.VideoPollingClient} 추상화가 흡수하는 게 본 강의의
+ * 핵심 메시지라, 본 상수 단가는 학습 박제로 보존한다.</p>
  */
 public enum VideoModelTier {
 
