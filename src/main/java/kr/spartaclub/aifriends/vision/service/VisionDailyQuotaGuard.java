@@ -2,6 +2,7 @@ package kr.spartaclub.aifriends.vision.service;
 
 import kr.spartaclub.aifriends.common.exception.ErrorCode;
 import kr.spartaclub.aifriends.vision.exception.VisionException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +31,7 @@ public class VisionDailyQuotaGuard {
     private LocalDate currentDate;
     private int counter;
 
+    @Autowired
     public VisionDailyQuotaGuard(@Value("${aifriends.vision.quota.daily-limit:20}") int dailyLimit) {
         this(dailyLimit, Clock.systemDefaultZone());
     }
