@@ -182,7 +182,7 @@ async function playVoicePreview(card, btn, soulmate) {
   btn.classList.add('smcard__voice--loading');
   card.classList.add('smcard--voice-hover'); // 로딩 동안 mist 글로우
   try {
-    const { blob } = await synthesizeSpeech(buildPreviewLine(soulmate), pickVoice(soulmate.characterImageId));
+    const { blob } = await synthesizeSpeech(buildPreviewLine(soulmate), pickVoice(soulmate));
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
 

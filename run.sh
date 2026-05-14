@@ -91,9 +91,31 @@ fi
 info "1/3  이미지 빌드 (내부에서 gradle clean bootJar 실행)"
 ${DC} build
 
+# ---- .env 변경 감지 → 강제 재생성 플래그 ----------------
+# docker compose up -d 는 보통 env 변경 시 컨테이너를 recreate 하지만,
+# 일부 케이스(docker compose restart 후 up, 같은 키 다른 값 등)에서 stale env 가
+# 그대로 남는 사고가 종종 난다. `.env` 가 현재 떠 있는 app 컨테이너 기동 시점보다
+# 새로 수정됐다면 app 만 명시적으로 --force-recreate 한다 (mysql 은 데이터 보존).
+APP_FORCE_RECREATE=""
+APP_CID="$(${DC} ps -q app 2>/dev/null || true)"
+if [[ -n "${APP_CID}" && -f ".env" ]]; then
+    APP_STARTED_EPOCH=$(docker inspect -f '{{.State.StartedAt}}' "${APP_CID}" 2>/dev/null \
+        | xargs -I {} date -j -f "%Y-%m-%dT%H:%M:%S" "$(echo {} | cut -c1-19)" "+%s" 2>/dev/null || echo 0)
+    ENV_MTIME_EPOCH=$(stat -f "%m" .env 2>/dev/null || stat -c "%Y" .env 2>/dev/null || echo 0)
+    if [[ "${ENV_MTIME_EPOCH}" -gt "${APP_STARTED_EPOCH}" && "${APP_STARTED_EPOCH}" -gt 0 ]]; then
+        warn ".env 가 현재 떠 있는 app 컨테이너보다 새로 수정됐습니다 — app 만 강제 재생성합니다."
+        APP_FORCE_RECREATE="--force-recreate"
+    fi
+fi
+
 # ---- 기동 ------------------------------------------------
 info "2/3  컨테이너 기동 (MySQL healthcheck 통과 후 App 실행)"
-${DC} up -d
+if [[ -n "${APP_FORCE_RECREATE}" ]]; then
+    ${DC} up -d --no-deps mysql
+    ${DC} up -d --no-deps ${APP_FORCE_RECREATE} app
+else
+    ${DC} up -d
+fi
 
 # ---- MySQL healthy 대기 ----------------------------------
 info "MySQL healthcheck 대기 중..."

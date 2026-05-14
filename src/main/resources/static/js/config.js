@@ -38,7 +38,7 @@ export const CONFIG = {
  *  - calm     : 깊고 차분한 남성    → 비 오는 도서관
  *  - cheerful : 활기 있는 남성     → 노을 농구장
  *
- * 새 캐릭터 추가 시 이 표에만 한 줄 추가하면 된다.
+ * 새 predefined 캐릭터 추가 시 이 표에만 한 줄 추가하면 된다.
  */
 const MOOD_BY_CHARACTER = {
   'character-female-bright':   'bright',
@@ -47,7 +47,36 @@ const MOOD_BY_CHARACTER = {
   'character-male-cheerful':   'cheerful',
 };
 
-/** characterImageId 로부터 추상 mood key 를 돌려준다. 매핑 없으면 null (백엔드 default voice). */
-export function pickVoice(characterImageId) {
-  return MOOD_BY_CHARACTER[characterImageId] || null;
+/**
+ * 매핑 표에 없는 캐릭터 (사용자가 직접 만든 custom 캐릭터 등) 의 mood 폴백.
+ *
+ * 사용자가 portrait 업로드로 만든 캐릭터는 {@code characterImageId="custom"} 인데, 이게
+ * MOOD_BY_CHARACTER 에 없으면 백엔드가 default voice(ElevenLabs Rachel) 로 폴백해
+ * *모든 custom 캐릭터가 같은 목소리* 로 들리는 사고가 난다. 폴백은 *gender + id 짝수/홀수*
+ * 로 4 mood 에 결정론적으로 분산시켜 — 같은 캐릭터는 항상 같은 voice, 다른 캐릭터는
+ * (확률 1/2 로) 다른 voice 가 떨어지도록 한다.
+ */
+function fallbackMoodByGenderAndId(soulmate) {
+  const gender = (soulmate?.gender || '').toUpperCase();
+  const id = Number(soulmate?.id) || 0;
+  const even = id % 2 === 0;
+  if (gender === 'FEMALE') return even ? 'bright' : 'warm';
+  if (gender === 'MALE')   return even ? 'calm'   : 'cheerful';
+  return even ? 'bright' : 'calm';   // gender 미상 폴백
+}
+
+/**
+ * 캐릭터의 mood key 를 돌려준다.
+ *
+ * @param {Object|string} soulmateOrImageId — 권장은 soulmate 객체({id, gender, characterImageId}).
+ *        하위 호환을 위해 문자열(characterImageId) 도 받지만, 이 경우 매핑 누락 시 'bright' 로 폴백한다.
+ * @returns {string} mood key (항상 4 자루 중 하나 — null 반환하지 않음 → 백엔드 default voice 폴백 방지)
+ */
+export function pickVoice(soulmateOrImageId) {
+  if (typeof soulmateOrImageId === 'string') {
+    // 하위 호환: characterImageId 문자열만 받은 경우
+    return MOOD_BY_CHARACTER[soulmateOrImageId] || 'bright';
+  }
+  const soulmate = soulmateOrImageId || {};
+  return MOOD_BY_CHARACTER[soulmate.characterImageId] || fallbackMoodByGenderAndId(soulmate);
 }

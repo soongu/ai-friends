@@ -498,7 +498,7 @@ async function sendMessage(text) {
 
     // VOICE 토글 ON 이면 AI 메시지를 TTS 로 합성해 재생 (타자기와 병렬 진행)
     if (voiceMode && res.aiMessage) {
-      playReplyAudio(res.aiMessage, pickVoice(currentImageId)).catch((e) => {
+      playReplyAudio(res.aiMessage, pickVoice(storedProfile || { characterImageId: currentImageId })).catch((e) => {
         console.warn('[voice] TTS playback skipped:', e?.message || e);
       });
     }
