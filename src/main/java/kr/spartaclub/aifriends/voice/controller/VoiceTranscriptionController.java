@@ -28,21 +28,22 @@ import java.util.Set;
  * <p>응답은 {@link ApiResponse} 로 래핑한다 (§4-1 게이트). 검증 실패는 {@link VoiceException}
  * 으로만 던지고 {@code GlobalExceptionHandler} 가 표준 에러 응답으로 변환한다.</p>
  *
- * <p>허용 확장자는 OpenAI Whisper 의 공식 지원 목록을 그대로 따른다
- * (mp3, mp4, mpeg, mpga, m4a, wav, webm). 학습 단순도를 위해 파일명 확장자만 보고 거른다.
- * 최대 크기는 10MB — Whisper API 의 25MB 한도보다 보수적으로 잡아 학생 실습 비용을 억제한다.</p>
+ * <p>허용 확장자는 OpenAI Audio Transcription API 의 공식 지원 목록을 그대로 따른다
+ * (mp3, mp4, mpeg, mpga, m4a, wav, webm — gpt-4o-transcribe · gpt-4o-mini-transcribe · whisper-1
+ * 모두 동일 엔드포인트라 같은 자루를 받는다). 학습 단순도를 위해 파일명 확장자만 보고 거른다.
+ * 최대 크기는 10MB — OpenAI 의 25MB 한도보다 보수적으로 잡아 학생 실습 비용을 억제한다.</p>
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/voice")
 public class VoiceTranscriptionController {
 
-    /** OpenAI Whisper 가 공식적으로 받아들이는 오디오 확장자. */
+    /** OpenAI Audio Transcription API 가 공식적으로 받아들이는 오디오 확장자. */
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
             "mp3", "mp4", "mpeg", "mpga", "m4a", "wav", "webm"
     );
 
-    /** 학습용 최대 업로드 크기 — 10MB. Whisper 한도(25MB) 보다 보수적. */
+    /** 학습용 최대 업로드 크기 — 10MB. OpenAI 한도(25MB) 보다 보수적. */
     private static final long MAX_BYTES = 10L * 1024 * 1024;
 
     private final VoiceTranscriptionService voiceTranscriptionService;
