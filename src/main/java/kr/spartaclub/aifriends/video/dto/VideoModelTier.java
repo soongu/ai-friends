@@ -14,7 +14,7 @@ package kr.spartaclub.aifriends.video.dto;
  * 이후 출렁임 — 예: Sora 앱/sora.com 2026-04-26 종료(API 는 2026-09-24 종료 예정) ·
  * Sora 2 출시(2025-09, Standard $0.10/초 · Pro $0.30~0.50/초) ·
  * Veo 3.1 라인(2025-10 출시, Fast $0.15/초 · Lite $0.05/초) · Runway Gen-4 Turbo($0.05/초) ·
- * Hailuo 02 / Pika 2.2 — 은 강의의 *시의성 노트* 박스에서 한 자락 짚는다. 단가 출렁임을
+ * Hailuo 02 / Pika 2.2 — 은 강의교안 Step 1 라인업 표의 *2026-05 후속 라인* 컬럼에서 한 자락 짚는다. 단가 출렁임을
  * {@link kr.spartaclub.aifriends.video.client.VideoPollingClient} 추상화가 흡수하는 게 본 강의의
  * 핵심 메시지라, 본 상수 단가는 학습 박제로 보존한다.</p>
  */
