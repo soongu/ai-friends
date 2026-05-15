@@ -32,4 +32,10 @@ public record AiChatRequest(
     public AiChatRequest(Long soulmateId, String userMessage) {
         this(soulmateId, userMessage, null);
     }
+
+    @Override
+    public String toString() {
+        return "AiChatRequest[soulmateId=%s, userMessage=*** (%d chars), imageUrl=%s]".formatted(
+                soulmateId, userMessage == null ? 0 : userMessage.length(), imageUrl);
+    }
 }

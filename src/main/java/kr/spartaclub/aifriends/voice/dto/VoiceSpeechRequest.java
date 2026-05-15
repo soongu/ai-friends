@@ -12,4 +12,9 @@ package kr.spartaclub.aifriends.voice.dto;
  *              {@link org.springframework.ai.audio.tts.TextToSpeechOptions} 의 portable 옵션으로 전달된다.
  */
 public record VoiceSpeechRequest(String text, String voice) {
+    @Override
+    public String toString() {
+        return "VoiceSpeechRequest[text=*** (%d chars), voice=%s]".formatted(
+                text == null ? 0 : text.length(), voice);
+    }
 }

@@ -12,4 +12,9 @@ package kr.spartaclub.aifriends.voice.dto;
 public record VoiceTranscriptionResponse(
         String text
 ) {
+    @Override
+    public String toString() {
+        return "VoiceTranscriptionResponse[text=*** (%d chars)]".formatted(
+                text == null ? 0 : text.length());
+    }
 }
