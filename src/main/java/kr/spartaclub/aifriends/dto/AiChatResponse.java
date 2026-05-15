@@ -36,4 +36,11 @@ public record AiChatResponse(
          */
         String imageUrl
 ) {
+    @Override
+    public String toString() {
+        return "AiChatResponse[userMessage=*** (%d chars), aiMessage=*** (%d chars), choices=%s, soulmateId=%s, affectionScore=%s, level=%s, newBadges=%s, imageUrl=%s]".formatted(
+                userMessage == null ? 0 : userMessage.length(),
+                aiMessage == null ? 0 : aiMessage.length(),
+                choices, soulmateId, affectionScore, level, newBadges, imageUrl);
+    }
 }

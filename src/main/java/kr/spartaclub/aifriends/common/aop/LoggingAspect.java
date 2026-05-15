@@ -42,6 +42,18 @@ public class LoggingAspect {
             "(?i)(password|token|apiKey|secret|authorization|credential)=[^,\\s}\\]]+"
     );
 
+    /**
+     * LLM 도메인 텍스트 콘텐츠 마스킹 — aiMessage, transcribedText 등 record toString() 출력에
+     * 박히는 LLM 생성 텍스트를 *** 로 치환한다. 값이 한국어처럼 공백을 포함할 수 있으므로
+     * "다음 ASCII 필드명=" 이 나오거나 "]" 가 나올 때까지를 값으로 본다.
+     * AiChatRequest/AiChatResponse/VoiceSpeechRequest/VoiceTranscriptionResponse 는
+     * toString() 오버라이드로 이미 처리 — 이 패턴은 그 외 DTO(SoulmateChatResponse 등)의 폴백.
+     */
+    private static final Pattern LLM_CONTENT_PATTERN = Pattern.compile(
+            "(?i)\\b(aiMessage|transcribedText)\\s*=\\s*(.*?)(?=,\\s+[a-zA-Z]\\w*=|\\])",
+            java.util.regex.Pattern.DOTALL
+    );
+
     /** 파라미터 이름이 이 중 하나를 포함하면 값 마스킹 (대소문자 무시) */
     private static final List<String> SENSITIVE_PARAM_NAMES = List.of(
             "password", "token", "apikey", "secret", "authorization", "credential", "key"
@@ -197,10 +209,12 @@ public class LoggingAspect {
         return SENSITIVE_PARAM_NAMES.stream().anyMatch(lower::contains);
     }
 
-    /** 요청/응답 문자열 안의 password=xxx, token=xxx 등을 *** 로 치환 */
+    /** 요청/응답 문자열 안의 민감 정보 + LLM 콘텐츠를 *** 로 치환 */
     private String maskSensitiveInString(String s) {
         if (s == null || s.isEmpty()) return s;
-        return SENSITIVE_FIELD_PATTERN.matcher(s).replaceAll("$1=***");
+        String masked = SENSITIVE_FIELD_PATTERN.matcher(s).replaceAll("$1=***");
+        masked = LLM_CONTENT_PATTERN.matcher(masked).replaceAll("$1=***");
+        return masked;
     }
 
     private String toShortString(Object obj) {
