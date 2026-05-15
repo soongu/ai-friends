@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>음성 파일({@link Resource}) 한 개를 받아 {@link TranscriptionModel} 에 전달하고
  * 텍스트 결과를 그대로 돌려준다. {@link TranscriptionModel} 은 인터페이스로만 주입받으므로
- * (§4 프로바이더 추상화 게이트), 빈은 OpenAI Whisper · 추후 다른 STT 프로바이더 어떤 것이든
+ * (§4 프로바이더 추상화 게이트), 빈은 OpenAI `gpt-4o-transcribe` (디폴트) / `whisper-1` (레거시) · 추후 다른 STT 프로바이더 어떤 것이든
  * 될 수 있다 — 호출자는 모른다. 활성 STT 프로바이더는 {@code application.yml} 의
  * {@code spring.ai.model.audio.transcription} 프로퍼티로만 결정된다.</p>
  *
