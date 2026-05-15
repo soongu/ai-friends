@@ -16,13 +16,38 @@ public enum ErrorCode {
 
     // Soulmate
     SOULMATE_NOT_FOUND(HttpStatus.NOT_FOUND, "S001", "이성친구를 찾을 수 없습니다."),
+    SOULMATE_INVALID_PRESET(HttpStatus.BAD_REQUEST, "S002", "선택할 수 있는 캐릭터 프리셋이 아닙니다."),
+    SOULMATE_CUSTOM_PROMPT_REQUIRED(HttpStatus.BAD_REQUEST, "S003", "커스텀 외모를 선택했다면 외모 prompt 를 입력해야 합니다."),
 
     // Chat / Gemini
     MESSAGE_REQUIRED(HttpStatus.BAD_REQUEST, "G001", "메시지를 입력해 주세요."),
     AI_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "G002", "AI가 일시적으로 응답하지 않습니다."),
     RATE_LIMIT(HttpStatus.TOO_MANY_REQUESTS, "G003", "잠시 후 다시 시도해 주세요."),
     AI_SERVICE_ERROR(HttpStatus.BAD_GATEWAY, "G004", "AI 서비스 설정 오류가 발생했습니다."),
-    REQUEST_TIMEOUT(HttpStatus.BAD_GATEWAY, "G005", "요청 시간이 초과되었습니다.");
+    REQUEST_TIMEOUT(HttpStatus.BAD_GATEWAY, "G005", "요청 시간이 초과되었습니다."),
+
+    // Image (Day 7)
+    IMAGE_PROMPT_REQUIRED(HttpStatus.BAD_REQUEST, "I001", "이미지 생성을 위한 프롬프트를 입력해 주세요."),
+    IMAGE_QUOTA_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "I002", "오늘의 이미지 생성 횟수 한도를 초과했습니다."),
+    IMAGE_DOWNLOAD_FAILED(HttpStatus.BAD_GATEWAY, "I003", "생성된 이미지를 가져오지 못했습니다."),
+    IMAGE_STORAGE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "I004", "이미지를 저장하는 중 문제가 발생했습니다."),
+    IMAGE_GENERATION_FAILED(HttpStatus.BAD_GATEWAY, "I005", "이미지 생성에 실패했습니다."),
+
+    // Vision (Day 8)
+    VISION_IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "V001", "이미지 파일을 첨부해 주세요."),
+    VISION_INVALID_MIME_TYPE(HttpStatus.BAD_REQUEST, "V002", "지원하지 않는 이미지 형식입니다. (png, jpg, gif, webp)"),
+    VISION_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "V003", "이미지 업로드에 실패했습니다."),
+    VISION_PORTRAIT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "V004", "이 캐릭터는 아직 portrait 이미지가 없습니다."),
+    VISION_QUOTA_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "V005", "오늘의 Vision 호출 횟수 한도를 초과했습니다."),
+
+    // Voice / STT (Day 9)
+    VOICE_AUDIO_REQUIRED(HttpStatus.BAD_REQUEST, "VC001", "음성 파일을 첨부해 주세요."),
+    VOICE_AUDIO_FORMAT_INVALID(HttpStatus.BAD_REQUEST, "VC002", "지원하지 않는 음성 파일 형식입니다. (mp3, mp4, mpeg, mpga, m4a, wav, webm)"),
+    VOICE_AUDIO_TOO_LARGE(HttpStatus.BAD_REQUEST, "VC003", "음성 파일 크기가 허용 한도(10MB)를 초과했습니다."),
+    VOICE_TRANSCRIPTION_FAILED(HttpStatus.BAD_GATEWAY, "VC004", "음성 인식에 실패했습니다."),
+    VOICE_TEXT_REQUIRED(HttpStatus.BAD_REQUEST, "VC005", "음성 합성을 위한 텍스트를 입력해 주세요."),
+    VOICE_SYNTHESIS_FAILED(HttpStatus.BAD_GATEWAY, "VC006", "음성 합성에 실패했습니다."),
+    VOICE_TEXT_TOO_LONG(HttpStatus.BAD_REQUEST, "VC007", "음성 합성 텍스트가 허용 길이(4000자)를 초과했습니다.");
 
     private final HttpStatus status;
     private final String code;

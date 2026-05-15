@@ -10,7 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -18,7 +18,6 @@ import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -33,7 +32,7 @@ class AiChatControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private AiChatService aiChatService;
 
     @Test
@@ -42,7 +41,7 @@ class AiChatControllerTest {
         // given
         AiChatRequest request = new AiChatRequest(1L, "안녕");
         AiChatResponse response = new AiChatResponse(
-                "안녕", "반가워!", Collections.emptyList(), 1L, 5, 1, Collections.emptyList()
+                "안녕", "반가워!", Collections.emptyList(), 1L, 5, 1, Collections.emptyList(), null
         );
 
         given(aiChatService.processChat(any())).willReturn(response);

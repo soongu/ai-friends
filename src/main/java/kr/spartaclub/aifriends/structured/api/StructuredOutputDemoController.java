@@ -1,0 +1,248 @@
+package kr.spartaclub.aifriends.structured.api;
+
+import kr.spartaclub.aifriends.common.response.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.converter.BeanOutputConverter;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Day 4 Step 2 — 구조화 출력(Structured Output) PoC 데모 컨트롤러.
+ *
+ * <p>가장 단순한 record(Quote) 하나로 {@code .call().entity(Class<T>)} 의 동작을
+ * 체험하기 위한 일회용 데모이다. SoulmateChatService 같은 본 도메인 코드는
+ * Day 4 Step 5 에서 본격적으로 리팩토링한다.</p>
+ *
+ * <p>Day 2 의 ChatModel 인터페이스 추상화 원칙은 그대로 유지한다.
+ * {@link ChatClient.Builder} 는 spring-ai-starter 가 자동 등록하며,
+ * 그 뒤의 ChatModel 구현체는 {@code spring.ai.model.chat} 프로퍼티에 의해 결정되므로
+ * 사용자 코드는 특정 프로바이더(OpenAI/Ollama/Gemini)에 묶이지 않는다.</p>
+ *
+ * <p>모든 정상 응답은 표준 응답 래퍼 {@link ApiResponse} 로 감싼다 — GlobalExceptionHandler 가
+ * 에러를 {@code ApiResponse.fail(...)} 로 자동 감싸므로 정상 응답도 같은 형태로 통일하기 위함.
+ * 단 {@code /quote/format-debug} 는 학습용 디버그 평문 출력이므로 예외적으로 raw {@code text/plain}.</p>
+ */
+@Slf4j
+@RestController
+public class StructuredOutputDemoController {
+
+    /**
+     * Day 4 Step 6 학습용 — 모든 retry 가 실패했을 때 사용자에게 돌려줄 안전 응답.
+     * "지금은 답을 만들 수 없지만 사용자한텐 항상 200 OK 가 가는" fallback 정책의 표본.
+     */
+    private static final Quote FALLBACK_QUOTE = new Quote(
+            "지금은 명언을 가져올 수 없어요. 잠시 후 다시 시도해주세요.",
+            "ai-friends");
+
+    /**
+     * Day 4 Step 6 학습용 — 잘 만들어진 정상 JSON 응답 시뮬레이션.
+     */
+    private static final String SIMULATED_VALID_RAW = """
+            {"text":"용기는 두려움이 없는 것이 아니라, 두려움을 이겨내는 판단이다.","author":"넬슨 만델라"}
+            """;
+
+    /**
+     * Day 4 Step 6 학습용 — LLM 이 자유 형식으로 답해 JSON 파싱이 깨진 응답 시뮬레이션.
+     * BeanOutputConverter.convert() 가 RuntimeException(JsonProcessingException) 을 던진다.
+     */
+    private static final String SIMULATED_BROKEN_RAW =
+            "이건 JSON 이 아니라 모델이 자유롭게 답해버린 평문입니다. 파싱 실패 시뮬레이션용.";
+
+    private final ChatClient chatClient;
+
+    public StructuredOutputDemoController(ChatClient.Builder builder) {
+        // defaultSystem 등 어떤 사전 세팅도 박지 않는다 — Step 2 의 PoC 는
+        // "비어있는 ChatClient 에 .entity(Class<T>) 한 줄을 더했을 때
+        // 어떤 일이 벌어지는가" 를 가장 정직하게 보여주는 게 목적이다.
+        this.chatClient = builder.build();
+    }
+
+    /**
+     * 구조화 출력 PoC 용 가장 단순한 record.
+     *
+     * <p>필드 두 개만으로도 BeanOutputConverter 가 자동 JSON Schema 를 생성해
+     * 프롬프트에 주입하므로, LLM 이 이 record 형태에 맞는 JSON 을 응답한다.
+     * 그 메커니즘은 Day 4 Step 3 에서 직접 들여다본다.</p>
+     */
+    public record Quote(String text, String author) { }
+
+    /**
+     * topic 에 관한 짧은 명언 한 줄을 {@link Quote} record 로 받아 표준 래퍼에 담아 반환한다.
+     *
+     * <p>핵심은 {@code .call().entity(Quote.class)} — JSON 스키마 손 조립도,
+     * ObjectMapper.readValue try-catch 도 사용자 코드에 등장하지 않는다.</p>
+     *
+     * @param topic 명언의 주제 (예: "용기", "인내")
+     */
+    @GetMapping("/api/structured/quote")
+    public ResponseEntity<ApiResponse<Quote>> quote(@RequestParam(defaultValue = "용기") String topic) {
+        Quote quote = chatClient.prompt()
+                .user(u -> u.text("'{topic}' 에 관한 짧은 명언 한 줄을 알려줘.").param("topic", topic))
+                .call()
+                .entity(Quote.class);
+        return ResponseEntity.ok(ApiResponse.success(quote));
+    }
+
+    /**
+     * Day 4 Step 3 — {@link BeanOutputConverter} 가 LLM 한테 무엇을 보내는지 들여다보는 디버그 엔드포인트.
+     *
+     * <p>{@code .entity(Quote.class)} 안쪽에서 Spring AI 가 내부적으로 만들어 쓰는 두 가지 텍스트를
+     * 그대로 응답으로 떨어뜨려 학생이 직접 눈으로 확인할 수 있게 한다.</p>
+     * <ul>
+     *   <li>{@code getJsonSchema()} — record 를 분석해 자동 생성된 순수 JSON Schema 텍스트.</li>
+     *   <li>{@code getFormat()} — 위 스키마를 감싸 LLM 한테 "이 형식만 지켜라" 라고 명시하는 자연어 지시문.
+     *       {@code .entity()} 호출 시 사용자 프롬프트 끝에 자동 주입되는 것과 동일한 텍스트.</li>
+     * </ul>
+     *
+     * <p><b>예외 — ApiResponse 래핑하지 않음.</b> 학습용 디버그 평문 출력이므로 {@code text/plain} 으로
+     * 떨어뜨려 curl 콘솔에서 그대로 가독성 있게 읽도록 한다.</p>
+     */
+    @GetMapping(value = "/api/structured/quote/format-debug", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String quoteFormatDebug() {
+        BeanOutputConverter<Quote> converter = new BeanOutputConverter<>(Quote.class);
+        return """
+                === BeanOutputConverter<Quote>.getJsonSchema() ===
+                %s
+
+                === BeanOutputConverter<Quote>.getFormat() ===
+                %s
+                """.formatted(converter.getJsonSchema(), converter.getFormat());
+    }
+
+    /**
+     * Day 4 Step 4 — {@code List<Quote>} 반환을 통해 {@link ParameterizedTypeReference} 의 필요성을 보여주는 엔드포인트.
+     *
+     * <p>{@code .entity(List.class)} 는 컴파일은 통과하지만 원소 타입 정보가 erase 되어
+     * 의도한 {@code List<Quote>} 가 아니라 그냥 {@code List<?>} 로 다뤄진다.
+     * 그래서 익명 서브클래스 트릭({@code new ParameterizedTypeReference<List<Quote>>() {}})으로
+     * 런타임까지 타입 토큰을 살려 보내야 한다.</p>
+     */
+    @GetMapping("/api/structured/quotes")
+    public ResponseEntity<ApiResponse<List<Quote>>> quotes(
+            @RequestParam(defaultValue = "용기") String topic,
+            @RequestParam(defaultValue = "3") int count) {
+        List<Quote> quotes = chatClient.prompt()
+                .user(u -> u.text("'{topic}' 에 관한 짧은 명언을 서로 다른 인물의 것으로 {count} 개 알려줘.")
+                        .param("topic", topic)
+                        .param("count", count))
+                .call()
+                .entity(new ParameterizedTypeReference<List<Quote>>() {});
+        return ResponseEntity.ok(ApiResponse.success(quotes));
+    }
+
+    /**
+     * Day 4 Step 4 — {@code Map<String, Integer>} 반환 케이스. 키가 미리 정해지지 않은 동적 응답에 적합한 패턴.
+     *
+     * <p>record 처럼 컴파일 시점에 키를 고정할 수 없는 데이터(키워드 빈도, 분류 점수 등)를 받을 때
+     * Map 으로 받는 게 자연스럽다. {@code List<T>} 와 마찬가지로 {@code ParameterizedTypeReference} 가 필요하다.</p>
+     */
+    @GetMapping("/api/structured/keyword-counts")
+    public ResponseEntity<ApiResponse<Map<String, Integer>>> keywordCounts(
+            @RequestParam(defaultValue = "Spring AI 는 자바 백엔드에서 LLM 을 다루는 표준 추상화를 제공한다.") String text) {
+        Map<String, Integer> counts = chatClient.prompt()
+                .user(u -> u.text("다음 문장에서 핵심 명사를 추출해 키워드별 등장 횟수를 JSON 객체로 반환해줘. 문장: {text}")
+                        .param("text", text))
+                .call()
+                .entity(new ParameterizedTypeReference<Map<String, Integer>>() {});
+        return ResponseEntity.ok(ApiResponse.success(counts));
+    }
+
+    /**
+     * Day 4 Step 6 — JSON 파싱 실패 복구 전략 시연: <b>retry → fallback</b> 결합.
+     *
+     * <p>실제 LLM 호출 없이 학습용으로 시뮬레이션한다. {@code simulatedFailures} 만큼의 초반 시도는
+     * 일부러 깨진 평문 응답으로 {@link BeanOutputConverter#convert(String)} 를 호출해
+     * {@code RuntimeException(JsonProcessingException)} 을 발생시킨다. 모든 재시도 (max 3회) 가
+     * 실패하면 사전 정의된 {@link #FALLBACK_QUOTE} 를 200 OK 로 돌려준다 — 사용자한테는
+     * "답이 항상 가지만 품질이 낮은 경우" 가 발생할 수 있다는 정책 표본.</p>
+     *
+     * <p>동일 흐름을 실제 LLM 호출에 적용하려면 시뮬레이션 응답 자리에 {@code chatClient.prompt()...call().content()}
+     * 를 두고 그 결과를 {@code converter.convert(...)} 로 흘리면 된다. 단 진짜 LLM 응답이 일관되게
+     * 깨지는 경우는 드물어 학습용으로는 시뮬레이션 흐름이 더 명료하다.</p>
+     *
+     * @param simulatedFailures 0~3, 초반 N회를 일부러 실패시킴 (기본 2)
+     */
+    @GetMapping("/api/structured/quote/recover-retry")
+    public ResponseEntity<ApiResponse<Quote>> recoverWithRetryThenFallback(
+            @RequestParam(defaultValue = "2") int simulatedFailures) {
+        BeanOutputConverter<Quote> converter = new BeanOutputConverter<>(Quote.class);
+        int maxAttempts = 3;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            String simulated = (attempt <= simulatedFailures) ? SIMULATED_BROKEN_RAW : SIMULATED_VALID_RAW;
+            try {
+                Quote quote = converter.convert(simulated);
+                log.info("recover-retry: attempt {}/{} succeeded", attempt, maxAttempts);
+                return ResponseEntity.ok(ApiResponse.success(quote));
+            } catch (RuntimeException e) {
+                log.warn("recover-retry: attempt {}/{} failed: {}", attempt, maxAttempts, e.getMessage());
+            }
+        }
+
+        log.warn("recover-retry: all {} attempts failed, returning fallback", maxAttempts);
+        return ResponseEntity.ok(ApiResponse.success(FALLBACK_QUOTE));
+    }
+
+    /**
+     * Day 4 Step 7 학습용 — schema 크기 비교를 위한 작은 record. Quote 와 동일한 2 필드 baseline.
+     */
+    public record QuoteMini(String text, String author) { }
+
+    /**
+     * Day 4 Step 7 학습용 — schema 크기 비교 중간 단계. 우리 AiReply 와 같은 3 필드 (List 포함).
+     */
+    public record AiReplyLike(String aiMessage, List<String> choices, int affectionDelta) { }
+
+    /**
+     * Day 4 Step 7 학습용 — 풍부한 미연시 게임 응답을 가정한 큰 record (11 필드, List + Map 포함).
+     * "응답을 너무 풍부하게 키우면 schema 도 같이 부풀어 오른다" 는 트레이드오프 시연용.
+     */
+    public record AiReplyBig(
+            String aiMessage,
+            List<String> choices,
+            int affectionDelta,
+            String emotion,
+            String backgroundMusic,
+            List<String> tags,
+            int turnNumber,
+            String sceneDescription,
+            String characterPose,
+            boolean shouldEndConversation,
+            Map<String, Integer> additionalStats
+    ) { }
+
+    /**
+     * Day 4 Step 7 — record 의 필드 수를 키우면 schema 텍스트가 어떻게 부풀어 오르는지 비교.
+     *
+     * <p>학습용 디버그 평문 출력 (text/plain). LLM 호출 없음.
+     * 토큰 수 추정은 영어/숫자 위주 schema 텍스트 기준으로 1 토큰 ≈ 4 바이트 휴리스틱을 쓴다.
+     * 정확한 토큰 수는 토크나이저별로 다르므로 어디까지나 감각 잡기용 근사치.</p>
+     */
+    @GetMapping(value = "/api/structured/schema-size", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String schemaSize() {
+        StringBuilder sb = new StringBuilder();
+        appendSchemaInfo(sb, "QuoteMini  (2 fields)",                     QuoteMini.class);
+        appendSchemaInfo(sb, "AiReplyLike (3 fields, incl. List)",        AiReplyLike.class);
+        appendSchemaInfo(sb, "AiReplyBig (11 fields, incl. List + Map)",  AiReplyBig.class);
+        return sb.toString();
+    }
+
+    private void appendSchemaInfo(StringBuilder sb, String label, Class<?> clazz) {
+        BeanOutputConverter<?> converter = new BeanOutputConverter<>(clazz);
+        String schema = converter.getJsonSchema();
+        int bytes = schema.getBytes().length;
+        int approxTokens = (int) Math.ceil(bytes / 4.0);   // 1 token ≈ 4 bytes (영어 위주 휴리스틱)
+        sb.append("=== ").append(label).append(" ===\n");
+        sb.append(schema).append('\n');
+        sb.append("length: ").append(bytes).append(" bytes  ≈  ")
+                .append(approxTokens).append(" tokens (estimated, English-heavy heuristic)\n\n");
+    }
+}

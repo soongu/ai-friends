@@ -1,0 +1,365 @@
+/* ============================================================
+   AI Friends — Soulmate Card (card.css)
+   랜딩 갤러리 + 만들기 Step 2 공용. variables.css 토큰만 (add-only)
+   ============================================================ */
+
+.smcard {
+  position: relative;
+  width: 100%;
+  height: 360px;
+  border-radius: var(--radius-cut);
+  overflow: hidden;
+  background: #1a1626;
+  cursor: pointer;
+  box-shadow:
+    0 18px 50px rgba(20,12,40,0.45),
+    0 0 0 2px var(--theme-primary, var(--theme-bright-primary)),
+    0 0 36px var(--theme-mist, var(--theme-bright-mist));
+  isolation: isolate;
+  animation: card-float 6s var(--ease-glide) infinite;
+  transition:
+    transform var(--dur-base) var(--ease-snap),
+    box-shadow var(--dur-base) var(--ease-soft);
+}
+.smcard:hover {
+  transform: translateY(-3px) scale(1.005);
+  box-shadow:
+    0 24px 60px rgba(20,12,40,0.55),
+    0 0 0 2px var(--theme-primary, var(--theme-bright-primary)),
+    0 0 60px var(--theme-mist, var(--theme-bright-mist)),
+    var(--theme-glow, var(--theme-bright-glow));
+}
+
+/* 캐릭터 thumb 풀블리드 — 자르거나 필터링 X */
+.smcard__thumb {
+  position: absolute;
+  inset: 0;
+  background-image: var(--thumb-image);
+  background-size: cover;
+  background-position: center 18%;
+  z-index: 1;
+}
+.smcard__thumb::after {
+  /* 하단 페이드 */
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, rgba(20,12,40,0.0) 0%, rgba(20,12,40,0.0) 35%, rgba(20,12,40,0.55) 80%, rgba(10,6,18,0.85) 100%);
+}
+
+/* 좌상단 곡선 컷 액센트 */
+.smcard__cut {
+  position: absolute;
+  top: 0; left: 0;
+  width: 96px; height: 26px;
+  border-top-left-radius: var(--radius-cut);
+  background: linear-gradient(135deg, var(--theme-primary, var(--theme-bright-primary)), var(--theme-accent, var(--theme-bright-accent)));
+  clip-path: polygon(0 0, 100% 0, 70% 100%, 0 100%);
+  box-shadow: 0 4px 14px rgba(255,160,100,0.4);
+  z-index: 4;
+}
+
+/* mote 파티클 — 카드 내부 */
+.smcard__motes {
+  position: absolute; inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.smcard__motes span {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,235,190,0.8), rgba(255,213,122,0.0) 70%);
+  filter: blur(0.5px);
+  animation: float-mote 7s var(--ease-glide) infinite;
+}
+.smcard__motes span:nth-child(1) { left: 14%; bottom: 60%; animation-delay: 0s;  }
+.smcard__motes span:nth-child(2) { left: 76%; bottom: 70%; animation-delay: 1.6s; width:5px; height:5px; }
+.smcard__motes span:nth-child(3) { left: 60%; bottom: 30%; animation-delay: 3.2s; }
+.smcard__motes span:nth-child(4) { left: 30%; bottom: 84%; animation-delay: 4.8s; width:3px; height:3px; }
+
+/* NEW 배지 (만들기 Step 2 컨텍스트) */
+.smcard__new-badge {
+  position: absolute;
+  top: 14px; right: 14px;
+  z-index: 5;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--theme-primary, var(--theme-bright-primary)), var(--theme-accent, var(--theme-bright-accent)));
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(255,160,100,0.45), 0 0 0 1px rgba(255,255,255,0.6) inset;
+}
+
+/* 선택됨 표시 — Step 2 카드 선택 시 */
+.smcard--selected {
+  transform: translateY(-6px) scale(1.005);
+  box-shadow:
+    0 28px 64px rgba(20,12,40,0.6),
+    0 0 0 3px var(--theme-primary, var(--theme-bright-primary)),
+    0 0 80px var(--theme-mist, var(--theme-bright-mist)),
+    var(--theme-glow, var(--theme-bright-glow));
+}
+.smcard--selected .smcard__check {
+  position: absolute;
+  top: 14px; right: 14px;
+  z-index: 5;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--theme-primary, var(--theme-bright-primary)), var(--theme-accent, var(--theme-bright-accent)));
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 4px 12px rgba(255,160,100,0.5), var(--theme-glow, var(--theme-bright-glow));
+}
+
+/* ---------- 하단 글래스 정보 띠 ---------- */
+.smcard__info {
+  position: absolute;
+  left: 12px; right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  padding: 12px 14px 12px 16px;
+  border-radius: 16px 16px 16px 6px;
+  background: linear-gradient(155deg, rgba(255,253,250,0.78), rgba(255,245,236,0.55) 60%, rgba(255,232,210,0.5));
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border: 1px solid rgba(255,255,255,0.7);
+  box-shadow:
+    0 6px 20px rgba(20,12,40,0.30),
+    0 0 0 1px var(--theme-secondary, var(--theme-bright-secondary)) inset;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.smcard__info-text {
+  flex: 1;
+  display: flex; flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.smcard__name {
+  font-family: var(--font-accent);
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.1;
+  color: var(--base-ink-900);
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.smcard__name-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--theme-primary, var(--theme-bright-primary));
+  box-shadow: 0 0 8px var(--theme-primary, var(--theme-bright-primary));
+}
+.smcard__mood {
+  font-family: var(--font-base);
+  font-size: 11.5px;
+  color: var(--base-ink-500);
+  letter-spacing: 0.02em;
+}
+
+/* 카드 내부 affection-mini (헤더보다 컬러 contrast 강함) */
+.smcard__affection {
+  display: flex; align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.smcard__affection .heart {
+  width: 18px; height: 18px;
+  filter: drop-shadow(0 0 6px var(--color-affection-glow));
+}
+.smcard__affection .lv {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  color: var(--color-affection);
+}
+.smcard__affection .gauge {
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255,90,138,0.18);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.65);
+  position: relative;
+}
+.smcard__affection .gauge::before {
+  content: '';
+  position: absolute; inset: 0;
+  width: var(--gauge, 62%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff7da6, #ff5a8a, #ff8d6e);
+  box-shadow: 0 0 8px var(--color-affection-glow);
+}
+
+/* 보이스 미리듣기 ▶ — 카드 우측 하단 (정보 띠 위에 살짝 떠 있음) */
+.smcard__voice {
+  position: absolute;
+  right: 22px;
+  bottom: 88px;
+  z-index: 6;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.85);
+  background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(255,237,213,0.7));
+  color: var(--theme-deep, var(--theme-bright-deep));
+  display: grid; place-items: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 8px 22px rgba(20,12,40,0.30), 0 0 0 1px rgba(255,255,255,0.55) inset;
+  transition:
+    transform var(--dur-fast) var(--ease-snap),
+    box-shadow var(--dur-base) var(--ease-soft),
+    background var(--dur-fast) var(--ease-glide);
+}
+.smcard__voice svg { width: 14px; height: 14px; }
+.smcard__voice:hover {
+  transform: scale(1.08);
+  background: linear-gradient(135deg, var(--theme-primary, var(--theme-bright-primary)), var(--theme-accent, var(--theme-bright-accent)));
+  color: #fff;
+  border-color: rgba(255,255,255,0.95);
+  box-shadow:
+    0 8px 22px rgba(255,160,100,0.5),
+    0 0 0 6px color-mix(in oklab, var(--theme-mist, var(--theme-bright-mist)) 60%, transparent),
+    var(--theme-glow, var(--theme-bright-glow));
+  animation: play-pulse 1.6s var(--ease-glide) infinite;
+}
+
+/* hover/탭 시 카드 가장자리 mist 번짐 */
+.smcard--voice-hover::after {
+  content: '';
+  position: absolute; inset: -2px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 7;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--theme-mist, var(--theme-bright-mist)) 70%, transparent), inset 0 0 50px color-mix(in oklab, var(--theme-mist, var(--theme-bright-mist)) 60%, transparent);
+  animation: card-mist-pulse 1.6s var(--ease-glide) infinite;
+}
+
+/* playing — 카드 전체 ring-glow + 음표 + progress 라인 */
+.smcard--voice-playing {
+  box-shadow:
+    0 24px 60px rgba(20,12,40,0.55),
+    0 0 0 3px var(--theme-primary, var(--theme-bright-primary)),
+    0 0 80px var(--theme-mist, var(--theme-bright-mist)),
+    var(--theme-glow, var(--theme-bright-glow));
+}
+.smcard--voice-playing::before {
+  content: '';
+  position: absolute; inset: -3px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 6;
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--theme-accent, var(--theme-bright-accent)) 80%, transparent),
+    0 0 30px var(--theme-mist, var(--theme-bright-mist)),
+    inset 0 0 60px color-mix(in oklab, var(--theme-mist, var(--theme-bright-mist)) 50%, transparent);
+  animation: ring-glow 1.6s var(--ease-glide) infinite alternate;
+}
+.smcard__voice--playing {
+  background: linear-gradient(135deg, var(--theme-primary, var(--theme-bright-primary)), var(--theme-accent, var(--theme-bright-accent)));
+  color: #fff;
+  border-color: #fff;
+  box-shadow:
+    0 8px 22px rgba(255,160,100,0.55),
+    0 0 0 6px color-mix(in oklab, var(--theme-mist, var(--theme-bright-mist)) 60%, transparent),
+    var(--theme-glow, var(--theme-bright-glow));
+}
+
+/* 음표 파티클 — 카드 우측 상단 */
+.smcard__notes {
+  position: absolute;
+  right: 18px;
+  top: 22px;
+  width: 70px; height: 80px;
+  z-index: 6;
+  pointer-events: none;
+}
+.smcard__notes span {
+  position: absolute;
+  font-family: var(--font-accent);
+  font-size: 18px;
+  color: #fff;
+  text-shadow: 0 0 10px var(--theme-accent, var(--theme-bright-accent)), 0 0 18px var(--theme-mist, var(--theme-bright-mist));
+  opacity: 0;
+  animation: note-rise 2.4s var(--ease-soft) infinite;
+}
+.smcard__notes span:nth-child(1) { left: 8px;  bottom: 0; animation-delay: 0s;   }
+.smcard__notes span:nth-child(2) { left: 28px; bottom: 0; animation-delay: 0.6s; font-size: 14px; }
+.smcard__notes span:nth-child(3) { left: 48px; bottom: 0; animation-delay: 1.2s; }
+
+/* progress 라인 — 카드 하단 보더 */
+.smcard__progress {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 0;
+  height: 3px;
+  z-index: 8;
+  background: rgba(255,255,255,0.15);
+  overflow: hidden;
+  border-radius: 0 0 var(--radius-cut);
+}
+.smcard__progress::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: var(--progress, 64%);
+  background: linear-gradient(90deg, var(--theme-primary, var(--theme-bright-primary)), var(--theme-accent, var(--theme-bright-accent)));
+  box-shadow: 0 0 10px var(--theme-mist, var(--theme-bright-mist));
+}
+
+/* 삭제 ✕ — 카드 우측 상단. 평소엔 옅게 묻혀 있다가 hover/카드 호버에서 또렷해진다 */
+.smcard__delete {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 7;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.55);
+  background: rgba(20,12,40,0.45);
+  color: rgba(255,255,255,0.85);
+  display: grid; place-items: center;
+  cursor: pointer;
+  opacity: 0;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition:
+    opacity var(--dur-base) var(--ease-soft),
+    transform var(--dur-fast) var(--ease-snap),
+    background var(--dur-fast) var(--ease-glide),
+    border-color var(--dur-fast) var(--ease-glide),
+    box-shadow var(--dur-base) var(--ease-soft);
+}
+.smcard__delete svg { width: 14px; height: 14px; }
+.smcard:hover .smcard__delete,
+.smcard:focus-within .smcard__delete { opacity: 1; }
+.smcard__delete:hover {
+  transform: scale(1.08);
+  background: linear-gradient(135deg, #ff4d6d, #c9184a);
+  color: #fff;
+  border-color: rgba(255,255,255,0.95);
+  box-shadow: 0 8px 22px rgba(201,24,74,0.5), 0 0 0 5px rgba(255,77,109,0.18);
+}
+.smcard__delete:disabled { cursor: wait; opacity: 0.7; }
+
+/* 삭제 진행 중 — 카드 전체를 살짝 지운 느낌으로 페이드아웃 */
+.smcard--deleting {
+  pointer-events: none;
+  transform: scale(0.96);
+  opacity: 0;
+  filter: grayscale(40%);
+  transition:
+    opacity var(--dur-base) var(--ease-soft),
+    transform var(--dur-base) var(--ease-soft),
+    filter var(--dur-base) var(--ease-soft);
+}

@@ -26,17 +26,149 @@ spring:
         use_sql_comments: false
     open-in-view: false
 
+  # ─────────────────────────────────────────────
+  # Spring AI — 두 프로바이더 모두 등록해두고
+  # `ollama` / `gemini` 프로파일로 활성화 모델을 선택한다.
+  # ─────────────────────────────────────────────
+  ai:
+    # ⓐ 활성 모델 스위치 — 프로파일별로 덮어쓴다 (default: none)
+    #    chat 외의 모달리티(embedding/image/audio/moderation)는 Day 1 에서는 쓰지 않으므로
+    #    OpenAI 스타터가 끌어오는 자동설정들이 api-key 없이 기동 실패하지 않도록 전부 none 처리.
+    model:
+      chat: none
+      embedding: none
+      # Day 7 — 자동 설정 끔. 빈 등록은 PollinationsImageModelConfig / OpenAiImageModelConfig 가
+      # aifriends.image.provider 토글에 따라 직접 수행한다 (자동 설정이 끼면 chat 의 Gemini 키를
+      # image 에도 써서 401 이 나는 자리).
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+
+    # ⓓ ChatMemory JDBC schema (Day 5 Step 3) — SPRING_AI_CHAT_MEMORY 테이블을 앱 기동 시 자동 생성
+    #    기본값(embedded)은 H2 같은 임베디드 DB 만 초기화하므로, MySQL(docker) 도 자동 초기화하려면 always.
+    #    운영 전환 시엔 never 로 두고 별도 마이그레이션 도구(Flyway 등) 로 관리한다.
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: always
+
+    # ⓑ Ollama (로컬) 설정
+    #    - IDE 로컬 실행: 환경변수 없음 → http://localhost:11434
+    #    - ./run.sh 도커 실행: OLLAMA_BASE_URL=http://host.docker.internal:11434 주입됨
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: gemma3:4b
+
+    # ⓒ OpenAI 호환 엔드포인트 (Gemini 를 OpenAI 스타터로 호출)
+    #
+    # ⚠️ OpenAI 호환 프로바이더(Gemini/Groq 등)는 실제 OpenAI 와 경로가 다르다.
+    #    Spring AI 기본 completions-path = "/v1/chat/completions" 이지만,
+    #    Gemini 는 "/v1beta/openai/chat/completions", Groq 은 "/openai/v1/chat/completions"
+    #    이라 "/v1" 이 이중으로 붙으면 404 가 난다.
+    #    → 공용으로 "/chat/completions" 로 오버라이드하고, 각 프로파일의 base-url 에
+    #      provider 고유 prefix 를 포함시킨다.
+    openai:
+      api-key: ${GEMINI_API_KEY:}
+      base-url: https://generativelanguage.googleapis.com/v1beta/openai
+      chat:
+        completions-path: /chat/completions
+        options:
+          model: ${GEMINI_MODEL:gemini-2.5-flash-lite}
+      # Day 7 — 이미지 모달리티는 *진짜 OpenAI* 엔드포인트로 호출 (Gemini 호환 X).
+      #   image.api-key / image.base-url 가 chat 의 전역 설정을 override.
+      #   ${OPENAI_API_KEY} 가 비어 있을 때는 Spring AI 자동설정이 OpenAiImageModel 빈을
+      #   생성하려다 IllegalArgumentException 으로 즉시 실패하므로 .env 에 키를 박아야 한다.
+      image:
+        api-key: ${OPENAI_API_KEY:}
+        base-url: https://api.openai.com
+        options:
+          # gpt-image-1 (2025 GA) — 가장 가성비. 또는 dall-e-3 / dall-e-2
+          model: ${OPENAI_IMAGE_MODEL:dall-e-3}
+          # 1024x1024 / 1024x1792 / 1792x1024 (dall-e-3) · 256/512/1024 정사각 (dall-e-2)
+          size: ${OPENAI_IMAGE_SIZE:1024x1024}
+          # standard / hd (dall-e-3 만 지원)
+          quality: ${OPENAI_IMAGE_QUALITY:hd}
+          # vivid / natural (dall-e-3)
+          style: ${OPENAI_IMAGE_STYLE:vivid}
+          # url (디폴트) — 응답에 publicly accessible URL 박힘. ImageDownloader 가 그걸로 byte[] 받아옴
+          response-format: url
+
+      # ⚠️ Day 9 — audio 사브트리도 채팅용 api-key/base-url 을 *그대로 쓰지 않고* 분리 오버라이드.
+      #    채팅은 Gemini 키 + Gemini 호환 엔드포인트, 음성은 OpenAI 키 + OpenAI 정식 엔드포인트.
+      #    이 사브트리는 spring.ai.model.audio.{transcription,speech} = openai 일 때만 활성화된다
+      #    (기본값 none → Day 1~8 학생은 OPENAI_API_KEY 없이도 부담 없이 기동). gemini 프로파일이
+      #    Day 9 의 voice 활성화를 함께 걸어두는 자리.
+      audio:
+        transcription:
+          api-key: ${OPENAI_API_KEY:}
+          base-url: https://api.openai.com
+          options:
+            model: ${OPENAI_STT_MODEL:}
+        speech:
+          api-key: ${OPENAI_API_KEY:}
+          base-url: https://api.openai.com
+          options:
+            model: ${OPENAI_TTS_MODEL:gpt-4o-mini-tts}
+
+    # ⓔ ElevenLabs TTS (Day 9) — TTS_PROVIDER=elevenlabs 일 때만 활성 빈으로 등록된다.
+    #    캐릭터 voice 는 voice-id 슬롯에 UUID 로 지정 (이름이 아닌 ID). VoiceSynthesisService 의
+    #    캐릭터 → voice 매핑 테이블이 mood key 를 받아 적절한 UUID 로 변환해 보낸다.
+    #    eleven_multilingual_v2 는 한국어를 자연스럽게 발음하는 모델 — gpt-4o-mini-tts 대비
+    #    캐릭터 연기(설렘/속삭임/장난기)가 풍부하지만 가격이 비싸고 한국어 억양은 모델 운에 가깝다.
+    elevenlabs:
+      api-key: ${ELEVENLABS_API_KEY:}
+      base-url: https://api.elevenlabs.io
+      tts:
+        options:
+          model-id: ${ELEVENLABS_TTS_MODEL:eleven_multilingual_v2}
+          # default voice (Rachel) — 매핑 테이블 누락 시 폴백
+          voice-id: ${ELEVENLABS_DEFAULT_VOICE_ID:21m00Tcm4TlvDq8ikWAM}
+          output-format: mp3_44100_128
+
 # SQL 로그는 JPA가 아닌 P6Spy로만 출력 (바인드 파라미터 치환된 형태)
+
+# =========================================================
+# Day 7 — 이미지 생성 도메인 설정
+# =========================================================
+# Pollinations.ai 는 키 없이 무료로 호출 가능한 학습용 프로바이더.
+# 학생이 다른 프로바이더(OpenAI / Stability / Vertex Imagen) 로 갈아끼울 때
+# 이 섹션 + ImageModel 빈만 교체하면 된다 (§4 프로바이더 추상화).
+aifriends:
+  image:
+    # Day 7 — 이미지 프로바이더 토글.
+    #   pollinations(기본): 무료, 학습용. PollinationsImageModelConfig 가 직접 빈 등록.
+    #   openai: 유료, 품질 우선. spring-ai-starter-model-openai 의 ImageAutoConfiguration 이 빈 자동 등록.
+    # OPENAI_API_KEY 미설정 상태에서 openai 로 두면 부팅 실패 — .env 에 키 박은 뒤 변경할 것.
+    provider: ${AIFRIENDS_IMAGE_PROVIDER:openai}
+    # MODEL_NAME 키 — ImageCostEstimator 의 비용 매핑 키와 일치해야 USD 추정이 정확.
+    #   pollinations-flux | openai-dall-e-3-standard | openai-dall-e-3-hd | google-imagen-3
+    model-name: ${AIFRIENDS_IMAGE_MODEL_NAME:openai-dall-e-3-hd}
+    pollinations:
+      base-url: https://image.pollinations.ai
+    quota:
+      # 학습용 단순 일일 호출 한도. 실제 운영은 Redis INCR + EXPIRE 로 대체해야 한다.
+      daily-limit: 30
+    storage:
+      upload-dir: ./uploads/portraits
+    cost:
+      # Pollinations.ai 는 무료. OpenAI DALL-E 3 standard 1장 ≈ $0.04 (참고)
+      pollinations-usd: 0.0
 
 server:
   port: 8080
 
 # Gemini API (공식 문서: https://ai.google.dev/gemini-api/docs)
 # curl 예제와 동일: base-url + /models/{model}:generateContent, 헤더 x-goog-api-key
+# (Day 1 이후 Spring AI ChatClient 로 대체되지만 기존 RestClient 데모 코드를 위해 유지)
 gemini:
-  api-key: ${GEMINI_API_KEY}
+  api-key: ${GEMINI_API_KEY:}
   base-url: https://generativelanguage.googleapis.com/v1beta
-  model: ${GEMINI_MODEL}
+  model: ${GEMINI_MODEL:gemini-2.5-flash-lite}
 
 ---
 # =========================================================
@@ -70,3 +202,103 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
+
+---
+# =========================================================
+# ollama 프로파일: 로컬 Ollama 로 호출
+# 사용 예 (도커): .env 에 SPRING_PROFILES_ACTIVE=docker,ollama
+# 사용 예 (IDE) : SPRING_PROFILES_ACTIVE=local,ollama
+# =========================================================
+spring:
+  config:
+    activate:
+      on-profile: ollama
+
+  ai:
+    model:
+      chat: ollama
+
+---
+# =========================================================
+# gemini 프로파일: OpenAI 호환 엔드포인트로 Gemini 호출
+# 사용 예 (도커): .env 에 SPRING_PROFILES_ACTIVE=docker,gemini
+# 사용 예 (IDE) : SPRING_PROFILES_ACTIVE=local,gemini
+# =========================================================
+spring:
+  config:
+    activate:
+      on-profile: gemini
+
+  ai:
+    # 채팅(Gemini hijack) + 음성(정식 OpenAI 엔드포인트) 동시 활성. Day 9 부터는 gemini 프로파일이
+    # voice 까지 함께 켠다 — 학생이 .env 에 GEMINI_API_KEY + OPENAI_API_KEY 두 키만 박으면 게임이
+    # 바로 *목소리 있는* 상태로 떠야 하기 때문. ollama / compare / groq 프로파일은 voice 미활성.
+    # TTS 만 .env 의 TTS_PROVIDER 로 OpenAI ↔ ElevenLabs swap 가능.
+    model:
+      chat: openai
+      audio:
+        speech: ${TTS_PROVIDER:openai}
+        transcription: openai
+
+---
+# =========================================================
+# groq 프로파일 (Day 1 과제 2): OpenAI 호환 엔드포인트로 Groq 호출
+# 사용 예 (도커): .env 에 SPRING_PROFILES_ACTIVE=docker,groq
+# 사용 예 (IDE) : SPRING_PROFILES_ACTIVE=local,groq
+#
+# 핵심:
+#   - 스타터는 그대로 spring-ai-starter-model-openai 재활용
+#   - base-url 만 Groq 엔드포인트로, api-key 는 GROQ_API_KEY 로 덮어쓴다
+#   - 자바 코드는 단 한 줄도 손대지 않는다 (과제 2 의 핵심 채점 포인트)
+# =========================================================
+spring:
+  config:
+    activate:
+      on-profile: groq
+
+  ai:
+    model:
+      chat: openai
+
+    openai:
+      api-key: ${GROQ_API_KEY:}
+      base-url: https://api.groq.com/openai/v1
+      chat:
+        # ⚠️ 위 공통 섹션과 동일 이유 — 기본 completions-path 가 "/v1/chat/completions" 라
+        #    base-url 끝의 "/v1" 과 겹쳐 "/openai/v1/v1/chat/completions" 404 를 만든다.
+        completions-path: /chat/completions
+        options:
+          model: ${GROQ_MODEL:llama-3.3-70b-versatile}
+
+---
+# =========================================================
+# compare 프로파일 (Day 2 과제 2): Ollama + Gemini 두 프로바이더를 동시에 주입
+# 사용 예 (도커): .env 에 SPRING_PROFILES_ACTIVE=docker,compare
+# 사용 예 (IDE) : SPRING_PROFILES_ACTIVE=local,compare
+#
+# 핵심:
+#   - AutoConfig 는 `chat: none` 으로 우회 (한 번에 하나만 활성화되는 제약 때문)
+#   - ChatModelCompareConfig 에서 두 ChatModel 을 @Bean 으로 수동 등록
+#   - /api/compare 에서 @Qualifier 로 각각 주입받아 병렬 호출
+# =========================================================
+spring:
+  config:
+    activate:
+      on-profile: compare
+
+  ai:
+    # 수동 빈 등록을 쓰기 위해 AutoConfig 를 명시적으로 우회 (Day 2 Step 1 복습)
+    model:
+      chat: none
+
+# compare 프로파일 전용 커스텀 프로퍼티 — ChatModelCompareConfig 가 @Value 로 읽어 쓴다.
+app:
+  compare:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      model: ${OLLAMA_MODEL:gemma3:4b}
+    gemini:
+      api-key: ${GEMINI_API_KEY:}
+      base-url: https://generativelanguage.googleapis.com/v1beta/openai
+      completions-path: /chat/completions
+      model: ${GEMINI_MODEL:gemini-2.5-flash-lite}

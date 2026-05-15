@@ -62,6 +62,16 @@ public class Soulmate {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * 외모 일관성 prompt (Day 7 Step 8 추가).
+     * <p>캐릭터 만들기 시 박힌 외모 묘사. 챗 셀카 요청(Step 9) 시 사용자 요청(포즈/표정/장소) 앞에
+     * 합성되어 *같은 캐릭터의 외모* 를 셀카마다 유지한다. 프리셋 트랙은 {@code CharacterPreset}
+     * 의 메타가, 커스텀 트랙은 사용자 입력이 그대로 박힌다. nullable 인 이유는 Day 7 이전에
+     * 만들어진 기존 데이터(레거시 row)와의 호환성 때문이다.</p>
+     */
+    @Column(length = 1000)
+    private String appearancePrompt;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {

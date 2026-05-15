@@ -1,235 +1,412 @@
-<!doctype html>
-<html
-  lang="ko"
-  xmlns:th="http://www.thymeleaf.org">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta
-      name="theme-color"
-      content="#fdf2f8" />
-    <title>새 소울메이트 만들기 | AI 소울메이트</title>
-    <link
-      rel="stylesheet"
-      th:href="@{/css/variables.css}" />
-    <link
-      rel="stylesheet"
-      th:href="@{/css/base.css}" />
-    <link
-      rel="stylesheet"
-      th:href="@{/css/layout.css}" />
-    <link
-      rel="stylesheet"
-      th:href="@{/css/soulmate-create.css}" />
-  </head>
-  <body>
-    <div
-      class="app-root"
-      data-app-root>
-      <main class="main-container main-container--create">
-        <header class="create-header">
-          <a
-            class="create-header__back"
-            href="/"
-            data-create-back
-            aria-label="뒤로가기"
-            >←</a
-          >
-          <h1
-            class="create-header__title"
-            data-create-title>
-            새 소울메이트 만들기
-          </h1>
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0e0a18" />
+  <title>새 친구 만들기 | AI Friends</title>
+
+  <!-- 한글 웹폰트: 본문 Pretendard, 강조 Noto Serif KR, 모노 JetBrains Mono -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" th:href="@{/css/variables.css}" />
+  <link rel="stylesheet" th:href="@{/css/base.css}" />
+  <link rel="stylesheet" th:href="@{/css/animations.css}" />
+  <link rel="stylesheet" th:href="@{/css/layout.css}" />
+  <link rel="stylesheet" th:href="@{/css/soulmate-create.css}" />
+  <link rel="stylesheet" th:href="@{/css/card.css}" />
+</head>
+<body>
+  <div class="app-root" data-app-root>
+    <main class="main-container main-container--create">
+
+      <div class="create" data-step="1">
+        <div class="create__bg" aria-hidden="true"></div>
+
+        <!-- ============================================================
+             헤더 — 뒤로 + Step Eyebrow + 타이틀
+             ============================================================ -->
+        <header class="create__header">
+          <a class="create__back" href="/" data-create-back aria-label="뒤로가기">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+          <div class="create__title-block">
+            <span class="create__eyebrow" data-create-eyebrow>01 / 04 · NAME &amp; GENDER</span>
+            <span class="create__title" data-create-title>Create New Soulmate</span>
+          </div>
         </header>
 
-        <div
-          class="create-steps"
-          data-create-steps>
-          <div
-            class="create-step-indicator"
-            data-create-step-indicator
-            aria-hidden="true">
-            <span
-              class="create-step-indicator__dot"
-              data-step-dot="1"></span>
-            <span
-              class="create-step-indicator__dot"
-              data-step-dot="2"></span>
-            <span
-              class="create-step-indicator__dot"
-              data-step-dot="3"></span>
-            <span
-              class="create-step-indicator__dot"
-              data-step-dot="4"></span>
-          </div>
-
-          <!-- Step 1: 이름·성별 -->
-          <section
-            class="create-step"
-            data-step="1">
-            <label class="create-field">
-              <span class="create-field__label">이름</span>
-              <input
-                type="text"
-                class="create-field__input"
-                data-create-name
-                placeholder="이름을 입력해 주세요"
-                maxlength="50" />
-            </label>
-            <div class="create-field">
-              <span class="create-field__label">성별</span>
-              <div
-                class="create-gender"
-                data-create-gender
-                role="group"
-                aria-label="성별 선택">
-                <button
-                  type="button"
-                  class="create-gender__btn"
-                  data-gender="FEMALE"
-                  aria-label="여성">
-                  <span class="create-gender__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                      <circle cx="12" cy="8" r="5"/>
-                      <path d="M12 13v8"/>
-                      <path d="M9 18h6"/>
-                    </svg>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  class="create-gender__btn"
-                  data-gender="MALE"
-                  aria-label="남성">
-                  <span class="create-gender__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                      <circle cx="12" cy="15" r="6"/>
-                      <path d="M12 2v10M12 2l-3 3M12 2l3 3"/>
-                    </svg>
-                  </span>
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <!-- Step 2: 캐릭터 이미지 -->
-          <section
-            class="create-step"
-            data-step="2"
-            hidden>
-            <p
-              class="create-step__hint"
-              data-create-image-hint>
-              캐릭터를 선택해 주세요
-            </p>
-            <div
-              class="create-image-grid"
-              data-create-image-grid
-              aria-label="캐릭터 이미지 선택">
-              <!-- JS에서 성별별 이미지 주입 -->
-            </div>
-          </section>
-
-          <!-- Step 3: 성격·취미·말투 (알약 칩, 최대 3개씩) -->
-          <section
-            class="create-step"
-            data-step="3"
-            hidden>
-            <div class="create-field">
-              <span class="create-field__label"
-                >성격 <span class="create-field__hint">(최대 3개)</span></span
-              >
-              <div
-                class="create-chips"
-                data-create-personality
-                role="group"
-                aria-label="성격 선택"></div>
-            </div>
-            <div class="create-field">
-              <span class="create-field__label"
-                >취미 <span class="create-field__hint">(최대 3개)</span></span
-              >
-              <div
-                class="create-chips"
-                data-create-hobbies
-                role="group"
-                aria-label="취미 선택"></div>
-            </div>
-            <div class="create-field">
-              <span class="create-field__label"
-                >말투 <span class="create-field__hint">(최대 3개)</span></span
-              >
-              <div
-                class="create-chips"
-                data-create-speech
-                role="group"
-                aria-label="말투 선택"></div>
-            </div>
-          </section>
-
-          <!-- Step 4: 요약 + 커스텀 추가 + 제출 -->
-          <section
-            class="create-step"
-            data-step="4"
-            hidden>
-            <div
-              class="create-summary"
-              data-create-summary></div>
-            <div class="create-custom">
-              <div class="create-custom__row">
-                <label class="create-field create-field--inline">
-                  <span class="create-field__label">성격 +1</span>
-                  <div class="create-custom__input-row">
-                    <input type="text" class="create-field__input" data-custom-personality placeholder="직접 입력" maxlength="20" />
-                    <button type="button" class="create-custom__add" data-add-personality>추가</button>
-                  </div>
-                </label>
-              </div>
-              <div class="create-custom__row">
-                <label class="create-field create-field--inline">
-                  <span class="create-field__label">취미 +1</span>
-                  <div class="create-custom__input-row">
-                    <input type="text" class="create-field__input" data-custom-hobby placeholder="직접 입력" maxlength="20" />
-                    <button type="button" class="create-custom__add" data-add-hobby>추가</button>
-                  </div>
-                </label>
-              </div>
-              <div class="create-custom__row">
-                <label class="create-field create-field--inline">
-                  <span class="create-field__label">말투 +1</span>
-                  <div class="create-custom__input-row">
-                    <input type="text" class="create-field__input" data-custom-speech placeholder="직접 입력" maxlength="20" />
-                    <button type="button" class="create-custom__add" data-add-speech>추가</button>
-                  </div>
-                </label>
-              </div>
-            </div>
-          </section>
+        <!-- ============================================================
+             Step 인디케이터 (4 dot)
+             ============================================================ -->
+        <div class="create__steps" data-create-step-indicator aria-hidden="true">
+          <div class="create__step-dot create__step-dot--active" data-step-dot="1"><span>01</span></div>
+          <div class="create__step-dot" data-step-dot="2"><span>02</span></div>
+          <div class="create__step-dot" data-step-dot="3"><span>03</span></div>
+          <div class="create__step-dot" data-step-dot="4"><span>04</span></div>
         </div>
 
-        <footer class="create-footer">
-          <button
-            type="button"
-            class="create-footer__btn create-footer__btn--next"
-            data-create-next
-            disabled>
-            다음
-          </button>
-          <button
-            type="button"
-            class="create-footer__btn create-footer__btn--submit"
-            data-create-submit
-            hidden>
-            만들기
-          </button>
-        </footer>
-      </main>
-    </div>
+        <!-- ============================================================
+             본문 — Step 1~4 (한 화면에 두고 [hidden] 토글)
+             ============================================================ -->
+        <div class="create__body" data-create-steps>
 
-    <script
-      type="module"
-      th:src="@{/js/pages/soulmate-create/index.js}"></script>
-  </body>
+          <!-- Step 1: 이름·성별 -->
+          <section class="create-step" data-step="1">
+            <p class="create__hint">
+              어떤 친구를 만들어볼까요? 이름과 성별부터 정해주세요.
+            </p>
+            <input
+              type="text"
+              class="create__name-input"
+              data-create-name
+              placeholder="이름을 입력해주세요…"
+              maxlength="50"
+            />
+            <div class="create__gender-row" data-create-gender role="group" aria-label="성별 선택">
+              <button type="button" class="create__gender" data-gender="FEMALE">
+                <span class="create__gender-icon" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="1.8" fill="none"/>
+                    <path d="M12 15v6M9 19h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  </svg>
+                </span>
+                <span>여성</span>
+                <span class="create__gender-mono">FEMALE</span>
+              </button>
+              <button type="button" class="create__gender" data-gender="MALE">
+                <span class="create__gender-icon" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <circle cx="10" cy="14" r="6" stroke="currentColor" stroke-width="1.8" fill="none"/>
+                    <path d="M14 10L20 4M16 4h4v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <span>남성</span>
+                <span class="create__gender-mono">MALE</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- Step 2: 캐릭터 카드 그리드 (5트랙: 4 프리셋 + 1 커스텀) -->
+          <section class="create-step" data-step="2" hidden>
+            <p class="create__hint" data-create-image-hint>
+              마음에 드는 친구를 골라주세요.<br/>
+              직접 빚고 싶다면 마지막 카드에서 외모를 묘사할 수 있어요.
+            </p>
+            <p class="create__hint--small">— 4 PRESETS · 1 CUSTOM —</p>
+
+            <div class="appearance-grid create__image-grid"
+                 data-create-image-grid
+                 data-appearance-grid
+                 role="radiogroup"
+                 aria-label="외모 선택">
+
+              <!-- 트랙 ①: male-cheerful -->
+              <button type="button"
+                      class="app-card"
+                      data-app-card
+                      data-image-id="character-male-cheerful"
+                      data-image-url="/images/characters/character-male-cheerful-face.jpg"
+                      data-name="활기찬 남성"
+                      data-theme="cheerful"
+                      data-gender="MALE"
+                      role="radio"
+                      aria-checked="false">
+                <div class="app-card__thumb"
+                     th:style="'--thumb: url(' + @{/images/characters/character-male-cheerful-thumb.jpg} + ');'"></div>
+                <span class="app-card__cut" aria-hidden="true"></span>
+                <span class="app-card__chip">CHEERFUL</span>
+                <div class="app-card__label">
+                  <span class="app-card__name">활기찬 남성</span>
+                  <span class="app-card__id">노을 농구장</span>
+                </div>
+                <span class="app-card__check" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 7L6 10L11 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+              </button>
+
+              <!-- 트랙 ②: male-calm -->
+              <button type="button"
+                      class="app-card"
+                      data-app-card
+                      data-image-id="character-male-calm"
+                      data-image-url="/images/characters/character-male-calm-face.jpg"
+                      data-name="차분한 남성"
+                      data-theme="calm"
+                      data-gender="MALE"
+                      role="radio"
+                      aria-checked="false">
+                <div class="app-card__thumb"
+                     th:style="'--thumb: url(' + @{/images/characters/character-male-calm-thumb.jpg} + ');'"></div>
+                <span class="app-card__cut" aria-hidden="true"></span>
+                <span class="app-card__chip">CALM</span>
+                <div class="app-card__label">
+                  <span class="app-card__name">차분한 남성</span>
+                  <span class="app-card__id">비 오는 도서관</span>
+                </div>
+                <span class="app-card__check" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 7L6 10L11 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+              </button>
+
+              <!-- 트랙 ③: female-warm -->
+              <button type="button"
+                      class="app-card"
+                      data-app-card
+                      data-image-id="character-female-warm"
+                      data-image-url="/images/characters/character-female-warm-face.jpg"
+                      data-name="따뜻한 여성"
+                      data-theme="warm"
+                      data-gender="FEMALE"
+                      role="radio"
+                      aria-checked="false">
+                <div class="app-card__thumb"
+                     th:style="'--thumb: url(' + @{/images/characters/character-female-warm-thumb.jpg} + ');'"></div>
+                <span class="app-card__cut" aria-hidden="true"></span>
+                <span class="app-card__chip">WARM</span>
+                <div class="app-card__label">
+                  <span class="app-card__name">따뜻한 여성</span>
+                  <span class="app-card__id">가을 베이커리</span>
+                </div>
+                <span class="app-card__check" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 7L6 10L11 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+              </button>
+
+              <!-- 트랙 ④: female-bright -->
+              <button type="button"
+                      class="app-card"
+                      data-app-card
+                      data-image-id="character-female-bright"
+                      data-image-url="/images/characters/character-female-bright-face.jpg"
+                      data-name="발랄한 여성"
+                      data-theme="bright"
+                      data-gender="FEMALE"
+                      role="radio"
+                      aria-checked="false">
+                <div class="app-card__thumb"
+                     th:style="'--thumb: url(' + @{/images/characters/character-female-bright-thumb.jpg} + ');'"></div>
+                <span class="app-card__cut" aria-hidden="true"></span>
+                <span class="app-card__chip">BRIGHT</span>
+                <div class="app-card__label">
+                  <span class="app-card__name">발랄한 여성</span>
+                  <span class="app-card__id">한낮 옥상 카페</span>
+                </div>
+                <span class="app-card__check" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 7L6 10L11 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+              </button>
+
+              <!-- 트랙 ⑤: 커스텀 -->
+              <button type="button"
+                      class="app-card app-card--custom"
+                      data-app-card
+                      data-image-id="custom"
+                      role="radio"
+                      aria-checked="false">
+                <div>
+                  <div class="app-card__custom-icons" aria-hidden="true">
+                    <span class="app-card__custom-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="6" width="18" height="14" rx="2.5" stroke="currentColor" stroke-width="1.8" />
+                        <circle cx="12" cy="13" r="3.6" stroke="currentColor" stroke-width="1.8" />
+                        <path d="M8 6l1.5-2.2h5L16 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                    <span class="app-card__custom-icon app-card__custom-icon--alt">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 3a9 9 0 100 18c1.5 0 2.5-1 2.5-2.4 0-1.6-1.5-1.6-1.5-2.6s.7-1.5 1.7-1.5H17a4 4 0 004-4 9 9 0 00-9-7.5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                        <circle cx="7"  cy="11" r="1.4" fill="currentColor" />
+                        <circle cx="9.5" cy="7" r="1.4" fill="currentColor" />
+                        <circle cx="14.5" cy="6.5" r="1.4" fill="currentColor" />
+                        <circle cx="17.5" cy="10" r="1.4" fill="currentColor" />
+                      </svg>
+                    </span>
+                  </div>
+                  <div class="app-card__custom-title">
+                    내가 직접 빚기<span class="sparkle" aria-hidden="true">✨</span>
+                  </div>
+                  <div class="app-card__custom-sub">CUSTOM PORTRAIT</div>
+                </div>
+                <span class="app-card__check" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 7L6 10L11 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+              </button>
+
+              <!-- 커스텀 prompt 펼침 영역 -->
+              <div class="app-prompt"
+                   data-app-prompt
+                   data-open="false"
+                   data-loading="false">
+                <div class="app-prompt__inner">
+                  <div class="app-prompt__inner-pad">
+                    <div class="app-prompt__notice">
+                      <span class="app-prompt__notice-icon" aria-hidden="true">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 7v6M12 17.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
+                        </svg>
+                      </span>
+                      <div>
+                        <strong>1회 이미지 생성</strong>
+                        이 옵션은 이미지 생성 1회 호출이 발생해요 — 약 30초 정도 걸려요.
+                      </div>
+                    </div>
+
+                    <textarea
+                      class="app-prompt__textarea"
+                      data-custom-prompt
+                      placeholder="예시: 단발머리에 안경 쓴 차분한 인상의 여성. 베이지 니트, 따뜻한 미소."
+                      maxlength="200"></textarea>
+
+                    <div class="app-prompt__meta">
+                      <span>FREEFORM · KOREAN OK</span>
+                      <span class="app-prompt__count" data-prompt-count>0 / 200</span>
+                    </div>
+
+                    <div class="app-prompt__spinner" data-app-spinner>
+                      <span class="shutter" aria-hidden="true"></span>
+                      <span>
+                        캐릭터 얼굴을 빚고 있어요…
+                        <span style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; opacity: 0.7;">~30s</span>
+                      </span>
+                    </div>
+
+                    <!-- Day 7 Step 8 — 미리보기 + 컨펌 영역. 이미지 생성 응답 후 펼침. -->
+                    <div class="app-preview" data-app-preview hidden>
+                      <div class="app-preview__photo" data-app-preview-photo></div>
+                      <div class="app-preview__hint">이 모습이 마음에 드시나요?</div>
+                      <div class="app-preview__actions">
+                        <button type="button" class="app-preview__btn app-preview__btn--retry" data-app-preview-retry>
+                          <span aria-hidden="true">↻</span>
+                          <span>다른 모습으로</span>
+                        </button>
+                        <button type="button" class="app-preview__btn app-preview__btn--confirm" data-app-preview-confirm>
+                          <span aria-hidden="true">✓</span>
+                          <span>이 모습으로</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          <!-- Step 3: 성격·취미·말투 (chip-section, 최대 3개씩) -->
+          <section class="create-step" data-step="3" hidden>
+            <p class="create__hint--small">
+              — 각 항목당 최대 3개까지 선택할 수 있어요 —
+            </p>
+
+            <section class="chip-section" data-create-personality role="group" aria-label="성격 선택">
+              <div class="chip-section__head">
+                <h3 class="chip-section__title">
+                  성격
+                  <span class="chip-section__title-tag">PERSONALITY</span>
+                </h3>
+                <span class="chip-section__counter" data-create-personality-counter>0 / 3</span>
+              </div>
+              <div class="chip-grid" data-create-personality-chips></div>
+            </section>
+
+            <section class="chip-section" data-create-hobbies role="group" aria-label="취미 선택">
+              <div class="chip-section__head">
+                <h3 class="chip-section__title">
+                  취미
+                  <span class="chip-section__title-tag">HOBBIES</span>
+                </h3>
+                <span class="chip-section__counter" data-create-hobbies-counter>0 / 3</span>
+              </div>
+              <div class="chip-grid" data-create-hobbies-chips></div>
+            </section>
+
+            <section class="chip-section" data-create-speech role="group" aria-label="말투 선택">
+              <div class="chip-section__head">
+                <h3 class="chip-section__title">
+                  말투
+                  <span class="chip-section__title-tag">SPEECH</span>
+                </h3>
+                <span class="chip-section__counter" data-create-speech-counter>0 / 3</span>
+              </div>
+              <div class="chip-grid" data-create-speech-chips></div>
+            </section>
+          </section>
+
+          <!-- Step 4: 요약 카드 + 직접 추가 (커스텀 행) -->
+          <section class="create-step" data-step="4" hidden>
+            <p class="create__hint--small">— SUMMARY · 인사 카피 미리보기 —</p>
+            <div class="summary-card" data-create-summary>
+              <!-- JS 가 summary-card__cut / face / nametag / body 채움 -->
+            </div>
+
+            <p class="create__hint--small" style="margin-top: 6px;">— 직접 추가하기 (선택) —</p>
+
+            <div class="custom-row">
+              <div class="custom-row__label">ADD PERSONALITY</div>
+              <div class="custom-row__field">
+                <input type="text" class="custom-row__input" data-custom-personality placeholder="예: 엉뚱한" maxlength="20" />
+                <button type="button" class="custom-row__add" data-add-personality aria-label="성격 직접 추가">＋</button>
+              </div>
+              <div class="custom-row__chips" data-custom-personality-chips></div>
+            </div>
+
+            <div class="custom-row">
+              <div class="custom-row__label">ADD HOBBY</div>
+              <div class="custom-row__field">
+                <input type="text" class="custom-row__input" data-custom-hobby placeholder="예: 도예" maxlength="20" />
+                <button type="button" class="custom-row__add" data-add-hobby aria-label="취미 직접 추가">＋</button>
+              </div>
+              <div class="custom-row__chips" data-custom-hobby-chips></div>
+            </div>
+
+            <div class="custom-row">
+              <div class="custom-row__label">ADD SPEECH</div>
+              <div class="custom-row__field">
+                <input type="text" class="custom-row__input" data-custom-speech placeholder="예: 사투리 섞어" maxlength="20" />
+                <button type="button" class="custom-row__add" data-add-speech aria-label="말투 직접 추가">＋</button>
+              </div>
+              <div class="custom-row__chips" data-custom-speech-chips></div>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- ============================================================
+             푸터 — 다음 / 만들기 (Step 4 만 submit)
+             ============================================================ -->
+        <div class="create__footer">
+          <button type="button" class="create__next" data-create-next disabled>
+            <span>다음</span>
+            <span class="create__next-jp">Next →</span>
+          </button>
+          <button type="button" class="create__next create__submit" data-create-submit hidden>
+            <span aria-hidden="true">✦</span>
+            <span>만들기</span>
+            <span class="create__next-jp">Create Soulmate</span>
+          </button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script type="module" th:src="@{/js/pages/soulmate-create/index.js}"></script>
+</body>
 </html>

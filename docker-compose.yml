@@ -35,18 +35,55 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    # 컨테이너 안의 앱이 호스트(노트북)에 설치된 Ollama 데몬으로 접속할 수 있도록
+    # host.docker.internal 호스트명을 게이트웨이로 매핑한다 (Linux 호환 목적, Mac/Win 은 기본 지원)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      # 활성 프로파일은 .env 의 SPRING_PROFILES_ACTIVE 로 제어
+      # 기본값: docker(=MySQL) + gemini(=클라우드 모델)
+      # 로컬 Ollama 로 바꾸고 싶으면 .env 에 SPRING_PROFILES_ACTIVE=docker,ollama 로 적기
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker,gemini}
       # MySQL 접속 (컨테이너 내부 포트 3306으로 접속)
       DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-aifriends}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
       DB_USERNAME: ${MYSQL_USER:-aifriends}
       DB_PASSWORD: ${MYSQL_PASSWORD:-aifriends1234}
-      # Gemini API
+      # Gemini API (OpenAI 호환 엔드포인트로 호출)
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      # Day 7 — OpenAI 진짜 endpoint (이미지 생성 전용). chat 의 GEMINI_API_KEY 와 별개.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_IMAGE_MODEL: ${OPENAI_IMAGE_MODEL:-dall-e-3}
+      OPENAI_IMAGE_SIZE: ${OPENAI_IMAGE_SIZE:-1024x1024}
+      OPENAI_IMAGE_QUALITY: ${OPENAI_IMAGE_QUALITY:-hd}
+      OPENAI_IMAGE_STYLE: ${OPENAI_IMAGE_STYLE:-vivid}
+      AIFRIENDS_IMAGE_PROVIDER: ${AIFRIENDS_IMAGE_PROVIDER:-openai}
+      AIFRIENDS_IMAGE_MODEL_NAME: ${AIFRIENDS_IMAGE_MODEL_NAME:-openai-dall-e-3-hd}
+      # Groq API (Day 1 과제 2 — SPRING_PROFILES_ACTIVE=docker,groq 일 때 사용)
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      # 컨테이너 내부에서 호스트의 Ollama 데몬으로 접속할 base-url
+      # 호스트에서 직접 IDE 로 띄울 때는 application.yml 기본값(localhost:11434)이 적용됨
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      # Day 9 — 음성 도메인 (STT: Whisper, TTS: gpt-4o-mini-tts 또는 ElevenLabs)
+      #   gemini 프로파일에서 audio 사브트리가 켜진다. ollama / compare 프로파일에서는
+      #   audio 가 none 이라 OPENAI_API_KEY 가 비어 있어도 기동에 문제 없다.
+      #   (OPENAI_API_KEY 는 위 Day 7 이미지 블록에서 이미 선언돼 있어 그대로 재사용)
+      OPENAI_STT_MODEL: ${OPENAI_STT_MODEL:-}
+      OPENAI_TTS_MODEL: ${OPENAI_TTS_MODEL:-gpt-4o-mini-tts}
+      # TTS 프로바이더 selector — openai (기본) / elevenlabs 중 택일.
+      # 코드 0줄 수정으로 백엔드가 갈리는 swap. 학생이 .env 한 줄 바꿔 직접 비교해 볼 수 있다.
+      TTS_PROVIDER: ${TTS_PROVIDER:-openai}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      ELEVENLABS_TTS_MODEL: ${ELEVENLABS_TTS_MODEL:-eleven_multilingual_v2}
+      ELEVENLABS_DEFAULT_VOICE_ID: ${ELEVENLABS_DEFAULT_VOICE_ID:-21m00Tcm4TlvDq8ikWAM}
       TZ: Asia/Seoul
     ports:
       - "8080:8080"
+    # Day 7 — 생성된 portrait/selca 이미지를 호스트 ./uploads 에 영속화.
+    # 마운트 없으면 컨테이너 재시작 시 휘발 + 호스트에서 파일 못 봄.
+    volumes:
+      - ./uploads:/app/uploads
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ >/dev/null || exit 1"]
       interval: 10s

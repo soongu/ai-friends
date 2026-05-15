@@ -30,7 +30,9 @@ public record SoulmateResponse(
         /** 레벨 (1~10) */
         Integer level,
         /** 생성 시각 */
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        /** 외모 일관성 prompt — 챗 셀카 요청 시 외모 유지에 사용. (Day 7 Step 8) */
+        String appearancePrompt
 ) {
     /** 엔티티로부터 Response 생성 (팩토리메서드에서 사용할 생성자만 사용) */
     public static SoulmateResponse from(Soulmate entity) {
@@ -45,7 +47,8 @@ public record SoulmateResponse(
                 entity.getSpeechStyles(),
                 entity.getAffectionScore(),
                 entity.getLevel(),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                entity.getAppearancePrompt()
         );
     }
 }

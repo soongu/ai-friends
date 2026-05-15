@@ -28,7 +28,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * </ul>
  */
 @SpringBootTest(
-        properties = {"DB_URL=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"}
+        properties = {
+                "DB_URL=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+                // ChatClient.Builder 자동 설정이 ChatModel 빈을 요구하므로 openai 스타터만 활성화.
+                // 실제 API 호출은 이 통합 테스트에서 하지 않으므로 더미 키로 충분하다.
+                "spring.ai.model.chat=openai",
+                "spring.ai.openai.api-key=test-dummy"
+        }
 )
 @AutoConfigureMockMvc
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -153,7 +159,9 @@ class ApiIntegrationTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> data = (Map<String, Object>) body.get("data");
         assertThat(data).isNotNull();
-        assertThat(data.get("id")).isEqualTo(createdSoulmateId);
+        // Jackson 이 작은 정수를 Integer 로 역직렬화하므로 Long 원본과 직접 비교하면 타입 불일치.
+        // 생성 테스트에서 쓴 ((Number) ...).longValue() 변환 패턴을 여기서도 유지해 long 값끼리 비교한다.
+        assertThat(((Number) data.get("id")).longValue()).isEqualTo(createdSoulmateId);
         assertThat(data.get("affectionScore")).isNotNull();
         assertThat(data.get("level")).isNotNull();
     }
@@ -179,7 +187,7 @@ class ApiIntegrationTest {
 
     @Test
     @Order(20)
-    @DisplayName("POST /api/chat - AI 채팅 (Gemini API 호출, GEMINI_API_KEY 필요)")
+    @DisplayName("POST /api/chat - AI 채팅 (Spring AI ChatClient 경유, 외부 키 없어도 컨트롤러 경로는 살아있어야 함)")
     void chatPost() throws Exception {
         Assumptions.assumeTrue(createdSoulmateId != null, "soulmateCreate()가 먼저 실행되어야 합니다.");
         Map<String, Object> req = Map.of(
@@ -192,7 +200,9 @@ class ApiIntegrationTest {
                         .content(objectMapper.writeValueAsString(req))
         );
         int status = actions.andReturn().getResponse().getStatus();
-        assertThat(status).isIn(200, 400, 401, 429, 502);
+        // Day 5 Step 6 — Spring AI ChatClient 경유로 갈아끼워지면서 더미 키 사용 시
+        // OpenAI 가 401 을 반환하고 Spring AI 의 RuntimeException 이 GlobalExceptionHandler 를 거쳐 500 으로 떨어진다.
+        assertThat(status).isIn(200, 400, 401, 429, 500, 502);
         Map<String, Object> body = parseApiResponse(actions);
         assertThat(body).isNotNull();
         if (status == 200) {

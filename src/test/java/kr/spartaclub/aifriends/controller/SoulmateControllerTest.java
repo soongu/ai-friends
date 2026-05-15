@@ -18,7 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -27,7 +27,6 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -43,10 +42,10 @@ class SoulmateControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private SoulmateService soulmateService;
 
-    @MockitoBean
+    @MockBean
     private ChatLogService chatLogService;
 
     @Test
@@ -55,9 +54,10 @@ class SoulmateControllerTest {
         // given
         SoulmateCreateRequest request = new SoulmateCreateRequest(
                 "FEMALE", "img1", "url", "Alice",
-                List.of("kind"), List.of("reading"), List.of("gentle")
+                List.of("kind"), List.of("reading"), List.of("gentle"),
+                null
         );
-        Soulmate entity = new Soulmate(1L, "FEMALE", "img1", "url", "Alice", "kind", "reading", "gentle", 0, 1, java.time.LocalDateTime.now());
+        Soulmate entity = new Soulmate(1L, "FEMALE", "img1", "url", "Alice", "kind", "reading", "gentle", 0, 1, java.time.LocalDateTime.now(), null);
         SoulmateResponse mockResponse = SoulmateResponse.from(entity);
         given(soulmateService.createSoulmate(any())).willReturn(mockResponse);
 
@@ -77,7 +77,8 @@ class SoulmateControllerTest {
         // given
         SoulmateCreateRequest request = new SoulmateCreateRequest(
                 "", "img1", "url", "Alice",
-                List.of("kind"), List.of("reading"), List.of("gentle")
+                List.of("kind"), List.of("reading"), List.of("gentle"),
+                null
         );
 
         // when & then
@@ -93,7 +94,7 @@ class SoulmateControllerTest {
     @DisplayName("이성친구 프로필 상세 단건 조회 성공")
     void getSoulmateProfile_success() throws Exception {
         // given
-        Soulmate entity = new Soulmate(1L, "MALE", "img1", null, "Bob", "kind", "none", "none", 0, 1, java.time.LocalDateTime.now());
+        Soulmate entity = new Soulmate(1L, "MALE", "img1", null, "Bob", "kind", "none", "none", 0, 1, java.time.LocalDateTime.now(), null);
         SoulmateProfileResponse mockResponse = SoulmateProfileResponse.of(entity, List.of("BADGE_1"));
         given(soulmateService.getSoulmate(1L)).willReturn(mockResponse);
 
