@@ -47,7 +47,11 @@ const MOOD_BY_CHARACTER = {
   'character-male-cheerful':   'cheerful',
 };
 
-/** characterImageId 로부터 추상 mood key 를 돌려준다. 매핑 없으면 null (백엔드 default voice). */
+/**
+ * characterImageId 로부터 추상 mood key 를 돌려준다.
+ * 매핑 없으면 (커스텀 캐릭터 등) DEFAULT_META 와 같은 'bright' 로 폴백 — null 반환 시
+ * 백엔드가 ElevenLabs Rachel 기본값으로 폴백해 캐릭터 보이스가 모두 동일해지는 문제 방지.
+ */
 export function pickVoice(characterImageId) {
-  return MOOD_BY_CHARACTER[characterImageId] || null;
+  return MOOD_BY_CHARACTER[characterImageId] ?? 'bright';
 }
