@@ -4,6 +4,8 @@ import kr.spartaclub.aifriends.domain.Soulmate;
 import kr.spartaclub.aifriends.repository.SoulmateRepository;
 import kr.spartaclub.aifriends.tool.dto.AffinityInfo;
 import kr.spartaclub.aifriends.tool.dto.AffinityLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -30,6 +32,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class AffinityTool {
 
+    private static final Logger log = LoggerFactory.getLogger(AffinityTool.class);
+
     private final SoulmateRepository soulmateRepository;
 
     public AffinityTool(SoulmateRepository soulmateRepository) {
@@ -44,6 +48,7 @@ public class AffinityTool {
             @ToolParam(description = "관계를 조회할 캐릭터의 soulmateId")
             Long soulmateId
     ) {
+        log.info("[AffinityTool] getAffinity invoked — soulmateId={}", soulmateId);
         return soulmateRepository.findById(soulmateId)
                 .map(this::toInfo)
                 .orElseGet(() -> AffinityInfo.unknown(soulmateId));

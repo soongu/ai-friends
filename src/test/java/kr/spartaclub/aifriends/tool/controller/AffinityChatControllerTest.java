@@ -45,9 +45,7 @@ class AffinityChatControllerTest {
     void chat_returnsCharacterReply() throws Exception {
         given(service.chat(eq(7L), anyString())).willReturn(new AffinityChatResponse(
                 7L,
-                "음… 우리 단짝 정도? 너랑 얘기할 때마다 점점 가까워지는 거 같아.",
-                60,
-                "단짝"));
+                "음… 우리 단짝 정도? 너랑 얘기할 때마다 점점 가까워지는 거 같아."));
 
         AffinityChatRequest request = new AffinityChatRequest(7L, "지금 우리 사이 어때?");
 
@@ -58,9 +56,7 @@ class AffinityChatControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.soulmateId").value(7))
                 .andExpect(jsonPath("$.data.aiMessage").value(
-                        "음… 우리 단짝 정도? 너랑 얘기할 때마다 점점 가까워지는 거 같아."))
-                .andExpect(jsonPath("$.data.score").value(60))
-                .andExpect(jsonPath("$.data.level").value("단짝"));
+                        "음… 우리 단짝 정도? 너랑 얘기할 때마다 점점 가까워지는 거 같아."));
 
         then(service).should().chat(7L, "지금 우리 사이 어때?");
     }

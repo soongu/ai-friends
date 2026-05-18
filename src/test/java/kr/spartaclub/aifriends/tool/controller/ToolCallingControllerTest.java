@@ -48,10 +48,7 @@ class ToolCallingControllerTest {
         given(service.chat(eq("서울"))).willReturn(
                 new ToolChatResponse(
                         "서울",
-                        "오늘 서울은 흐리고 23도래! 가벼운 가디건 하나 챙겨가자~",
-                        "흐림",
-                        23,
-                        60));
+                        "오늘 서울은 흐리고 23도래! 가벼운 가디건 하나 챙겨가자~"));
 
         ToolChatRequest request = new ToolChatRequest("서울");
 
@@ -62,10 +59,7 @@ class ToolCallingControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.city").value("서울"))
                 .andExpect(jsonPath("$.data.aiMessage").value(
-                        "오늘 서울은 흐리고 23도래! 가벼운 가디건 하나 챙겨가자~"))
-                .andExpect(jsonPath("$.data.condition").value("흐림"))
-                .andExpect(jsonPath("$.data.temperatureCelsius").value(23))
-                .andExpect(jsonPath("$.data.precipitationChance").value(60));
+                        "오늘 서울은 흐리고 23도래! 가벼운 가디건 하나 챙겨가자~"));
 
         then(service).should().chat("서울");
     }

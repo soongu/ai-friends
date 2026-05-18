@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>학생은 도시명을 POST 본문에 담아 호출하고, LLM 이 등록된 {@code @Tool} 함수를
  * 자동 호출해 만든 캐릭터 응답을 받는다. 호출 흐름의 본질은 {@code WeatherToolChatService}
- * 에 있다 — 컨트롤러는 입력 검증과 ApiResponse 래핑만 책임진다 (§4-1).</p>
+ * 에 있다 — 컨트롤러는 입력 검증과 ApiResponse 래핑만 책임진다.</p>
  */
 @RestController
 public class ToolCallingController {

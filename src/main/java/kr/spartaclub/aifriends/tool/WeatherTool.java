@@ -1,6 +1,8 @@
 package kr.spartaclub.aifriends.tool;
 
 import kr.spartaclub.aifriends.tool.dto.WeatherInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -20,9 +22,14 @@ import org.springframework.stereotype.Component;
  * <p>도구 함수의 예외는 가급적 던지지 않고 정상 응답으로 흘려준다 —
  * LLM 의 retry 루프가 의도치 않게 폭주하는 걸 막기 위함이다.
  * 도시 화이트리스트에 없는 입력은 기본값으로 답해 안전하게 종료시킨다.</p>
+ *
+ * <p>도구 진입 시 {@code log.info} 한 줄을 남겨, LLM 이 자율 판단으로 이 메서드를
+ * 디스패치했는지 학생이 콘솔에서 직접 확인할 수 있게 한다.</p>
  */
 @Component
 public class WeatherTool {
+
+    private static final Logger log = LoggerFactory.getLogger(WeatherTool.class);
 
     @Tool(description = "특정 도시의 현재 날씨(하늘 상태, 기온, 강수확률) 를 조회한다. "
             + "사용자가 옷차림·외출 여부·우산 챙기기 같은 결정을 도와달라고 할 때 호출하라.")
@@ -30,6 +37,7 @@ public class WeatherTool {
             @ToolParam(description = "날씨를 조회할 도시명. 예: '서울', '부산', '도쿄'")
             String city
     ) {
+        log.info("[WeatherTool] getCurrentWeather invoked — city={}", city);
         // 강의용 stub — 실제 기상 API 호출 대신 도시별 고정 응답을 돌려준다.
         // 학생이 "이 자리를 RestClient 호출로 갈아끼우면 진짜 도구가 된다" 는 감을 잡으면 충분.
         return switch (city) {
